@@ -4,11 +4,15 @@ import { OfferCard } from "@/components/OfferCard";
 import { ScrollPlaneTrail } from "@/components/ScrollPlaneTrail";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { HeroVideo } from "@/components/HeroVideo";
 import { TravelFinder } from "@/components/TravelFinder";
-import { collections, getPublishedOffers } from "@/lib/data";
+import { collections } from "@/lib/data";
+import { listPublishedPublicOffers } from "@/lib/offerRepository";
 
-export default function Home() {
-  const featuredOffers = getPublishedOffers();
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const featuredOffers = await listPublishedPublicOffers();
   const collectionDetails: Record<string, { label: string; audience: string; cue: string }> = {
     "red-signature": {
       label: "Red Signature",
@@ -71,19 +75,7 @@ export default function Home() {
       <main>
         <section className="hero">
           <div className="hero-media" aria-hidden="true">
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              poster="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2200&q=85"
-            >
-              <source src="/hero-redtours.mp4" type="video/mp4" />
-            </video>
-            <img
-              alt=""
-              src="https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2200&q=85"
-            />
+            <HeroVideo />
           </div>
           <div className="container hero-inner">
             <div className="hero-grid">

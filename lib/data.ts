@@ -228,6 +228,10 @@ export function getOfferBySlug(slug: string) {
   return offers.find((offer) => offer.slug === slug);
 }
 
+export function getPublishedOfferBySlug(slug: string) {
+  return getPublishedOffers().find((offer) => offer.slug === slug);
+}
+
 export function getDestinationBySlug(slug: string) {
   return destinations.find((destination) => destination.slug === slug);
 }

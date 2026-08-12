@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import { OfferCard } from "@/components/OfferCard";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { collections, destinations, offers } from "@/lib/data";
+import { collections, destinations } from "@/lib/data";
+import { listPublishedPublicOffers } from "@/lib/offerRepository";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Пътувания",
   description: "Открийте пътувания по дестинация, тема, настроение и стил."
 };
 
-export default function OffersPage() {
+export default async function OffersPage() {
+  const publishedOffers = await listPublishedPublicOffers();
+
   return (
     <>
       <SiteHeader />
@@ -54,7 +59,7 @@ export default function OffersPage() {
             </div>
           </div>
           <div className="offers-grid">
-            {offers.map((offer) => (
+            {publishedOffers.map((offer) => (
               <OfferCard key={offer.slug} offer={offer} />
             ))}
           </div>

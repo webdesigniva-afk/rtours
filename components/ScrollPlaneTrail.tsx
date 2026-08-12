@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
 export function ScrollPlaneTrail() {
+  const bandRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
 
@@ -16,17 +17,26 @@ export function ScrollPlaneTrail() {
     setReducedMotion(motionQuery.matches);
 
     const update = () => {
-      const start = window.innerHeight * 0.34;
-      const distance = window.innerHeight * 0.72;
-      setProgress(clamp((window.scrollY - start) / distance, 0, 1));
+      const band = bandRef.current;
+
+      if (!band) {
+        return;
+      }
+
+      const rect = band.getBoundingClientRect();
+      const start = window.innerHeight * 0.86;
+      const finish = window.innerHeight * 0.18;
+      setProgress(clamp((start - rect.top) / (start - finish), 0, 1));
     };
 
     update();
     window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
     motionQuery.addEventListener("change", updateMotionPreference);
 
     return () => {
       window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
       motionQuery.removeEventListener("change", updateMotionPreference);
     };
   }, []);
@@ -39,7 +49,7 @@ export function ScrollPlaneTrail() {
   const y = 0;
 
   return (
-    <div className="flight-path-band" aria-hidden="true">
+    <div ref={bandRef} className="flight-path-band" aria-hidden="true">
       <div className="flight-path-line">
         <span style={{ transform: `scaleX(${0.1 + progress * 0.9})` }} />
       </div>

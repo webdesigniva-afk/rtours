@@ -1,0 +1,159 @@
+"use server";
+
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { adminSessionCookieName, verifyAdminSessionToken } from "@/lib/adminSession";
+import { dbQuery } from "@/lib/db";
+import { createSlug } from "@/lib/slug";
+
+type OfferProductType = "excursion" | "holiday" | "hotel" | "flight" | "service" | "package";
+type OfferSource = "manual" | "xml" | "api" | "labeling" | "erp";
+type TransportType = "flight" | "bus" | "own_transport" | "mixed";
+
+const productTypeMap: Record<string, OfferProductType> = {
+  excursion: "excursion",
+  holiday: "holiday",
+  hotel: "hotel",
+  flight: "flight",
+  service: "service",
+  package: "package",
+  cruise: "package"
+};
+
+const sourceMap: Record<string, OfferSource> = {
+  manual: "manual",
+  xml: "xml",
+  api: "api",
+  erp: "erp",
+  other: "manual"
+};
+
+const transportMap: Record<string, TransportType> = {
+  flight: "flight",
+  bus: "bus",
+  own_transport: "own_transport",
+  mixed: "mixed"
+};
+
+async function requireAdminSession() {
+  const cookieStore = await cookies();
+  const session = await verifyAdminSessionToken(cookieStore.get(adminSessionCookieName)?.value);
+
+  if (!session) {
+    redirect("/admin/login?next=/admin/offers/new");
+  }
+}
+
+function readString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readInteger(formData: FormData, key: string) {
+  const value = Number.parseInt(readString(formData, key), 10);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+async function createUniqueOfferSlug(title: string) {
+  const baseSlug = createSlug(title);
+
+  for (let index = 0; index < 50; index += 1) {
+    const candidate = index === 0 ? baseSlug : `${baseSlug}-${index + 1}`;
+    const existing = await dbQuery("select 1 from offers where slug = $1 limit 1", [candidate]);
+
+    if (existing.rows.length === 0) {
+      return candidate;
+    }
+  }
+
+  return `${baseSlug}-${Date.now()}`;
+}
+
+export async function createAdminOffer(formData: FormData) {
+  await requireAdminSession();
+
+  const submittedTitle = readString(formData, "title");
+  const title = submittedTitle || `Нова чернова ${new Date().toLocaleString("bg-BG")}`;
+
+  const shortTitle = readString(formData, "short_title");
+  const summary = readString(formData, "summary");
+  const description = readString(formData, "description");
+  const country = readString(formData, "country");
+  const region = readString(formData, "region");
+  const durationDays = readInteger(formData, "duration_days");
+  const durationNights = readInteger(formData, "duration_nights");
+  const productType = productTypeMap[readString(formData, "product_type")] ?? "package";
+  const source = sourceMap[readString(formData, "source")] ?? "manual";
+  const transport = transportMap[readString(formData, "transport")] ?? "mixed";
+  const isAuthorProgram = readString(formData, "is_author_program") !== "no";
+  const slug = await createUniqueOfferSlug(title);
+  const heroImageUrl = readString(formData, "hero_image_url") || null;
+  const galleryImageUrls = formData
+    .getAll("gallery_image_urls")
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .slice(0, 20);
+
+  const insertResult = await dbQuery<{ id: string }>(
+    `
+      insert into offers (
+        slug,
+        product_type,
+        title,
+        summary,
+        description,
+        country,
+        region,
+        duration_days,
+        duration_nights,
+        transport,
+        source,
+        status,
+        hero_image_url,
+        is_author_program,
+        seo_meta_title,
+        seo_meta_description,
+        review_notes
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'draft', $12, $13, $14, $15, $16)
+      returning id
+    `,
+    [
+      slug,
+      productType,
+      title,
+      summary || shortTitle || null,
+      description || null,
+      country || null,
+      region || null,
+      durationDays,
+      durationNights,
+      transport,
+      source,
+      heroImageUrl,
+      isAuthorProgram,
+      title,
+      summary || null,
+      "Създадена през ERP формата за нова оферта."
+    ]
+  );
+  const offerId = insertResult.rows[0].id;
+
+  const mediaRows = [
+    ...(heroImageUrl ? [{ url: heroImageUrl, alt: title, isPrimary: true, sortOrder: 0 }] : []),
+    ...galleryImageUrls
+      .filter((url): url is string => Boolean(url))
+      .map((url, index) => ({ url, alt: `${title} - снимка ${index + 1}`, isPrimary: false, sortOrder: index + 1 }))
+  ];
+
+  for (const media of mediaRows) {
+    await dbQuery(
+      `
+        insert into offer_media (offer_id, url, alt, source, is_primary, sort_order)
+        values ($1, $2, $3, 'redtours', $4, $5)
+      `,
+      [offerId, media.url, media.alt, media.isPrimary, media.sortOrder]
+    );
+  }
+
+  redirect(`/admin/offers/${slug}`);
+}
