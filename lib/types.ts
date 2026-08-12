@@ -124,6 +124,7 @@ export interface OfferDate {
   label: string;
   startDate: string;
   endDate: string;
+  departurePoints?: string;
   availability: "available" | "limited" | "on_request" | "sold_out";
 }
 

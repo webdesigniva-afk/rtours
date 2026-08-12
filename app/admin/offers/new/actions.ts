@@ -110,6 +110,10 @@ function readItinerary(formData: FormData): OfferItineraryInput[] {
     .filter((day) => day.title || day.description);
 }
 
+function readServices(formData: FormData, key: string) {
+  return readStringList(formData, key).filter(Boolean);
+}
+
 async function createUniqueOfferSlug(title: string) {
   const baseSlug = createSlug(title);
 
@@ -123,6 +127,39 @@ async function createUniqueOfferSlug(title: string) {
   }
 
   return `${baseSlug}-${Date.now()}`;
+}
+
+export async function createBlankAdminOffer() {
+  await requireAdminSession();
+
+  const createdAt = new Date();
+  const title = "Нова оферта";
+  const slug = await createUniqueOfferSlug(`nova-oferta-${createdAt.getTime()}`);
+
+  await dbQuery(
+    `
+      insert into offers (
+        slug,
+        product_type,
+        product_type_label,
+        title,
+        summary,
+        description,
+        duration_days,
+        duration_nights,
+        transport,
+        source,
+        status,
+        is_author_program,
+        seo_meta_title,
+        review_notes
+      )
+      values ($1, 'excursion', 'Екскурзия', $2, '', '', 6, 5, 'flight', 'manual', 'draft', true, $2, $3)
+    `,
+    [slug, title, "Създадена е празна чернова. Всички промени в редактора се записват автоматично."]
+  );
+
+  return slug;
 }
 
 export async function createAdminOffer(formData: FormData) {
@@ -146,6 +183,8 @@ export async function createAdminOffer(formData: FormData) {
   const transport = transportMap[readString(formData, "transport")] ?? "mixed";
   const isAuthorProgram = readString(formData, "is_author_program") !== "no";
   const itineraryRows = readItinerary(formData);
+  const includedServices = readServices(formData, "included_services");
+  const excludedServices = readServices(formData, "excluded_services");
   const slug = await createUniqueOfferSlug(title);
   const heroImageUrl = readString(formData, "hero_image_url") || null;
   const galleryImageUrls = formData
@@ -240,6 +279,21 @@ export async function createAdminOffer(formData: FormData) {
         values ($1, $2, $3, nullif($4, ''), $5)
       `,
       [offerId, Number.isFinite(day.dayNumber) && day.dayNumber > 0 ? day.dayNumber : index + 1, day.title || `Ден ${index + 1}`, day.description, index]
+    );
+  }
+
+  const serviceRows = [
+    ...includedServices.map((label, index) => ({ type: "included", label, sortOrder: index })),
+    ...excludedServices.map((label, index) => ({ type: "excluded", label, sortOrder: index }))
+  ];
+
+  for (const service of serviceRows) {
+    await dbQuery(
+      `
+        insert into offer_services (offer_id, service_type, label, sort_order)
+        values ($1, $2, $3, $4)
+      `,
+      [offerId, service.type, service.label, service.sortOrder]
     );
   }
 

@@ -24,10 +24,28 @@ export async function generateMetadata({ params }: OfferPageProps): Promise<Meta
     return {};
   }
 
+  const canonicalUrl = offer.seo.canonicalUrl || `/offers/${offer.slug}`;
+
   return {
     title: offer.seo.metaTitle,
     description: offer.seo.metaDescription,
-    keywords: offer.seo.keywords
+    keywords: offer.seo.keywords,
+    alternates: {
+      canonical: canonicalUrl
+    },
+    openGraph: {
+      type: "website",
+      title: offer.seo.metaTitle,
+      description: offer.seo.metaDescription,
+      url: canonicalUrl,
+      images: offer.heroImage ? [{ url: offer.heroImage, alt: offer.title }] : undefined
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: offer.seo.metaTitle,
+      description: offer.seo.metaDescription,
+      images: offer.heroImage ? [offer.heroImage] : undefined
+    }
   };
 }
 

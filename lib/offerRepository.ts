@@ -59,6 +59,13 @@ type PublicOfferRow = {
   hero_image_url: string | null;
   is_author_program: boolean;
   gallery_image_urls: string[] | null;
+  dates: Array<{
+    label: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    departurePoints: string | null;
+    availability: "available" | "limited" | "on_request" | "sold_out";
+  }> | null;
   destinations: Array<{
     country: string;
     region: string | null;
@@ -71,8 +78,13 @@ type PublicOfferRow = {
     title: string;
     description: string | null;
   }> | null;
+  included_services: string[] | null;
+  excluded_services: string[] | null;
   seo_meta_title: string | null;
   seo_meta_description: string | null;
+  seo_keywords: string[] | null;
+  seo_canonical_url: string | null;
+  seo_structured_data_type: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -125,16 +137,26 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     isAuthorProgram: row.is_author_program,
     heroImage: row.hero_image_url || fallbackHeroImage,
     gallery: row.gallery_image_urls?.length ? row.gallery_image_urls : row.hero_image_url ? [row.hero_image_url] : [],
-    dates: [{ label: "Дати по заявка", startDate: "", endDate: "", availability: "on_request" }],
+    dates: row.dates?.length
+      ? row.dates.map((date) => ({
+          label: date.label || date.startDate || "Дата по заявка",
+          startDate: date.startDate || "",
+          endDate: date.endDate || "",
+          departurePoints: date.departurePoints || undefined,
+          availability: date.availability
+        }))
+      : [{ label: "Дати по заявка", startDate: "", endDate: "", availability: "on_request" }],
     moods: [],
     tags: [],
-    included: [],
-    excluded: [],
+    included: row.included_services ?? [],
+    excluded: row.excluded_services ?? [],
     itinerary,
     seo: {
       metaTitle: row.seo_meta_title || title,
       metaDescription: row.seo_meta_description || summary,
-      keywords: [country, region, title].filter(Boolean)
+      keywords: row.seo_keywords?.length ? row.seo_keywords : [country, region, title].filter(Boolean),
+      canonicalUrl: row.seo_canonical_url || `/offers/${row.slug}`,
+      structuredDataType: row.seo_structured_data_type || "TouristTrip"
     },
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -176,6 +198,23 @@ export async function listPublishedPublicOffers() {
           (
             select jsonb_agg(
               jsonb_build_object(
+                'label', date.label,
+                'startDate', date.start_date::text,
+                'endDate', date.end_date::text,
+                'departurePoints', date.departure_points,
+                'availability', date.availability::text
+              )
+              order by date.sort_order, date.start_date nulls last
+            )
+            from offer_dates date
+            where date.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as dates,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
                 'country', destination.country,
                 'region', destination.region,
                 'city', destination.city,
@@ -204,8 +243,29 @@ export async function listPublishedPublicOffers() {
           ),
           '[]'::jsonb
         ) as itinerary_days,
+        coalesce(
+          (
+            select array_agg(service.label order by service.sort_order)
+            from offer_services service
+            where service.offer_id = offers.id
+              and service.service_type = 'included'
+          ),
+          '{}'::text[]
+        ) as included_services,
+        coalesce(
+          (
+            select array_agg(service.label order by service.sort_order)
+            from offer_services service
+            where service.offer_id = offers.id
+              and service.service_type = 'excluded'
+          ),
+          '{}'::text[]
+        ) as excluded_services,
         seo_meta_title,
         seo_meta_description,
+        seo_keywords,
+        seo_canonical_url,
+        seo_structured_data_type,
         created_at::text,
         updated_at::text
       from offers
@@ -256,6 +316,23 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
           (
             select jsonb_agg(
               jsonb_build_object(
+                'label', date.label,
+                'startDate', date.start_date::text,
+                'endDate', date.end_date::text,
+                'departurePoints', date.departure_points,
+                'availability', date.availability::text
+              )
+              order by date.sort_order, date.start_date nulls last
+            )
+            from offer_dates date
+            where date.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as dates,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
                 'country', destination.country,
                 'region', destination.region,
                 'city', destination.city,
@@ -284,8 +361,29 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
           ),
           '[]'::jsonb
         ) as itinerary_days,
+        coalesce(
+          (
+            select array_agg(service.label order by service.sort_order)
+            from offer_services service
+            where service.offer_id = offers.id
+              and service.service_type = 'included'
+          ),
+          '{}'::text[]
+        ) as included_services,
+        coalesce(
+          (
+            select array_agg(service.label order by service.sort_order)
+            from offer_services service
+            where service.offer_id = offers.id
+              and service.service_type = 'excluded'
+          ),
+          '{}'::text[]
+        ) as excluded_services,
         seo_meta_title,
         seo_meta_description,
+        seo_keywords,
+        seo_canonical_url,
+        seo_structured_data_type,
         created_at::text,
         updated_at::text
       from offers
