@@ -3,6 +3,7 @@ import { getAdminOfferBySlug } from "@/lib/adminOfferRepository";
 
 type AdminOfferEditorPageProps = {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ tab?: string }>;
 };
 
 function toNumber(value: string | null | undefined, fallback: number) {
@@ -10,8 +11,9 @@ function toNumber(value: string | null | undefined, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-export default async function AdminOfferEditorPage({ params }: AdminOfferEditorPageProps) {
+export default async function AdminOfferEditorPage({ params, searchParams }: AdminOfferEditorPageProps) {
   const { slug } = await params;
+  const { tab } = (await searchParams) ?? {};
   const offer = await getAdminOfferBySlug(slug).catch(() => null);
 
   const initialOffer: AdminOfferEditorInitialOffer = {
@@ -29,9 +31,10 @@ export default async function AdminOfferEditorPage({ params }: AdminOfferEditorP
     status: offer?.status ?? "draft",
     heroImageUrl: offer?.hero_image_url ?? "",
     isAuthorProgram: offer?.is_author_program ?? false,
+    itinerary: offer?.itinerary_days ?? [],
     createdAt: offer?.created_at ?? "",
     updatedAt: offer?.updated_at ?? ""
   };
 
-  return <AdminOfferEditorClient offer={initialOffer} />;
+  return <AdminOfferEditorClient offer={initialOffer} initialTabKey={tab} />;
 }

@@ -50,8 +50,16 @@ export type AdminOfferEditorInitialOffer = {
   status: OfferStatus;
   heroImageUrl: string;
   isAuthorProgram: boolean;
+  itinerary: Array<{ day: number; title: string; description: string }>;
   createdAt: string;
   updatedAt: string;
+};
+
+type EditableItineraryDay = {
+  id: string;
+  day: number;
+  title: string;
+  description: string;
 };
 
 type ChoiceItem = {
@@ -192,8 +200,14 @@ function sectionStatusLabel(status: SectionStatus, percent: number) {
   return `${percent}%`;
 }
 
-export function AdminOfferEditorClient({ offer }: { offer: AdminOfferEditorInitialOffer }) {
-  const [activeTab, setActiveTab] = useState("Оферта");
+function tabFromKey(tabKey?: string) {
+  if (tabKey === "dates-prices") return "Дати и цени";
+  if (tabKey === "publishing") return "Публикуване";
+  return "Оферта";
+}
+
+export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminOfferEditorInitialOffer; initialTabKey?: string }) {
+  const [activeTab, setActiveTab] = useState(tabFromKey(initialTabKey));
   const [status, setStatus] = useState<OfferStatus>(offer.status);
   const [selectedTags, setSelectedTags] = useState<TagItem[]>(availableTags.slice(0, 4));
   const [collections, setCollections] = useState(["Red Signature", "Red Escape", "Red Moments"]);
@@ -234,7 +248,7 @@ export function AdminOfferEditorClient({ offer }: { offer: AdminOfferEditorIniti
       heroImage: offer.heroImageUrl,
       gallery: [],
       dates: [{ label: "Дати по заявка", startDate: "" }],
-      itinerary: [],
+      itinerary: offer.itinerary,
       included: [],
       excluded: []
     }),
@@ -347,7 +361,7 @@ export function AdminOfferEditorClient({ offer }: { offer: AdminOfferEditorIniti
           offer.description,
           offer.heroImageUrl
         ].filter(Boolean).length /
-          8) *
+          9) *
           100
       ),
       filled: [
@@ -356,12 +370,13 @@ export function AdminOfferEditorClient({ offer }: { offer: AdminOfferEditorIniti
         offer.durationDays ? `Продължителност: ${offer.durationDays} дни / ${offer.durationNights} нощувки` : "",
         offer.summary ? "Кратко описание: попълнено" : "",
         offer.description ? "Пълно описание: попълнено" : "",
-        offer.heroImageUrl ? "Основна снимка: качена" : ""
+        offer.heroImageUrl ? "Основна снимка: качена" : "",
+        offer.itinerary.length ? `Програма: ${offer.itinerary.length} дни` : ""
       ].filter(Boolean),
       missing: [
         !offer.description ? "Пълно описание" : "",
         !offer.heroImageUrl ? "Основна снимка" : "",
-        "Програма по дни",
+        !offer.itinerary.length ? "Програма по дни" : "",
         "Какво включва цената",
         "Какво не включва",
         "Допълнителни услуги",
@@ -740,6 +755,27 @@ function SummaryList({ title, items, empty, warning = false }: { title: string; 
 
 function OfferContentWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }) {
   const [state, action, isPending] = useActionState(updateOfferContent, { ok: false, message: "" });
+  const [itineraryDays, setItineraryDays] = useState<EditableItineraryDay[]>(
+    offer.itinerary.length
+      ? offer.itinerary.map((day) => ({
+          id: crypto.randomUUID(),
+          day: day.day,
+          title: day.title,
+          description: day.description
+        }))
+      : [{ id: crypto.randomUUID(), day: 1, title: "", description: "" }]
+  );
+
+  const renumberItineraryDays = (days: EditableItineraryDay[]) => days.map((day, index) => ({ ...day, day: index + 1 }));
+  const updateItineraryDay = (id: string, field: "title" | "description", value: string) => {
+    setItineraryDays((current) => current.map((day) => (day.id === id ? { ...day, [field]: value } : day)));
+  };
+  const addItineraryDay = () => {
+    setItineraryDays((current) => [...current, { id: crypto.randomUUID(), day: current.length + 1, title: "", description: "" }]);
+  };
+  const removeItineraryDay = (id: string) => {
+    setItineraryDays((current) => renumberItineraryDays(current.length === 1 ? current : current.filter((day) => day.id !== id)));
+  };
 
   return (
     <form className="offer-workflow-stack" action={action}>
@@ -814,12 +850,51 @@ function OfferContentWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer 
             <span>Пълно описание</span>
             <textarea name="description" defaultValue={offer.description} rows={8} />
           </label>
-          <div className="offer-mini-grid">
-            <button type="button">Програма по дни</button>
-            <button type="button">Какво включва</button>
-            <button type="button">Какво не включва</button>
-            <button type="button">Допълнителни услуги</button>
-          </div>
+          <section className="offer-itinerary-editor">
+            <header>
+              <div>
+                <h3>Програма по дни</h3>
+                <p>Всеки ден се записва отделно, за да може сайтът да го показва като красив маршрут.</p>
+              </div>
+              <button type="button" onClick={addItineraryDay}>
+                <Plus size={16} aria-hidden="true" />
+                Добави ден
+              </button>
+            </header>
+            <div className="offer-itinerary-list">
+              {itineraryDays.map((day) => (
+                <article className="offer-itinerary-row" key={day.id}>
+                  <div className="offer-itinerary-day-number">
+                    <span>Ден</span>
+                    <strong>{day.day}</strong>
+                    <input type="hidden" name="itinerary_day_number" value={day.day} />
+                  </div>
+                  <label className="offer-edit-field">
+                    <span>Заглавие за деня</span>
+                    <input
+                      name="itinerary_title"
+                      value={day.title}
+                      onChange={(event) => updateItineraryDay(day.id, "title", event.target.value)}
+                      placeholder="Напр. София - Истанбул"
+                    />
+                  </label>
+                  <label className="offer-edit-field is-wide">
+                    <span>Описание</span>
+                    <textarea
+                      name="itinerary_description"
+                      value={day.description}
+                      onChange={(event) => updateItineraryDay(day.id, "description", event.target.value)}
+                      placeholder="Опишете програмата за този ден..."
+                      rows={4}
+                    />
+                  </label>
+                  <button type="button" onClick={() => removeItineraryDay(day.id)} disabled={itineraryDays.length === 1} aria-label="Премахни ден">
+                    <X size={16} aria-hidden="true" />
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
         </div>
       </section>
 

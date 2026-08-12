@@ -10,6 +10,18 @@ type OfferProductType = "excursion" | "holiday" | "hotel" | "flight" | "service"
 type OfferSource = "manual" | "xml" | "api" | "labeling" | "erp";
 type TransportType = "flight" | "bus" | "own_transport" | "mixed";
 
+type OfferDestinationInput = {
+  country: string;
+  region: string;
+  city: string;
+};
+
+type OfferItineraryInput = {
+  dayNumber: number;
+  title: string;
+  description: string;
+};
+
 const productTypeMap: Record<string, OfferProductType> = {
   excursion: "excursion",
   holiday: "holiday",
@@ -54,6 +66,50 @@ function readInteger(formData: FormData, key: string) {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+function readStringList(formData: FormData, key: string) {
+  return formData.getAll(key).map((value) => (typeof value === "string" ? value.trim() : ""));
+}
+
+function readDestinations(formData: FormData): OfferDestinationInput[] {
+  const countries = readStringList(formData, "destination_country");
+  const regions = readStringList(formData, "destination_region");
+  const cities = readStringList(formData, "destination_city");
+  const rowCount = Math.max(countries.length, regions.length, cities.length);
+  const destinations: OfferDestinationInput[] = [];
+
+  for (let index = 0; index < rowCount; index += 1) {
+    const country = countries[index] ?? "";
+    const region = regions[index] ?? "";
+    const city = cities[index] ?? "";
+
+    if (!country && !region && !city) {
+      continue;
+    }
+
+    destinations.push({
+      country: country || "Дестинация",
+      region,
+      city
+    });
+  }
+
+  return destinations;
+}
+
+function readItinerary(formData: FormData): OfferItineraryInput[] {
+  const dayNumbers = readStringList(formData, "itinerary_day_number");
+  const titles = readStringList(formData, "itinerary_title");
+  const descriptions = readStringList(formData, "itinerary_description");
+
+  return titles
+    .map((title, index) => ({
+      dayNumber: Number.parseInt(dayNumbers[index] || `${index + 1}`, 10),
+      title,
+      description: descriptions[index] || ""
+    }))
+    .filter((day) => day.title || day.description);
+}
+
 async function createUniqueOfferSlug(title: string) {
   const baseSlug = createSlug(title);
 
@@ -78,14 +134,18 @@ export async function createAdminOffer(formData: FormData) {
   const shortTitle = readString(formData, "short_title");
   const summary = readString(formData, "summary");
   const description = readString(formData, "description");
-  const country = readString(formData, "country");
-  const region = readString(formData, "region");
+  const destinations = readDestinations(formData);
+  const primaryDestination = destinations[0];
+  const country = primaryDestination?.country || readString(formData, "country");
+  const region = primaryDestination?.region || primaryDestination?.city || readString(formData, "region");
   const durationDays = readInteger(formData, "duration_days");
   const durationNights = readInteger(formData, "duration_nights");
   const productType = productTypeMap[readString(formData, "product_type")] ?? "package";
+  const productTypeLabel = readString(formData, "product_type_label") || null;
   const source = sourceMap[readString(formData, "source")] ?? "manual";
   const transport = transportMap[readString(formData, "transport")] ?? "mixed";
   const isAuthorProgram = readString(formData, "is_author_program") !== "no";
+  const itineraryRows = readItinerary(formData);
   const slug = await createUniqueOfferSlug(title);
   const heroImageUrl = readString(formData, "hero_image_url") || null;
   const galleryImageUrls = formData
@@ -98,6 +158,7 @@ export async function createAdminOffer(formData: FormData) {
       insert into offers (
         slug,
         product_type,
+        product_type_label,
         title,
         summary,
         description,
@@ -114,12 +175,13 @@ export async function createAdminOffer(formData: FormData) {
         seo_meta_description,
         review_notes
       )
-      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'draft', $12, $13, $14, $15, $16)
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'draft', $13, $14, $15, $16, $17)
       returning id
     `,
     [
       slug,
       productType,
+      productTypeLabel,
       title,
       summary || shortTitle || null,
       description || null,
@@ -155,5 +217,31 @@ export async function createAdminOffer(formData: FormData) {
     );
   }
 
-  redirect(`/admin/offers/${slug}`);
+  const destinationRows = destinations.length > 0
+    ? destinations
+    : country || region
+      ? [{ country: country || "Дестинация", region, city: "" }]
+      : [];
+
+  for (const [index, destination] of destinationRows.entries()) {
+    await dbQuery(
+      `
+        insert into offer_destinations (offer_id, country, region, city, is_primary, sort_order)
+        values ($1, $2, nullif($3, ''), nullif($4, ''), $5, $6)
+      `,
+      [offerId, destination.country, destination.region, destination.city, index === 0, index]
+    );
+  }
+
+  for (const [index, day] of itineraryRows.entries()) {
+    await dbQuery(
+      `
+        insert into offer_itinerary_days (offer_id, day_number, title, description, sort_order)
+        values ($1, $2, $3, nullif($4, ''), $5)
+      `,
+      [offerId, Number.isFinite(day.dayNumber) && day.dayNumber > 0 ? day.dayNumber : index + 1, day.title || `Ден ${index + 1}`, day.description, index]
+    );
+  }
+
+  redirect(`/admin/offers/${slug}?tab=dates-prices`);
 }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   ArrowRight,
   Bold,
   CalendarDays,
@@ -14,19 +15,43 @@ import {
   List,
   MapPin,
   MoreHorizontal,
+  Plus,
   Plane,
-  Underline
+  Trash2,
+  Underline,
+  X
 } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import { createAdminOffer } from "./actions";
 
-const productTypeLabels: Record<string, string> = {
-  excursion: "Екскурзия",
-  holiday: "Почивка",
-  package: "Пакет",
-  hotel: "Хотел",
-  flight: "Самолетен билет"
+type ProductTypeOption = {
+  slug: string;
+  label: string;
+  productType: string;
+  isSystem: boolean;
 };
+
+type DraftDestination = {
+  id: string;
+  country: string;
+  region: string;
+  city: string;
+};
+
+type DraftItineraryDay = {
+  id: string;
+  day: number;
+  title: string;
+  description: string;
+};
+
+const defaultProductTypeOptions: ProductTypeOption[] = [
+  { slug: "excursion", label: "Екскурзия", productType: "excursion", isSystem: true },
+  { slug: "holiday", label: "Почивка", productType: "holiday", isSystem: true },
+  { slug: "package", label: "Пакет", productType: "package", isSystem: true },
+  { slug: "hotel", label: "Хотел", productType: "hotel", isSystem: true },
+  { slug: "flight", label: "Самолетен билет", productType: "flight", isSystem: true }
+];
 
 const countryCodes = [
   "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
@@ -66,6 +91,7 @@ function UploadBox({
   role,
   multiple = false,
   required = false,
+  uploadedUrls = [],
   onFilesChange,
   onUploaded
 }: {
@@ -77,12 +103,21 @@ function UploadBox({
   role: "hero" | "gallery";
   multiple?: boolean;
   required?: boolean;
+  uploadedUrls?: string[];
   onFilesChange?: (files: File[]) => void;
   onUploaded?: (urls: string[]) => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [uploadError, setUploadError] = useState("");
+  const hasUploadedFiles = uploadedUrls.length > 0;
+
+  const resetFileInput = () => {
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const nextFiles = Array.from(event.target.files ?? []);
@@ -92,14 +127,16 @@ function UploadBox({
     onFilesChange?.(nextFiles);
 
     if (nextFiles.length === 0) {
-      onUploaded?.([]);
+      if (!multiple) {
+        onUploaded?.([]);
+      }
       return;
     }
 
     setUploadState("uploading");
 
     try {
-      const uploadedUrls: string[] = [];
+      const uploadedUrlsFromUpload: string[] = [];
 
       for (const [index, file] of nextFiles.slice(0, 20).entries()) {
         const uploadFormData = new FormData();
@@ -121,36 +158,96 @@ function UploadBox({
         const result = (await response.json()) as { url?: string };
 
         if (result.url) {
-          uploadedUrls.push(result.url);
+          uploadedUrlsFromUpload.push(result.url);
         }
       }
 
-      onUploaded?.(uploadedUrls);
+      const nextUploadedUrls = multiple ? [...uploadedUrls, ...uploadedUrlsFromUpload].slice(0, 20) : uploadedUrlsFromUpload.slice(0, 1);
+
+      onUploaded?.(nextUploadedUrls);
       setUploadState("done");
+      resetFileInput();
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Файлът не беше качен. Провери размера, типа или настройките на Storage.");
-      onUploaded?.([]);
+      if (!multiple) {
+        onUploaded?.([]);
+      }
       setUploadState("error");
     }
   };
 
+  const removeUploadedUrl = (urlToRemove: string) => {
+    const nextUrls = uploadedUrls.filter((url) => url !== urlToRemove);
+    setFiles([]);
+    setUploadError("");
+    setUploadState(nextUrls.length ? "done" : "idle");
+    onFilesChange?.([]);
+    onUploaded?.(nextUrls);
+    resetFileInput();
+  };
+
+  const moveUploadedUrl = (urlToMove: string, direction: -1 | 1) => {
+    const currentIndex = uploadedUrls.indexOf(urlToMove);
+    const nextIndex = currentIndex + direction;
+
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= uploadedUrls.length) {
+      return;
+    }
+
+    const nextUrls = [...uploadedUrls];
+    const [item] = nextUrls.splice(currentIndex, 1);
+    nextUrls.splice(nextIndex, 0, item);
+    onUploaded?.(nextUrls);
+  };
+
   return (
-    <label className="offer-new-upload">
-      <ImageIcon size={30} aria-hidden="true" />
-      <strong>{files.length > 0 ? `${files.length} избран${files.length === 1 ? " файл" : "и файла"}` : title}</strong>
-      <span>{uploadState === "uploading" ? "Качване към системата..." : files.length > 0 ? files.map((file) => file.name).join(", ") : hint}</span>
-      <input
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        multiple={multiple}
-        required={required}
-        onChange={handleFileChange}
-      />
-      <span className={`offer-new-upload-action is-${uploadState}`}>
-        {uploadState === "uploading" ? "Качва се..." : uploadState === "done" ? "Качено" : uploadState === "error" ? "Грешка при качване" : action}
-      </span>
+    <div className={hasUploadedFiles ? "offer-new-upload-manager has-files" : "offer-new-upload-manager"}>
+      <label className="offer-new-upload">
+        <ImageIcon size={30} aria-hidden="true" />
+        <strong>{uploadState === "uploading" ? "Качване..." : hasUploadedFiles ? (multiple ? "Добави още снимки" : "Смени снимката") : title}</strong>
+        <span>{uploadState === "uploading" ? "Качване към системата..." : files.length > 0 ? files.map((file) => file.name).join(", ") : hint}</span>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          multiple={multiple}
+          required={required && !hasUploadedFiles}
+          onChange={handleFileChange}
+        />
+        <span className={`offer-new-upload-action is-${uploadState}`}>
+          {uploadState === "uploading" ? "Качва се..." : uploadState === "done" ? "Качено" : uploadState === "error" ? "Грешка при качване" : action}
+        </span>
+      </label>
+      {hasUploadedFiles ? (
+        <div className={multiple ? "offer-new-upload-thumbs" : "offer-new-upload-thumbs is-single"}>
+          {uploadedUrls.map((url, index) => (
+            <figure className="offer-new-upload-thumb" key={`${url}-${index}`}>
+              <img src={url} alt={multiple ? `Снимка ${index + 1}` : "Основна снимка"} />
+              <figcaption>
+                <strong>{multiple ? `Снимка ${index + 1}` : "Основна снимка"}</strong>
+                <span>{index === 0 && multiple ? "първа в галерията" : "качена"}</span>
+              </figcaption>
+              <div>
+                {multiple ? (
+                  <>
+                    <button type="button" onClick={() => moveUploadedUrl(url, -1)} disabled={index === 0} aria-label="Премести снимката наляво">
+                      <ArrowLeft size={15} aria-hidden="true" />
+                    </button>
+                    <button type="button" onClick={() => moveUploadedUrl(url, 1)} disabled={index === uploadedUrls.length - 1} aria-label="Премести снимката надясно">
+                      <ArrowRight size={15} aria-hidden="true" />
+                    </button>
+                  </>
+                ) : null}
+                <button type="button" onClick={() => removeUploadedUrl(url)} aria-label="Изтрий снимката">
+                  <Trash2 size={15} aria-hidden="true" />
+                </button>
+              </div>
+            </figure>
+          ))}
+        </div>
+      ) : null}
       {uploadError ? <em>{uploadError}</em> : null}
-    </label>
+    </div>
   );
 }
 
@@ -159,14 +256,23 @@ export default function NewOfferPage() {
   const savedSelectionRef = useRef<Range | null>(null);
   const uploadSessionIdRef = useRef(crypto.randomUUID());
   const [productType, setProductType] = useState("excursion");
+  const [productTypeOptions, setProductTypeOptions] = useState(defaultProductTypeOptions);
+  const [isProductTypeOpen, setIsProductTypeOpen] = useState(false);
+  const [isAddingProductType, setIsAddingProductType] = useState(false);
+  const [newProductTypeLabel, setNewProductTypeLabel] = useState("");
+  const [productTypeError, setProductTypeError] = useState("");
   const [title, setTitle] = useState("");
-  const [country, setCountry] = useState("");
-  const [region, setRegion] = useState("");
+  const [destinations, setDestinations] = useState<DraftDestination[]>([
+    { id: "primary", country: "", region: "", city: "" }
+  ]);
   const [durationDays, setDurationDays] = useState("6");
   const [durationNights, setDurationNights] = useState("5");
   const [transport, setTransport] = useState("flight");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
+  const [itineraryDays, setItineraryDays] = useState<DraftItineraryDay[]>([
+    { id: "day-1", day: 1, title: "", description: "" }
+  ]);
   const [heroPreview, setHeroPreview] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
   const [galleryImageUrls, setGalleryImageUrls] = useState<string[]>([]);
@@ -176,6 +282,14 @@ export default function NewOfferPage() {
   const [editorPanel, setEditorPanel] = useState<"format" | "link" | "image" | "more" | null>(null);
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const selectedProductType = productTypeOptions.find((option) => option.slug === productType) ?? productTypeOptions[0];
+  const primaryDestination = destinations[0] ?? { id: "primary", country: "", region: "", city: "" };
+  const country = primaryDestination.country;
+  const region = primaryDestination.region || primaryDestination.city;
+  const routeLabel = destinations
+    .map((destination) => [destination.city, destination.region, destination.country].filter(Boolean).join(", "))
+    .filter(Boolean)
+    .join(" → ");
   const syncDescription = () => {
     setDescription(editorRef.current?.innerHTML ?? "");
   };
@@ -245,6 +359,94 @@ export default function NewOfferPage() {
     }
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch("/admin/offer-product-types")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((result: { productTypes?: Array<{ slug: string; label: string; product_type: string; is_system: boolean }> } | null) => {
+        if (!isMounted || !result?.productTypes) {
+          return;
+        }
+
+        setProductTypeOptions(
+          result.productTypes.map((item) => ({
+            slug: item.slug,
+            label: item.label,
+            productType: item.product_type,
+            isSystem: item.is_system
+          }))
+        );
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const addProductType = async () => {
+    const label = newProductTypeLabel.trim();
+
+    if (!label) {
+      setProductTypeError("Въведи име на типа.");
+      return;
+    }
+
+    setProductTypeError("");
+
+    const response = await fetch("/admin/offer-product-types", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label })
+    });
+
+    const result = (await response.json().catch(() => null)) as { productType?: { slug: string; label: string; product_type: string; is_system: boolean }; error?: string } | null;
+
+    if (!response.ok || !result?.productType) {
+      setProductTypeError(result?.error || "Типът не беше добавен.");
+      return;
+    }
+
+    const option = {
+      slug: result.productType.slug,
+      label: result.productType.label,
+      productType: result.productType.product_type,
+      isSystem: result.productType.is_system
+    };
+
+    setProductTypeOptions((current) => [...current.filter((item) => item.slug !== option.slug), option]);
+    setProductType(option.slug);
+    setNewProductTypeLabel("");
+    setIsAddingProductType(false);
+    setIsProductTypeOpen(false);
+  };
+
+  const updateDestination = (id: string, field: keyof Omit<DraftDestination, "id">, value: string) => {
+    setDestinations((current) =>
+      current.map((destination) => (destination.id === id ? { ...destination, [field]: value } : destination))
+    );
+  };
+
+  const addDestination = () => {
+    setDestinations((current) => [...current, { id: crypto.randomUUID(), country: "", region: "", city: "" }]);
+  };
+
+  const removeDestination = (id: string) => {
+    setDestinations((current) => (current.length === 1 ? current : current.filter((destination) => destination.id !== id)));
+  };
+
+  const renumberItineraryDays = (days: DraftItineraryDay[]) => days.map((day, index) => ({ ...day, day: index + 1 }));
+  const updateItineraryDay = (id: string, field: "title" | "description", value: string) => {
+    setItineraryDays((current) => current.map((day) => (day.id === id ? { ...day, [field]: value } : day)));
+  };
+  const addItineraryDay = () => {
+    setItineraryDays((current) => [...current, { id: crypto.randomUUID(), day: current.length + 1, title: "", description: "" }]);
+  };
+  const removeItineraryDay = (id: string) => {
+    setItineraryDays((current) => renumberItineraryDays(current.length === 1 ? current : current.filter((day) => day.id !== id)));
+  };
+
   const toggleEditorMode = () => {
     if (editorMode === "visual") {
       syncDescription();
@@ -302,6 +504,12 @@ export default function NewOfferPage() {
           <Link href="/admin/offers">Към всички оферти</Link>
         </header>
 
+        <nav className="offer-create-steps" aria-label="Стъпки при създаване на оферта">
+          <span className="is-active">1. Оферта</span>
+          <span>2. Дати и цени</span>
+          <span>3. Публикуване</span>
+        </nav>
+
         <div className="offer-new-layout">
           <form className="offer-new-form" action={createAdminOffer} encType="multipart/form-data">
             <section className="offer-new-card">
@@ -315,15 +523,43 @@ export default function NewOfferPage() {
               <div className="offer-new-form-grid">
                 <label>
                   <span>Тип оферта <b>*</b></span>
-                  <div className="offer-new-select-button">
-                    <Plane size={18} aria-hidden="true" />
-                    <select name="product_type" value={productType} onChange={(event) => setProductType(event.target.value)}>
-                      <option value="excursion">Екскурзия</option>
-                      <option value="holiday">Почивка</option>
-                      <option value="package">Пакет</option>
-                      <option value="hotel">Хотел</option>
-                      <option value="flight">Самолетен билет</option>
-                    </select>
+                  <input type="hidden" name="product_type" value={selectedProductType.productType} />
+                  <input type="hidden" name="product_type_label" value={selectedProductType.label} />
+                  <div className="offer-new-custom-select">
+                    <button type="button" onClick={() => setIsProductTypeOpen((value) => !value)} aria-expanded={isProductTypeOpen}>
+                      <Plane size={18} aria-hidden="true" />
+                      <span>{selectedProductType.label}</span>
+                      <ChevronDown size={16} aria-hidden="true" />
+                    </button>
+                    {isProductTypeOpen ? (
+                      <div className="offer-new-custom-select-menu">
+                        {productTypeOptions.map((option) => (
+                          <button
+                            className={option.slug === productType ? "is-selected" : ""}
+                            type="button"
+                            key={option.slug}
+                            onClick={() => {
+                              setProductType(option.slug);
+                              setIsProductTypeOpen(false);
+                              setIsAddingProductType(false);
+                            }}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                        {isAddingProductType ? (
+                          <div className="offer-new-custom-type-form">
+                            <input value={newProductTypeLabel} onChange={(event) => setNewProductTypeLabel(event.target.value)} placeholder="Нов тип оферта" autoFocus />
+                            <button type="button" onClick={addProductType}>Добави</button>
+                            {productTypeError ? <span>{productTypeError}</span> : null}
+                          </div>
+                        ) : (
+                          <button className="is-add-option" type="button" onClick={() => setIsAddingProductType(true)}>
+                            + Добави
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </label>
                 <label>
@@ -336,27 +572,66 @@ export default function NewOfferPage() {
                   </div>
                 </label>
                 <input type="hidden" name="source" value="manual" />
+                <input type="hidden" name="country" value={country} />
+                <input type="hidden" name="region" value={region} />
 
-                <label>
-                  <span>Държава <b>*</b></span>
-                  <input
-                    name="country"
-                    value={country}
-                    onChange={(event) => setCountry(event.target.value)}
-                    list="offer-country-options"
-                    placeholder="Започнете да пишете държава"
-                    required
-                  />
+                <div className="offer-new-destinations offer-new-full-field">
+                  <header>
+                    <div>
+                      <span>Дестинации <b>*</b></span>
+                      <p>Добавете една или повече държави и региони в реда на маршрута.</p>
+                    </div>
+                    <button type="button" onClick={addDestination}>
+                      <Plus size={16} aria-hidden="true" />
+                      Добави
+                    </button>
+                  </header>
                   <datalist id="offer-country-options">
                     {countryNames.map((name) => (
                       <option value={name} key={name} />
                     ))}
                   </datalist>
-                </label>
-                <label>
-                  <span>Дестинация / регион <b>*</b></span>
-                  <input name="region" value={region} onChange={(event) => setRegion(event.target.value)} placeholder="Напр. Кападокия" required />
-                </label>
+                  <div className="offer-new-destination-list">
+                    {destinations.map((destination, index) => (
+                      <div className="offer-new-destination-row" key={destination.id}>
+                        <strong>{index === 0 ? "Основна" : `Стоп ${index + 1}`}</strong>
+                        <label>
+                          <span>Държава {index === 0 ? <b>*</b> : null}</span>
+                          <input
+                            name="destination_country"
+                            value={destination.country}
+                            onChange={(event) => updateDestination(destination.id, "country", event.target.value)}
+                            list="offer-country-options"
+                            placeholder="Започнете да пишете"
+                            required={index === 0}
+                          />
+                        </label>
+                        <label>
+                          <span>Регион / дестинация {index === 0 ? <b>*</b> : null}</span>
+                          <input
+                            name="destination_region"
+                            value={destination.region}
+                            onChange={(event) => updateDestination(destination.id, "region", event.target.value)}
+                            placeholder="Напр. Кападокия"
+                            required={index === 0}
+                          />
+                        </label>
+                        <label>
+                          <span>Град</span>
+                          <input
+                            name="destination_city"
+                            value={destination.city}
+                            onChange={(event) => updateDestination(destination.id, "city", event.target.value)}
+                            placeholder="По желание"
+                          />
+                        </label>
+                        <button type="button" onClick={() => removeDestination(destination.id)} disabled={destinations.length === 1} aria-label="Премахни дестинация">
+                          <X size={16} aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 <label className="offer-new-field">
                   <span>Авторска програма</span>
@@ -401,8 +676,21 @@ export default function NewOfferPage() {
                     uploadSessionId={uploadSessionIdRef.current}
                     role="hero"
                     required={!heroImageUrl}
+                    uploadedUrls={heroImageUrl ? [heroImageUrl] : []}
                     onFilesChange={handleHeroFilesChange}
-                    onUploaded={(urls) => setHeroImageUrl(urls[0] ?? "")}
+                    onUploaded={(urls) => {
+                      setHeroImageUrl(urls[0] ?? "");
+                      if (urls.length === 0) {
+                        setHasHeroImage(false);
+                        setHeroPreview((currentUrl) => {
+                          if (currentUrl) {
+                            URL.revokeObjectURL(currentUrl);
+                          }
+
+                          return "";
+                        });
+                      }
+                    }}
                   />
                   <input type="hidden" name="hero_image_url" value={heroImageUrl} />
                 </div>
@@ -416,6 +704,7 @@ export default function NewOfferPage() {
                     uploadSessionId={uploadSessionIdRef.current}
                     role="gallery"
                     multiple
+                    uploadedUrls={galleryImageUrls}
                     onUploaded={setGalleryImageUrls}
                   />
                   {galleryImageUrls.map((url) => (
@@ -515,6 +804,52 @@ export default function NewOfferPage() {
                 </div>
               </div>
 
+              <section className="offer-itinerary-editor">
+                <header>
+                  <div>
+                    <h3>Програма по дни</h3>
+                    <p>Добавете програмата като отделни дни. Така после сайтът ще я показва като подреден маршрут.</p>
+                  </div>
+                  <button type="button" onClick={addItineraryDay}>
+                    <Plus size={16} aria-hidden="true" />
+                    Добави ден
+                  </button>
+                </header>
+                <div className="offer-itinerary-list">
+                  {itineraryDays.map((day) => (
+                    <article className="offer-itinerary-row" key={day.id}>
+                      <div className="offer-itinerary-day-number">
+                        <span>Ден</span>
+                        <strong>{day.day}</strong>
+                        <input type="hidden" name="itinerary_day_number" value={day.day} />
+                      </div>
+                      <label className="offer-edit-field">
+                        <span>Заглавие за деня</span>
+                        <input
+                          name="itinerary_title"
+                          value={day.title}
+                          onChange={(event) => updateItineraryDay(day.id, "title", event.target.value)}
+                          placeholder="Напр. София - Истанбул"
+                        />
+                      </label>
+                      <label className="offer-edit-field is-wide">
+                        <span>Описание</span>
+                        <textarea
+                          name="itinerary_description"
+                          value={day.description}
+                          onChange={(event) => updateItineraryDay(day.id, "description", event.target.value)}
+                          placeholder="Опишете програмата за този ден..."
+                          rows={4}
+                        />
+                      </label>
+                      <button type="button" onClick={() => removeItineraryDay(day.id)} disabled={itineraryDays.length === 1} aria-label="Премахни ден">
+                        <X size={16} aria-hidden="true" />
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
               <footer className="offer-new-footer">
                 <Link href="/admin/offers">Отказ</Link>
                 <div>
@@ -540,7 +875,7 @@ export default function NewOfferPage() {
                   className={heroPreview ? "offer-new-preview-image" : "offer-new-preview-image is-empty"}
                   style={heroPreview ? { backgroundImage: `linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.16)), url("${heroPreview}")` } : undefined}
                 >
-                  <span>{productTypeLabels[productType] ?? "ЕТИКЕТ"}</span>
+                  <span>{selectedProductType.label}</span>
                   {!heroPreview ? (
                     <div>
                       <ImageIcon size={34} aria-hidden="true" />
@@ -554,9 +889,7 @@ export default function NewOfferPage() {
                     <CalendarDays size={15} aria-hidden="true" />
                     {durationDays || "0"} дни / {durationNights || "0"} нощувки
                     <MapPin size={15} aria-hidden="true" />
-                    {country || "Държава"}
-                    <MapPin size={15} aria-hidden="true" />
-                    {region || "Регион"}
+                    {routeLabel || "Маршрут"}
                   </p>
                   <span>{summary || "Кратко описание ще се визуализира тук..."}</span>
                 </div>

@@ -15,7 +15,9 @@ import {
   Import,
   LogOut,
   Mail,
-  Menu,
+  MousePointer2,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plane,
   Search,
   Settings,
@@ -117,8 +119,26 @@ export function AdminWorkspace({ active, children }: AdminWorkspaceProps) {
   };
 
   const toggleSidebar = () => {
-    setMode(isCollapsed ? "expanded" : "collapsed");
+    if (sidebarMode === "expanded") {
+      setMode("collapsed");
+      return;
+    }
+
+    if (sidebarMode === "collapsed") {
+      setMode("hover");
+      return;
+    }
+
+    setMode("expanded");
   };
+
+  const SidebarToggleIcon = sidebarMode === "expanded" ? PanelLeftClose : sidebarMode === "collapsed" ? PanelLeftOpen : MousePointer2;
+  const sidebarToggleLabel =
+    sidebarMode === "expanded"
+      ? "Навигацията е разгъната. Натисни за свит режим."
+      : sidebarMode === "collapsed"
+        ? "Навигацията е свита. Натисни за режим при hover."
+        : "Навигацията се разгъва при hover. Натисни за разгънат режим.";
 
   return (
     <main className={isCollapsed ? "erp-shell is-sidebar-collapsed" : "erp-shell"}>
@@ -154,42 +174,6 @@ export function AdminWorkspace({ active, children }: AdminWorkspaceProps) {
           ))}
         </nav>
 
-        <div className="erp-sidebar-options" aria-label="Поведение на навигацията">
-          <button
-            className={sidebarMode === "expanded" ? "is-active" : ""}
-            type="button"
-            onClick={() => setMode("expanded")}
-            title="Постоянно разгъната"
-            data-tooltip="Постоянно разгъната"
-            aria-label="Постоянно разгъната навигация"
-          >
-            <span aria-hidden="true" />
-            <strong>Разгъната</strong>
-          </button>
-          <button
-            className={sidebarMode === "collapsed" ? "is-active" : ""}
-            type="button"
-            onClick={() => setMode("collapsed")}
-            title="Постоянно свита"
-            data-tooltip="Постоянно свита"
-            aria-label="Постоянно свита навигация"
-          >
-            <span aria-hidden="true" />
-            <strong>Свита</strong>
-          </button>
-          <button
-            className={sidebarMode === "hover" ? "is-active" : ""}
-            type="button"
-            onClick={() => setMode("hover")}
-            title="Разгъване при hover"
-            data-tooltip="Разгъване при hover"
-            aria-label="Разгъване при hover"
-          >
-            <span aria-hidden="true" />
-            <strong>При hover</strong>
-          </button>
-        </div>
-
         <div className="erp-user">
           <span>ИП</span>
           <div>
@@ -201,8 +185,8 @@ export function AdminWorkspace({ active, children }: AdminWorkspaceProps) {
 
       <section className="erp-main">
         <header className="erp-topbar">
-          <button type="button" aria-label={isCollapsed ? "Разгъни менюто" : "Свий менюто"} onClick={toggleSidebar}>
-            <Menu size={22} aria-hidden="true" />
+          <button type="button" aria-label={sidebarToggleLabel} title={sidebarToggleLabel} onClick={toggleSidebar}>
+            <SidebarToggleIcon size={22} aria-hidden="true" />
           </button>
           <label>
             <Search size={17} aria-hidden="true" />

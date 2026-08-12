@@ -18,6 +18,11 @@ export type AdminOfferRecord = {
   status: string;
   hero_image_url: string | null;
   is_author_program: boolean;
+  itinerary_days: Array<{
+    day: number;
+    title: string;
+    description: string;
+  }> | null;
   created_at: string;
   updated_at: string;
 };
@@ -43,6 +48,21 @@ export async function getAdminOfferBySlug(slug: string) {
         status::text,
         hero_image_url,
         is_author_program,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'day', itinerary.day_number,
+                'title', itinerary.title,
+                'description', itinerary.description
+              )
+              order by itinerary.sort_order, itinerary.day_number
+            )
+            from offer_itinerary_days itinerary
+            where itinerary.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as itinerary_days,
         created_at::text,
         updated_at::text
       from offers
@@ -110,6 +130,7 @@ export async function listAdminOfferItems() {
         status::text,
         hero_image_url,
         is_author_program,
+        '[]'::jsonb as itinerary_days,
         created_at::text,
         updated_at::text
       from offers

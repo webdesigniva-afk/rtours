@@ -127,6 +127,14 @@ export interface OfferDate {
   availability: "available" | "limited" | "on_request" | "sold_out";
 }
 
+export interface OfferDestinationPoint {
+  country: string;
+  region?: string;
+  city?: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+}
+
 export interface ItineraryDay {
   day: number;
   title: string;
@@ -136,6 +144,7 @@ export interface ItineraryDay {
 export interface Offer {
   slug: string;
   productType?: OfferProductType;
+  productTypeLabel?: string;
   title: string;
   summary: string;
   description: string;
@@ -152,6 +161,7 @@ export interface Offer {
   country: string;
   region: string;
   city?: string;
+  destinations?: OfferDestinationPoint[];
   durationDays: number;
   durationNights?: number;
   transport: TransportType;

@@ -5,10 +5,17 @@ export type PublicOfferDetailData = {
   slug: string;
   title: string;
   productType?: string;
+  productTypeLabel?: string;
   summary: string;
   description: string;
   country: string;
   region: string;
+  destinations?: Array<{
+    country: string;
+    region?: string | null;
+    city?: string | null;
+    isPrimary?: boolean;
+  }>;
   durationDays: number;
   durationNights?: number;
   priceFrom: number;
@@ -41,10 +48,18 @@ const transportLabels: Record<string, string> = {
 };
 
 export function PublicOfferDetail({ offer, showInquiry = true }: { offer: PublicOfferDetailData; showInquiry?: boolean }) {
+  const destinationLabel = offer.destinations?.length
+    ? offer.destinations
+        .map((destination) => [destination.city, destination.region, destination.country].filter(Boolean).join(", "))
+        .filter(Boolean)
+        .join(" → ")
+    : offer.region;
+  const eyebrowLabel = offer.destinations && offer.destinations.length > 1 ? "Маршрут" : offer.country;
+
   return (
     <main>
       <section className="container page-title">
-        <span className="eyebrow">{offer.country}</span>
+        <span className="eyebrow">{eyebrowLabel}</span>
         <h1>{offer.title}</h1>
         <p>{offer.summary || offer.description}</p>
       </section>
@@ -61,7 +76,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
               {offer.productType ? (
                 <span className="pill">
                   <Tag size={15} aria-hidden="true" />
-                  {productTypeLabels[offer.productType] ?? offer.productType}
+                  {offer.productTypeLabel ?? productTypeLabels[offer.productType] ?? offer.productType}
                 </span>
               ) : null}
               <span className="pill">
@@ -70,7 +85,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
               </span>
               <span className="pill">
                 <MapPin size={15} aria-hidden="true" />
-                {offer.region}
+                {destinationLabel}
               </span>
             </div>
             <div className="card-meta">
@@ -121,14 +136,17 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
 
           <h2>Програма</h2>
           {offer.itinerary.length > 0 ? (
-            offer.itinerary.map((day) => (
-              <article className="day" key={`${offer.slug}-${day.day}`}>
-                <h3>
-                  Ден {day.day}: {day.title}
-                </h3>
-                <p>{day.description}</p>
-              </article>
-            ))
+            <div className="offer-public-itinerary">
+              {offer.itinerary.map((day) => (
+                <article className="day" key={`${offer.slug}-${day.day}`}>
+                  <span>Ден {day.day}</span>
+                  <div>
+                    <h3>{day.title}</h3>
+                    <p>{day.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
           ) : (
             <p>Програмата ще бъде добавена при следващата стъпка.</p>
           )}

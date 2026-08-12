@@ -43,6 +43,7 @@ type PublicOfferRow = {
   id: string;
   slug: string;
   product_type: string;
+  product_type_label: string | null;
   title: string;
   summary: string | null;
   description: string | null;
@@ -58,6 +59,18 @@ type PublicOfferRow = {
   hero_image_url: string | null;
   is_author_program: boolean;
   gallery_image_urls: string[] | null;
+  destinations: Array<{
+    country: string;
+    region: string | null;
+    city: string | null;
+    isPrimary: boolean;
+    sortOrder: number;
+  }> | null;
+  itinerary_days: Array<{
+    day: number;
+    title: string;
+    description: string | null;
+  }> | null;
   seo_meta_title: string | null;
   seo_meta_description: string | null;
   created_at: string;
@@ -71,13 +84,28 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
   const summary = row.summary || "Подробностите за тази оферта се подготвят.";
   const country = row.country || "Дестинация";
   const region = row.region || country;
+  const destinations = row.destinations?.length
+    ? row.destinations.map((destination) => ({
+        country: destination.country,
+        region: destination.region || undefined,
+        city: destination.city || undefined,
+        isPrimary: destination.isPrimary,
+        sortOrder: destination.sortOrder
+      }))
+    : [{ country, region, isPrimary: true, sortOrder: 0 }];
   const durationDays = row.duration_days ?? 1;
   const durationNights = row.duration_nights ?? Math.max(durationDays - 1, 0);
   const priceFrom = Number(row.price_from);
+  const itinerary = row.itinerary_days?.map((day) => ({
+    day: day.day,
+    title: day.title,
+    description: day.description || ""
+  })) ?? [];
 
   return {
     slug: row.slug,
     productType: row.product_type as Offer["productType"],
+    productTypeLabel: row.product_type_label || undefined,
     title,
     summary,
     description: row.description || summary,
@@ -85,6 +113,7 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     collectionSlugs: [],
     country,
     region,
+    destinations,
     durationDays,
     durationNights,
     transport: row.transport as Offer["transport"],
@@ -101,7 +130,7 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     tags: [],
     included: [],
     excluded: [],
-    itinerary: [],
+    itinerary,
     seo: {
       metaTitle: row.seo_meta_title || title,
       metaDescription: row.seo_meta_description || summary,
@@ -119,6 +148,7 @@ export async function listPublishedPublicOffers() {
         slug,
         id,
         product_type::text,
+        product_type_label,
         title,
         summary,
         description,
@@ -142,6 +172,38 @@ export async function listPublishedPublicOffers() {
           ),
           '{}'::text[]
         ) as gallery_image_urls,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'country', destination.country,
+                'region', destination.region,
+                'city', destination.city,
+                'isPrimary', destination.is_primary,
+                'sortOrder', destination.sort_order
+              )
+              order by destination.sort_order
+            )
+            from offer_destinations destination
+            where destination.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as destinations,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'day', itinerary.day_number,
+                'title', itinerary.title,
+                'description', itinerary.description
+              )
+              order by itinerary.sort_order, itinerary.day_number
+            )
+            from offer_itinerary_days itinerary
+            where itinerary.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as itinerary_days,
         seo_meta_title,
         seo_meta_description,
         created_at::text,
@@ -166,6 +228,7 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
         slug,
         id,
         product_type::text,
+        product_type_label,
         title,
         summary,
         description,
@@ -189,6 +252,38 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
           ),
           '{}'::text[]
         ) as gallery_image_urls,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'country', destination.country,
+                'region', destination.region,
+                'city', destination.city,
+                'isPrimary', destination.is_primary,
+                'sortOrder', destination.sort_order
+              )
+              order by destination.sort_order
+            )
+            from offer_destinations destination
+            where destination.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as destinations,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'day', itinerary.day_number,
+                'title', itinerary.title,
+                'description', itinerary.description
+              )
+              order by itinerary.sort_order, itinerary.day_number
+            )
+            from offer_itinerary_days itinerary
+            where itinerary.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as itinerary_days,
         seo_meta_title,
         seo_meta_description,
         created_at::text,
