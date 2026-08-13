@@ -140,6 +140,9 @@ export interface ItineraryDay {
   day: number;
   title: string;
   description: string;
+  accommodation?: string;
+  meals?: string;
+  transport?: string;
 }
 
 export interface Offer {
@@ -179,6 +182,7 @@ export interface Offer {
   dates: OfferDate[];
   moods: TravelMood[];
   tags: string[];
+  highlights?: string[];
   included: string[];
   excluded: string[];
   itinerary: ItineraryDay[];

@@ -264,9 +264,19 @@ export async function duplicateAdminOffer(slug: string) {
 
   await dbQuery(
     `
-      insert into offer_itinerary_days (offer_id, day_number, title, description, sort_order)
-      select $2, day_number, title, description, sort_order
+      insert into offer_itinerary_days (offer_id, day_number, title, description, accommodation, meals, transport, sort_order)
+      select $2, day_number, title, description, accommodation, meals, transport, sort_order
       from offer_itinerary_days
+      where offer_id = $1
+    `,
+    [original.id, duplicate.id]
+  );
+
+  await dbQuery(
+    `
+      insert into offer_highlights (offer_id, label, sort_order)
+      select $2, label, sort_order
+      from offer_highlights
       where offer_id = $1
     `,
     [original.id, duplicate.id]

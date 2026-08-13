@@ -48,7 +48,8 @@ export type OfferContentInitialData = {
   heroImageUrl: string;
   galleryImageUrls?: string[];
   isAuthorProgram: boolean;
-  itinerary: Array<{ day: number; title: string; description: string }>;
+  itinerary: Array<{ day: number; title: string; description: string; accommodation?: string; meals?: string; transport?: string }>;
+  highlights: string[];
   included: string[];
   excluded: string[];
 };
@@ -85,6 +86,14 @@ type ItineraryRow = {
   day: number;
   title: string;
   description: string;
+  accommodation: string;
+  meals: string;
+  transport: string;
+};
+
+type HighlightRow = {
+  id: string;
+  value: string;
 };
 
 type EditorPanel = "format" | "link" | "image" | "more" | null;
@@ -102,6 +111,50 @@ function splitServiceText(value: string) {
     .split(/[\n,]+/)
     .map((item) => item.replace(/^\s*[-*•\d.)]+/, "").trim())
     .filter(Boolean);
+}
+
+const defaultIncludedServices = [
+  "транспорт",
+  "летищни такси",
+  "брой нощувки и тип настаняване",
+  "изхранване",
+  "трансфери",
+  "екскурзии и посещения",
+  "входни такси",
+  "водач/местни гидове",
+  "застраховка",
+  "други услуги"
+];
+
+const defaultExcludedServices = [
+  "допълнителни услуги",
+  "лични разходи",
+  "бакшиши",
+  "визи",
+  "туристически такси",
+  "невключено хранене",
+  "други разходи"
+];
+
+const presentationPlaceholder = [
+  "Какво прави това пътуване различно?",
+  "Какво ще преживее клиентът?",
+  "Какъв е ритъмът на маршрута?",
+  "За кого е подходящо?",
+  "Защо Red tours го препоръчва?"
+].join("\n");
+
+function getInitialServices(services: string[], fallback: string[]) {
+  return services.length ? services : fallback;
+}
+
+function createSummaryFromDescription(value: string) {
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 160);
 }
 
 const countryCodes = [
@@ -356,11 +409,19 @@ export function OfferContentForm({
   const [description, setDescription] = useState(initial.description);
   const [itineraryDays, setItineraryDays] = useState<ItineraryRow[]>(
     initial.itinerary.length
-      ? initial.itinerary.map((day) => ({ id: crypto.randomUUID(), day: day.day, title: day.title, description: day.description }))
-      : [{ id: crypto.randomUUID(), day: 1, title: "", description: "" }]
+      ? initial.itinerary.map((day) => ({
+          id: crypto.randomUUID(),
+          day: day.day,
+          title: day.title,
+          description: day.description,
+          accommodation: day.accommodation || "",
+          meals: day.meals || "",
+          transport: day.transport || ""
+        }))
+      : [{ id: crypto.randomUUID(), day: 1, title: "", description: "", accommodation: "", meals: "", transport: "" }]
   );
-  const [includedServicesText, setIncludedServicesText] = useState(initial.included.join("\n"));
-  const [excludedServicesText, setExcludedServicesText] = useState(initial.excluded.join("\n"));
+  const [includedServicesText, setIncludedServicesText] = useState(getInitialServices(initial.included, defaultIncludedServices).join("\n"));
+  const [excludedServicesText, setExcludedServicesText] = useState(getInitialServices(initial.excluded, defaultExcludedServices).join("\n"));
   const heroImageInputRef = useRef<HTMLInputElement>(null);
   const galleryInputsRef = useRef<HTMLDivElement>(null);
   const latestHeroImageUrlRef = useRef(initial.heroImageUrl);
@@ -385,8 +446,14 @@ export function OfferContentForm({
   const country = primaryDestination.country;
   const region = primaryDestination.region || primaryDestination.city;
   const routeLabel = destinations.map((destination) => [destination.city, destination.region, destination.country].filter(Boolean).join(", ")).filter(Boolean).join(" -> ");
+  const derivedSummary = createSummaryFromDescription(description) || summary;
   const includedServices = splitServiceText(includedServicesText);
   const excludedServices = splitServiceText(excludedServicesText);
+  const [highlights, setHighlights] = useState<HighlightRow[]>(() =>
+    initial.highlights.length
+      ? initial.highlights.map((value) => ({ id: crypto.randomUUID(), value }))
+      : [{ id: crypto.randomUUID(), value: "" }]
+  );
   const getCurrentDescription = useCallback(() => (editorMode === "visual" ? editorRef.current?.innerHTML ?? description : description), [description, editorMode]);
 
   useEffect(() => {
@@ -397,6 +464,11 @@ export function OfferContentForm({
     setDescription(initial.description);
     setDurationDays(String(initial.durationDays ?? ""));
     setDurationNights(String(initial.durationNights ?? ""));
+    setHighlights(
+      initial.highlights.length
+        ? initial.highlights.map((value) => ({ id: crypto.randomUUID(), value }))
+        : [{ id: crypto.randomUUID(), value: "" }]
+    );
     const nextDestinations = initial.destinations?.length
       ? initial.destinations
       : [{ country: initial.country, region: initial.region, city: "" }];
@@ -408,8 +480,8 @@ export function OfferContentForm({
         city: destination.city
       }))
     );
-    setIncludedServicesText(initial.included.join("\n"));
-    setExcludedServicesText(initial.excluded.join("\n"));
+    setIncludedServicesText(getInitialServices(initial.included, defaultIncludedServices).join("\n"));
+    setExcludedServicesText(getInitialServices(initial.excluded, defaultExcludedServices).join("\n"));
     setHeroImageUrl(initial.heroImageUrl);
     setHeroPreview(initial.heroImageUrl);
     setGalleryImageUrls(initial.galleryImageUrls ?? []);
@@ -426,11 +498,11 @@ export function OfferContentForm({
       durationDays,
       durationNights,
       transport,
-      summary,
+      summary: derivedSummary,
       description: getCurrentDescription(),
       hasHeroImage: Boolean(heroImageUrl)
     });
-  }, [country, description, durationDays, durationNights, getCurrentDescription, heroImageUrl, onDraftChange, region, selectedProductType?.label, summary, title, transport]);
+  }, [country, derivedSummary, description, durationDays, durationNights, getCurrentDescription, heroImageUrl, onDraftChange, region, selectedProductType?.label, title, transport]);
 
   const syncDescription = () => setDescription(editorRef.current?.innerHTML ?? "");
   const normalizeEditorUrl = (value: string) => {
@@ -683,9 +755,12 @@ export function OfferContentForm({
   const addDestination = () => setDestinations((current) => [...current, { id: crypto.randomUUID(), country: "", region: "", city: "" }]);
   const removeDestination = (id: string) => setDestinations((current) => (current.length === 1 ? current : current.filter((destination) => destination.id !== id)));
   const renumberItineraryDays = (days: ItineraryRow[]) => days.map((day, index) => ({ ...day, day: index + 1 }));
-  const updateItineraryDay = (id: string, field: "title" | "description", value: string) => setItineraryDays((current) => current.map((day) => (day.id === id ? { ...day, [field]: value } : day)));
-  const addItineraryDay = () => setItineraryDays((current) => [...current, { id: crypto.randomUUID(), day: current.length + 1, title: "", description: "" }]);
+  const updateItineraryDay = (id: string, field: "title" | "description" | "accommodation" | "meals" | "transport", value: string) => setItineraryDays((current) => current.map((day) => (day.id === id ? { ...day, [field]: value } : day)));
+  const addItineraryDay = () => setItineraryDays((current) => [...current, { id: crypto.randomUUID(), day: current.length + 1, title: "", description: "", accommodation: "", meals: "", transport: "" }]);
   const removeItineraryDay = (id: string) => setItineraryDays((current) => renumberItineraryDays(current.length === 1 ? current : current.filter((day) => day.id !== id)));
+  const updateHighlight = (id: string, value: string) => setHighlights((current) => current.map((highlight) => (highlight.id === id ? { ...highlight, value } : highlight)));
+  const addHighlight = () => setHighlights((current) => [...current, { id: crypto.randomUUID(), value: "" }]);
+  const removeHighlight = (id: string) => setHighlights((current) => (current.length === 1 ? current : current.filter((highlight) => highlight.id !== id)));
   const handleHeroFilesChange = (files: File[]) => {
     setHeroPreview((currentUrl) => {
       if (currentUrl && currentUrl.startsWith("blob:")) URL.revokeObjectURL(currentUrl);
@@ -810,10 +885,10 @@ export function OfferContentForm({
             <div className="offer-new-field offer-new-gallery-media"><span>Галерия (до 20 снимки)</span><UploadBox title="Качи още снимки" hint="или плъзнете файловете тук" action="Избери файлове" uploadSessionId={uploadSessionIdRef.current} role="gallery" multiple uploadedUrls={galleryImageUrls} onUploadStateChange={setIsGalleryUploading} onUploaded={applyGalleryUploadedUrls} /><div ref={galleryInputsRef} hidden /></div>
           </div>
 
-          <label className="offer-new-full-field"><span className="offer-new-label-line"><span>Кратко описание <b>*</b></span><em>{summary.length}/160</em></span><div className="offer-new-counted-input"><input name="summary" value={summary} onChange={(event) => setSummary(event.target.value)} placeholder="Кратко представяне на офертата (ще се показва в картите с оферти)" required maxLength={160} /></div></label>
+          <input type="hidden" name="summary" value={derivedSummary} />
 
           <div className="offer-new-full-field">
-            <span>Пълно описание <b>*</b></span>
+            <span>Представяне <b>*</b></span>
             <div className="offer-new-editor">
               <div className="offer-new-editor-toolbar">
                 <button className={editorPanel === "format" ? "is-active is-format" : "is-format"} type="button" onMouseDown={keepEditorSelection} onClick={() => openEditorPanel("format")}><span>Paragraph</span><ChevronDown size={15} aria-hidden="true" /></button>
@@ -871,12 +946,34 @@ export function OfferContentForm({
                   ) : null}
                 </div>
               ) : null}
-              {editorMode === "visual" ? <div ref={editorRef} className="offer-new-editor-surface" contentEditable role="textbox" aria-multiline="true" data-placeholder="Подробно описание на офертата..." suppressContentEditableWarning onInput={() => { syncDescription(); saveEditorSelection(); }} onKeyUp={() => { syncEditorState(); saveEditorSelection(); }} onMouseUp={() => { syncEditorState(); saveEditorSelection(); }} /> : <textarea className="offer-new-editor-html" value={description} onChange={(event) => setDescription(event.target.value)} spellCheck={false} />}
+              {editorMode === "visual" ? <div ref={editorRef} className="offer-new-editor-surface" contentEditable role="textbox" aria-multiline="true" data-placeholder={presentationPlaceholder} suppressContentEditableWarning onInput={() => { syncDescription(); saveEditorSelection(); }} onKeyUp={() => { syncEditorState(); saveEditorSelection(); }} onMouseUp={() => { syncEditorState(); saveEditorSelection(); }} /> : <textarea className="offer-new-editor-html" value={description} onChange={(event) => setDescription(event.target.value)} placeholder={presentationPlaceholder} spellCheck={false} />}
               <input type="hidden" name="description" value={description} />
             </div>
           </div>
 
-          <section className="offer-itinerary-editor"><header><div><h3>Програма по дни</h3><p>Добавете програмата като отделни дни. Така после сайтът ще я показва като подреден маршрут.</p></div><button type="button" onClick={addItineraryDay}><Plus size={16} aria-hidden="true" />Добави ден</button></header><div className="offer-itinerary-list">{itineraryDays.map((day) => <article className="offer-itinerary-row" key={day.id}><div className="offer-itinerary-day-number"><span>Ден</span><strong>{day.day}</strong><input type="hidden" name="itinerary_day_number" value={day.day} /></div><label className="offer-edit-field"><span>Заглавие за деня</span><input name="itinerary_title" value={day.title} onChange={(event) => updateItineraryDay(day.id, "title", event.target.value)} placeholder="Напр. София - Истанбул" /></label><label className="offer-edit-field is-wide"><span>Описание</span><textarea name="itinerary_description" value={day.description} onChange={(event) => updateItineraryDay(day.id, "description", event.target.value)} placeholder="Опишете програмата за този ден..." rows={4} /></label><button type="button" onClick={() => removeItineraryDay(day.id)} disabled={itineraryDays.length === 1} aria-label="Премахни ден"><X size={16} aria-hidden="true" /></button></article>)}</div></section>
+          <section className="offer-itinerary-editor"><header><div><h3>Програма по дни</h3><p>Добавете програмата като отделни дни. Така после сайтът ще я показва като подреден маршрут.</p></div></header><div className="offer-itinerary-list">{itineraryDays.map((day) => <article className="offer-itinerary-row" key={day.id}><div className="offer-itinerary-day-number"><span>Ден</span><strong>{day.day}</strong><input type="hidden" name="itinerary_day_number" value={day.day} /></div><label className="offer-edit-field"><span>Заглавие за деня</span><input name="itinerary_title" value={day.title} onChange={(event) => updateItineraryDay(day.id, "title", event.target.value)} placeholder="Напр. София - Истанбул" /></label><label className="offer-edit-field is-wide"><span>Описание</span><textarea name="itinerary_description" value={day.description} onChange={(event) => updateItineraryDay(day.id, "description", event.target.value)} placeholder="Описание на деня, основните места, преживяванията и логистиката." rows={4} /></label><div className="offer-itinerary-logistics"><label className="offer-edit-field"><span>Настаняване</span><input name="itinerary_accommodation" value={day.accommodation} onChange={(event) => updateItineraryDay(day.id, "accommodation", event.target.value)} placeholder="хотел/категория" /></label><label className="offer-edit-field"><span>Хранене</span><input name="itinerary_meals" value={day.meals} onChange={(event) => updateItineraryDay(day.id, "meals", event.target.value)} placeholder="включено хранене" /></label><label className="offer-edit-field"><span>Транспорт</span><input name="itinerary_transport" value={day.transport} onChange={(event) => updateItineraryDay(day.id, "transport", event.target.value)} placeholder="вид транспорт" /></label></div><button type="button" onClick={() => removeItineraryDay(day.id)} disabled={itineraryDays.length === 1} aria-label="Премахни ден"><X size={16} aria-hidden="true" /></button></article>)}</div><div className="offer-itinerary-add-row"><button type="button" onClick={addItineraryDay}><Plus size={16} aria-hidden="true" />Добави ден</button></div></section>
+          <section className="offer-highlights-editor">
+            <header>
+              <div>
+                <h3>Защо ще харесате това пътуване</h3>
+                <p>Акцентите трябва да описват реални преживявания, а не общи твърдения. Вместо „Незабравимо преживяване“: „Посрещане на изгрева над храмовете на Баган“.</p>
+              </div>
+            </header>
+            <div className="offer-highlights-list">
+              {highlights.map((highlight, index) => (
+                <div className="offer-highlight-field" key={highlight.id}>
+                  <span>{index + 1}</span>
+                  <label>
+                    <input name="highlights" value={highlight.value} onChange={(event) => updateHighlight(highlight.id, event.target.value)} placeholder={`Конкретен акцент ${index + 1}`} />
+                  </label>
+                  <button type="button" onClick={() => removeHighlight(highlight.id)} disabled={highlights.length === 1} aria-label="Премахни акцент"><X size={16} aria-hidden="true" /></button>
+                </div>
+              ))}
+            </div>
+            <div className="offer-highlights-add-row">
+              <button type="button" onClick={addHighlight}><Plus size={16} aria-hidden="true" />Добави акцент</button>
+            </div>
+          </section>
           <section className="offer-services-editor">
             <header>
               <div>
@@ -895,7 +992,7 @@ export function OfferContentForm({
                   value={includedServicesText}
                   onChange={(event) => setIncludedServicesText(event.target.value)}
                   placeholder="Напр. самолетен билет, трансфер, нощувки&#10;или: самолетен билет, трансфер, нощувки"
-                  rows={7}
+                  rows={10}
                 />
                 {includedServices.map((item, index) => <input type="hidden" name="included_services" value={item} key={`included-${index}-${item}`} />)}
               </label>
@@ -929,7 +1026,7 @@ export function OfferContentForm({
         </section>
       </form>
 
-      <aside className="offer-new-side"><section className="offer-new-preview"><header><h2>Преглед на картата</h2></header><article><div className={heroPreview ? "offer-new-preview-image" : "offer-new-preview-image is-empty"} style={heroPreview ? { backgroundImage: `linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.16)), url("${heroPreview}")` } : undefined}><span>{selectedProductType?.label ?? "Тип оферта"}</span>{!heroPreview ? <div><ImageIcon size={34} aria-hidden="true" /><strong>Основната снимка ще се покаже тук</strong></div> : null}</div><div className="offer-new-preview-copy"><h3>{title || "Заглавие на офертата"}</h3><p><CalendarDays size={15} aria-hidden="true" />{durationDays || "0"} дни / {durationNights || "0"} нощувки <MapPin size={15} aria-hidden="true" />{routeLabel || "Маршрут"}</p><span>{summary || "Кратко описание ще се визуализира тук..."}</span></div></article></section></aside>
+      <aside className="offer-new-side"><section className="offer-new-preview"><header><h2>Преглед на картата</h2></header><article><div className={heroPreview ? "offer-new-preview-image" : "offer-new-preview-image is-empty"} style={heroPreview ? { backgroundImage: `linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.16)), url("${heroPreview}")` } : undefined}><span>{selectedProductType?.label ?? "Тип оферта"}</span>{!heroPreview ? <div><ImageIcon size={34} aria-hidden="true" /><strong>Основната снимка ще се покаже тук</strong></div> : null}</div><div className="offer-new-preview-copy"><h3>{title || "Заглавие на офертата"}</h3><p><CalendarDays size={15} aria-hidden="true" />{durationDays || "0"} дни / {durationNights || "0"} нощувки <MapPin size={15} aria-hidden="true" />{routeLabel || "Маршрут"}</p><span>{derivedSummary || "Представянето ще се визуализира тук..."}</span></div></article></section></aside>
     </div>
   );
 }

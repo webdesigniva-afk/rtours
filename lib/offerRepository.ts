@@ -77,7 +77,11 @@ type PublicOfferRow = {
     day: number;
     title: string;
     description: string | null;
+    accommodation: string | null;
+    meals: string | null;
+    transport: string | null;
   }> | null;
+  highlights: string[] | null;
   included_services: string[] | null;
   excluded_services: string[] | null;
   seo_meta_title: string | null;
@@ -111,7 +115,10 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
   const itinerary = row.itinerary_days?.map((day) => ({
     day: day.day,
     title: day.title,
-    description: day.description || ""
+    description: day.description || "",
+    accommodation: day.accommodation || undefined,
+    meals: day.meals || undefined,
+    transport: day.transport || undefined
   })) ?? [];
 
   return {
@@ -148,6 +155,7 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
       : [{ label: "Дати по заявка", startDate: "", endDate: "", availability: "on_request" }],
     moods: [],
     tags: [],
+    highlights: row.highlights ?? [],
     included: row.included_services ?? [],
     excluded: row.excluded_services ?? [],
     itinerary,
@@ -234,7 +242,10 @@ export async function listPublishedPublicOffers() {
               jsonb_build_object(
                 'day', itinerary.day_number,
                 'title', itinerary.title,
-                'description', itinerary.description
+                'description', itinerary.description,
+                'accommodation', itinerary.accommodation,
+                'meals', itinerary.meals,
+                'transport', itinerary.transport
               )
               order by itinerary.sort_order, itinerary.day_number
             )
@@ -243,6 +254,14 @@ export async function listPublishedPublicOffers() {
           ),
           '[]'::jsonb
         ) as itinerary_days,
+        coalesce(
+          (
+            select array_agg(highlight.label order by highlight.sort_order)
+            from offer_highlights highlight
+            where highlight.offer_id = offers.id
+          ),
+          '{}'::text[]
+        ) as highlights,
         coalesce(
           (
             select array_agg(service.label order by service.sort_order)
@@ -348,7 +367,10 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
               jsonb_build_object(
                 'day', itinerary.day_number,
                 'title', itinerary.title,
-                'description', itinerary.description
+                'description', itinerary.description,
+                'accommodation', itinerary.accommodation,
+                'meals', itinerary.meals,
+                'transport', itinerary.transport
               )
               order by itinerary.sort_order, itinerary.day_number
             )
@@ -357,6 +379,14 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
           ),
           '[]'::jsonb
         ) as itinerary_days,
+        coalesce(
+          (
+            select array_agg(highlight.label order by highlight.sort_order)
+            from offer_highlights highlight
+            where highlight.offer_id = offers.id
+          ),
+          '{}'::text[]
+        ) as highlights,
         coalesce(
           (
             select array_agg(service.label order by service.sort_order)

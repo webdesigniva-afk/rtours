@@ -73,7 +73,15 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
     seoCanonicalUrl: offer.seo_canonical_url ?? "",
     seoStructuredDataType: offer.seo_structured_data_type ?? "TouristTrip",
     isAuthorProgram: offer.is_author_program ?? false,
-    itinerary: offer.itinerary_days ?? [],
+    itinerary: offer.itinerary_days?.map((day) => ({
+      day: day.day,
+      title: day.title,
+      description: day.description,
+      accommodation: day.accommodation ?? "",
+      meals: day.meals ?? "",
+      transport: day.transport ?? ""
+    })) ?? [],
+    highlights: offer.highlights ?? [],
     included: offer.included_services ?? [],
     excluded: offer.excluded_services ?? [],
     canCancelCreation,

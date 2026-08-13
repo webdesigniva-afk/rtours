@@ -7,11 +7,12 @@ import { ArrowRight, UserRound } from "lucide-react";
 
 const navItems = [
   { href: "/offers", label: "Пътувания", match: (path: string) => path.startsWith("/offers") },
-  { href: "/destinations", label: "Дестинации", match: (path: string) => path.startsWith("/destinations") },
-  { href: "/#collections", label: "Колекции", match: () => false },
-  { href: "/corporate", label: "Корпоративни", match: (path: string) => path.startsWith("/corporate") },
-  { href: "/about", label: "За нас", match: (path: string) => path.startsWith("/about") },
-  { href: "/contacts", label: "Контакти", match: (path: string) => path.startsWith("/contacts") }
+  { href: "/offers?collection=red-signature", label: "Авторски програми", match: () => false },
+  { href: "/destinations?type=exotic", label: "Екзотики", match: (path: string) => path.startsWith("/destinations") },
+  { href: "/offers?collection=red-private", label: "Специални преживявания", match: () => false },
+  { href: "/about", label: "За Red Tours", match: (path: string) => path.startsWith("/about") },
+  { href: "/contacts", label: "Контакти", match: (path: string) => path.startsWith("/contacts") },
+  { href: "/blog", label: "Блог", match: (path: string) => path.startsWith("/blog") }
 ];
 
 export function SiteHeader() {

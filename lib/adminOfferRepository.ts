@@ -53,7 +53,11 @@ export type AdminOfferRecord = {
     day: number;
     title: string;
     description: string;
+    accommodation: string | null;
+    meals: string | null;
+    transport: string | null;
   }> | null;
+  highlights: string[] | null;
   included_services: string[] | null;
   excluded_services: string[] | null;
   review_notes: string | null;
@@ -145,7 +149,10 @@ export async function getAdminOfferBySlug(slug: string) {
               jsonb_build_object(
                 'day', itinerary.day_number,
                 'title', itinerary.title,
-                'description', itinerary.description
+                'description', itinerary.description,
+                'accommodation', itinerary.accommodation,
+                'meals', itinerary.meals,
+                'transport', itinerary.transport
               )
               order by itinerary.sort_order, itinerary.day_number
             )
@@ -154,6 +161,14 @@ export async function getAdminOfferBySlug(slug: string) {
           ),
           '[]'::jsonb
         ) as itinerary_days,
+        coalesce(
+          (
+            select array_agg(highlight.label order by highlight.sort_order)
+            from offer_highlights highlight
+            where highlight.offer_id = offers.id
+          ),
+          '{}'::text[]
+        ) as highlights,
         coalesce(
           (
             select array_agg(service.label order by service.sort_order)
@@ -333,6 +348,7 @@ export async function listAdminOfferItems() {
         seo_structured_data_type,
         is_author_program,
         '[]'::jsonb as itinerary_days,
+        '{}'::text[] as highlights,
         created_at::text,
         updated_at::text
       from offers

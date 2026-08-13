@@ -258,15 +258,22 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
   const itineraryDayNumbers = readStringList(formData, "itinerary_day_number");
   const itineraryTitles = readStringList(formData, "itinerary_title");
   const itineraryDescriptions = readStringList(formData, "itinerary_description");
+  const itineraryAccommodations = readStringList(formData, "itinerary_accommodation");
+  const itineraryMeals = readStringList(formData, "itinerary_meals");
+  const itineraryTransports = readStringList(formData, "itinerary_transport");
   const heroImageUrl = readString(formData, "hero_image_url") || null;
   const galleryImageUrls = readStringList(formData, "gallery_image_urls").filter(Boolean).slice(0, 20);
   const itineraryRows = itineraryTitles
     .map((dayTitle, index) => ({
       dayNumber: Number.parseInt(itineraryDayNumbers[index] || `${index + 1}`, 10),
       title: dayTitle,
-      description: itineraryDescriptions[index] || ""
+      description: itineraryDescriptions[index] || "",
+      accommodation: itineraryAccommodations[index] || "",
+      meals: itineraryMeals[index] || "",
+      transport: itineraryTransports[index] || ""
     }))
-    .filter((day) => day.title || day.description);
+    .filter((day) => day.title || day.description || day.accommodation || day.meals || day.transport);
+  const highlights = readStringList(formData, "highlights").filter(Boolean).slice(0, 5);
   const includedServices = readStringList(formData, "included_services").filter(Boolean);
   const excludedServices = readStringList(formData, "excluded_services").filter(Boolean);
   const description = readString(formData, "description");
@@ -337,6 +344,7 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
 
   if (offerId) {
     await dbQuery("delete from offer_itinerary_days where offer_id = $1", [offerId]);
+    await dbQuery("delete from offer_highlights where offer_id = $1", [offerId]);
     await dbQuery("delete from offer_services where offer_id = $1", [offerId]);
     await dbQuery("delete from offer_destinations where offer_id = $1", [offerId]);
 
@@ -382,10 +390,20 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
     for (const [index, day] of itineraryRows.entries()) {
       await dbQuery(
         `
-          insert into offer_itinerary_days (offer_id, day_number, title, description, sort_order)
-          values ($1, $2, $3, nullif($4, ''), $5)
+          insert into offer_itinerary_days (offer_id, day_number, title, description, accommodation, meals, transport, sort_order)
+          values ($1, $2, $3, nullif($4, ''), nullif($5, ''), nullif($6, ''), nullif($7, ''), $8)
         `,
-        [offerId, Number.isFinite(day.dayNumber) && day.dayNumber > 0 ? day.dayNumber : index + 1, day.title || `Ден ${index + 1}`, day.description, index]
+        [offerId, Number.isFinite(day.dayNumber) && day.dayNumber > 0 ? day.dayNumber : index + 1, day.title || `Ден ${index + 1}`, day.description, day.accommodation, day.meals, day.transport, index]
+      );
+    }
+
+    for (const [index, highlight] of highlights.entries()) {
+      await dbQuery(
+        `
+          insert into offer_highlights (offer_id, label, sort_order)
+          values ($1, $2, $3)
+        `,
+        [offerId, highlight, index]
       );
     }
 

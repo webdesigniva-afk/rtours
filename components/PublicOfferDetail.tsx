@@ -41,7 +41,8 @@ export type PublicOfferDetailData = {
   heroImage: string;
   gallery?: string[];
   dates: Array<{ label: string; startDate: string }>;
-  itinerary: Array<{ day: number; title: string; description: string }>;
+  itinerary: Array<{ day: number; title: string; description: string; accommodation?: string; meals?: string; transport?: string }>;
+  highlights?: string[];
   included: string[];
   excluded: string[];
 };
@@ -201,6 +202,20 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
             </section>
           ) : null}
 
+          {offer.highlights?.length ? (
+            <section className="offer-content-section offer-public-highlights">
+              <div className="offer-section-title">
+                <span className="eyebrow">Акценти</span>
+                <h2>Защо ще харесате това пътуване</h2>
+              </div>
+              <ul>
+                {offer.highlights.map((highlight) => (
+                  <li key={highlight}>{highlight}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           <section className="offer-content-section" id="offer-program">
             <div className="offer-section-title">
               <span className="eyebrow">Програма</span>
@@ -214,6 +229,28 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
                     <div>
                       <h3>{day.title}</h3>
                       <p>{day.description}</p>
+                      {day.accommodation || day.meals || day.transport ? (
+                        <dl className="offer-public-itinerary-meta">
+                          {day.accommodation ? (
+                            <>
+                              <dt>Настаняване</dt>
+                              <dd>{day.accommodation}</dd>
+                            </>
+                          ) : null}
+                          {day.meals ? (
+                            <>
+                              <dt>Хранене</dt>
+                              <dd>{day.meals}</dd>
+                            </>
+                          ) : null}
+                          {day.transport ? (
+                            <>
+                              <dt>Транспорт</dt>
+                              <dd>{day.transport}</dd>
+                            </>
+                          ) : null}
+                        </dl>
+                      ) : null}
                     </div>
                   </article>
                 ))}

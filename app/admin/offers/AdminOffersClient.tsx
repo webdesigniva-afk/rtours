@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { Archive, Check, Copy, Eye, Filter, MoreVertical, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
+import { Archive, Check, Code2, Copy, DatabaseZap, Eye, FileJson, Filter, Keyboard, MoreVertical, Plus, RotateCcw, Search, Trash2, UploadCloud, X } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import type { AdminOfferListItem } from "@/lib/adminOfferRepository";
 import { archiveAdminOffer, bulkAdminOfferAction, deleteAdminOffer, duplicateAdminOffer, restoreAdminOffer } from "./actions";
+import { startBlankAdminOffer } from "./new/actions";
 
 type StatusTab = "Всички" | "Публикувани" | "Чернови" | "Импортирани" | "За преглед" | "Архивирани";
 type OfferRow = AdminOfferListItem;
@@ -85,6 +86,7 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
   const [statusFilter, setStatusFilter] = useState("");
   const [collectionFilter, setCollectionFilter] = useState("");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [openActions, setOpenActions] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [bulkConfirmAction, setBulkConfirmAction] = useState<BulkConfirmAction>(null);
@@ -219,10 +221,10 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
               Филтри
               {activeFilterCount ? <span>{activeFilterCount}</span> : null}
             </button>
-            <Link href="/admin/offers/new" prefetch={false}>
+            <button className="primary" type="button" onClick={() => setIsCreateOpen(true)} aria-haspopup="dialog">
               <Plus size={17} aria-hidden="true" />
               Нова оферта
-            </Link>
+            </button>
           </div>
         </header>
 
@@ -436,6 +438,64 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
                 <button className={confirmAction.action === "delete" ? "danger" : "primary"} type="button" onClick={confirmPendingAction} disabled={isPending}>
                   {confirmAction.action === "archive" ? "Архивирай" : "Изтрий"}
                 </button>
+              </footer>
+            </section>
+          </div>
+        ) : null}
+
+        {isCreateOpen ? (
+          <div className="offers-modal-backdrop" role="presentation" onMouseDown={() => setIsCreateOpen(false)}>
+            <section className="offers-create-modal offers-source-modal" role="dialog" aria-modal="true" aria-labelledby="offers-create-title" onMouseDown={(event) => event.stopPropagation()}>
+              <header>
+                <div>
+                  <span>Нова оферта</span>
+                  <h2 id="offers-create-title">Избери как ще я добавиш</h2>
+                </div>
+                <button type="button" aria-label="Затвори" onClick={() => setIsCreateOpen(false)}>
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </header>
+              <div className="offers-source-options">
+                <form action={startBlankAdminOffer}>
+                  <button className="offers-source-option is-primary" type="submit" disabled={isPending}>
+                    <Keyboard size={20} aria-hidden="true" />
+                    <span>
+                      <strong>Ръчно въвеждане</strong>
+                      <em>Празна чернова, която се попълва в редактора.</em>
+                    </span>
+                  </button>
+                </form>
+                <Link className="offers-source-option" href="/admin/offers/new?source=api" prefetch={false}>
+                  <DatabaseZap size={20} aria-hidden="true" />
+                  <span>
+                    <strong>API импорт</strong>
+                    <em>Синхронизация от доставчик чрез endpoint.</em>
+                  </span>
+                </Link>
+                <Link className="offers-source-option" href="/admin/offers/new?source=json" prefetch={false}>
+                  <FileJson size={20} aria-hidden="true" />
+                  <span>
+                    <strong>JSON файл / payload</strong>
+                    <em>Качване или paste на JSON за мапване към оферти.</em>
+                  </span>
+                </Link>
+                <Link className="offers-source-option" href="/admin/offers/new?source=xml" prefetch={false}>
+                  <Code2 size={20} aria-hidden="true" />
+                  <span>
+                    <strong>XML фийд</strong>
+                    <em>Импорт от XML адрес или качен файл.</em>
+                  </span>
+                </Link>
+                <Link className="offers-source-option" href="/admin/offers/new?source=csv" prefetch={false}>
+                  <UploadCloud size={20} aria-hidden="true" />
+                  <span>
+                    <strong>CSV / Excel</strong>
+                    <em>Табличен импорт от списък с оферти.</em>
+                  </span>
+                </Link>
+              </div>
+              <footer>
+                <Link href="/admin/offers/new" prefetch={false}>Виж всички варианти</Link>
               </footer>
             </section>
           </div>
