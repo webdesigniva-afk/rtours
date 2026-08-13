@@ -42,6 +42,7 @@ export type AdminOfferRecord = {
   import_last_synced_at: string | null;
   status: string;
   hero_image_url: string | null;
+  gallery_image_urls: string[] | null;
   seo_meta_title: string | null;
   seo_meta_description: string | null;
   seo_keywords: string[] | null;
@@ -123,6 +124,15 @@ export async function getAdminOfferBySlug(slug: string) {
         source::text,
         status::text,
         hero_image_url,
+        coalesce(
+          (
+            select array_agg(media.url order by media.sort_order)
+            from offer_media media
+            where media.offer_id = offers.id
+              and media.is_primary = false
+          ),
+          '{}'::text[]
+        ) as gallery_image_urls,
         seo_meta_title,
         seo_meta_description,
         seo_keywords,

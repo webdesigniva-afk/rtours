@@ -79,6 +79,7 @@ export type AdminOfferEditorInitialOffer = {
   }>;
   status: OfferStatus;
   heroImageUrl: string;
+  galleryImageUrls: string[];
   seoMetaTitle: string;
   seoMetaDescription: string;
   seoKeywords: string[];
@@ -342,7 +343,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const searchParams = useSearchParams();
   const isNewUrlMode = searchParams.get("new") === "1";
   const isNewCreationFlow = offer.canCancelCreation || isNewUrlMode;
-  const shouldShowEmptyEditor = offer.isNewBlankDraft || isNewUrlMode;
+  const shouldShowEmptyEditor = offer.isNewBlankDraft;
   const contentFormId = `offer-content-form-${offer.slug}`;
   const contentFormVersion = `${offer.slug}-${offer.updatedAt}-${shouldShowEmptyEditor ? "empty" : "saved"}`;
   const [activeTab, setActiveTab] = useState(tabFromKey(initialTabKey));
@@ -383,6 +384,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const [message, setMessage] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showCancelDraftModal, setShowCancelDraftModal] = useState(false);
+  const [isContentMediaUploading, setIsContentMediaUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isTagPending, startTagTransition] = useTransition();
   const [seoState, seoAction, isSeoPending] = useActionState(updateOfferSeo, { ok: false, message: "" });
@@ -419,7 +421,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       transport: "flight",
       isAuthorProgram: offer.isAuthorProgram,
       heroImage: currentHeroImageUrl,
-      gallery: [],
+      gallery: offer.galleryImageUrls,
       dates: [{ label: "Дати по заявка", startDate: "" }],
       itinerary: offer.itinerary,
       included: offer.included,
@@ -677,9 +679,9 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
               <Eye size={17} aria-hidden="true" />
               Преглед в сайта
             </button>
-            <button type="submit" form={contentFormId} name="after_save" value="admin_offers" formNoValidate disabled={isPending}>
+            <button type="submit" form={contentFormId} formNoValidate disabled={isPending || isContentMediaUploading}>
               <Save size={17} aria-hidden="true" />
-              Запази чернова
+              {isContentMediaUploading ? "Качване..." : "Запази чернова"}
             </button>
             <button className="primary" type="button" onClick={publishChanges} disabled={isPending}>
               Публикувай промените
@@ -720,7 +722,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         <div className={activeTab === "Оферта" ? "offer-editor-grid is-offer-tab" : activeTab === "Дати и цени" || activeTab === "Публикуване" ? "offer-editor-grid is-dates-tab" : "offer-editor-grid"}>
           <div className="offer-editor-main">
             <div hidden={activeTab !== "Оферта"}>
-              <OfferContentWorkspace key={contentFormVersion} offer={offer} currentHeroImageUrl={currentHeroImageUrl} onHeroImageChange={setCurrentHeroImageUrl} onDraftChange={setContentDraft} forceEmptyNewOffer={shouldShowEmptyEditor} formId={contentFormId} />
+              <OfferContentWorkspace key={contentFormVersion} offer={offer} currentHeroImageUrl={currentHeroImageUrl} onHeroImageChange={setCurrentHeroImageUrl} onDraftChange={setContentDraft} onMediaUploadChange={setIsContentMediaUploading} forceEmptyNewOffer={shouldShowEmptyEditor} formId={contentFormId} />
             </div>
             <div hidden={activeTab !== "Дати и цени"}>
               <DatesPricesWorkspace offer={offer} />
@@ -1142,6 +1144,7 @@ function OfferContentWorkspace({
   currentHeroImageUrl,
   onHeroImageChange,
   onDraftChange,
+  onMediaUploadChange,
   forceEmptyNewOffer,
   formId
 }: {
@@ -1149,6 +1152,7 @@ function OfferContentWorkspace({
   currentHeroImageUrl: string;
   onHeroImageChange: (url: string) => void;
   onDraftChange: (draft: OfferContentDraftSummary) => void;
+  onMediaUploadChange: (isUploading: boolean) => void;
   forceEmptyNewOffer: boolean;
   formId: string;
 }) {
@@ -1164,6 +1168,7 @@ function OfferContentWorkspace({
       formId={formId}
       onHeroImageChange={onHeroImageChange}
       onDraftChange={onDraftChange}
+      onMediaUploadChange={onMediaUploadChange}
       forceEmptyNewOffer={forceEmptyNewOffer}
       initial={{
         id: offer.id,
@@ -1180,6 +1185,7 @@ function OfferContentWorkspace({
         durationNights: offer.durationNights,
         transport: forceEmptyNewOffer ? "" : offer.transport,
         heroImageUrl: currentHeroImageUrl || offer.heroImageUrl,
+        galleryImageUrls: forceEmptyNewOffer ? [] : offer.galleryImageUrls,
         isAuthorProgram: offer.isAuthorProgram,
         itinerary: offer.itinerary,
         included: offer.included,

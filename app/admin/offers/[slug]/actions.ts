@@ -367,18 +367,16 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
       );
     }
 
-    if (galleryImageUrls.length) {
-      await dbQuery("delete from offer_media where offer_id = $1 and is_primary = false", [offerId]);
+    await dbQuery("delete from offer_media where offer_id = $1 and is_primary = false", [offerId]);
 
-      for (const [index, url] of galleryImageUrls.entries()) {
-        await dbQuery(
-          `
-            insert into offer_media (offer_id, url, alt, source, is_primary, sort_order)
-            values ($1, $2, $3, 'redtours', false, $4)
-          `,
-          [offerId, url, `${title} - снимка ${index + 1}`, index + 1]
-        );
-      }
+    for (const [index, url] of galleryImageUrls.entries()) {
+      await dbQuery(
+        `
+          insert into offer_media (offer_id, url, alt, source, is_primary, sort_order)
+          values ($1, $2, $3, 'redtours', false, $4)
+        `,
+        [offerId, url, `${title} - снимка ${index + 1}`, index + 1]
+      );
     }
 
     for (const [index, day] of itineraryRows.entries()) {

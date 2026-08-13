@@ -6,28 +6,34 @@ import { CalendarDays, ChevronDown, MapPin, Search, SlidersHorizontal, Sparkles,
 
 const moods = [
   {
-    label: "Пълно спокойствие",
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=320&q=80"
+    label: "Култура и история",
+    description: "Маршрути, които разказват за цивилизации, градове, изкуство и хора.",
+    image: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=320&q=80"
   },
   {
-    label: "Приключение",
+    label: "Природа и приключения",
+    description: "Впечатляващи пейзажи, диви места и преживявания извън обичайното.",
     image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=320&q=80"
   },
   {
-    label: "Нови вкусове",
-    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=320&q=80"
+    label: "Гастрономия и вино",
+    description: "Дестинации, които се опознават чрез местната кухня, традициите и вкусовете.",
+    image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=320&q=80"
   },
   {
-    label: "Романтика",
+    label: "Музика и събития",
+    description: "Концерти, фестивали и специални поводи, превърнати в цялостно пътуване.",
+    image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=320&q=80"
+  },
+  {
+    label: "Luxury Escapes",
+    description: "Внимателно подбрани хотели, лично обслужване и повече пространство за удоволствие.",
+    image: "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=320&q=80"
+  },
+  {
+    label: "Малки групи",
+    description: "Споделено пътуване с повече гъвкавост, лично внимание и пълноценно преживяване.",
     image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=320&q=80"
-  },
-  {
-    label: "С деца",
-    image: "https://images.unsplash.com/photo-1504150558240-0b4fd8946624?auto=format&fit=crop&w=320&q=80"
-  },
-  {
-    label: "Нов свят",
-    image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=320&q=80"
   }
 ];
 
@@ -92,7 +98,7 @@ export function TravelFinder() {
           </div>
 
           <div className="mood-picker" aria-label="Избор по усещане">
-            <h2>Как искаш да се почувстваш?</h2>
+            <h2>Как искате да преживеете света?</h2>
             <div className="mood-list">
               {moods.map((mood) => {
                 const active = mood.label === selectedMood;
@@ -107,6 +113,7 @@ export function TravelFinder() {
                   >
                     <img src={mood.image} alt="" />
                     <span>{mood.label}</span>
+                    <p>{mood.description}</p>
                   </button>
                 );
               })}

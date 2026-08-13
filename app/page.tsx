@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, BriefcaseBusiness, Hotel, Plane, Star } from "lucide-react";
+import { ArrowRight, Compass, Handshake, HeartHandshake, LifeBuoy, Map, Plane, SearchCheck, Sparkles, Star } from "lucide-react";
 import { OfferCard } from "@/components/OfferCard";
 import { ScrollPlaneTrail } from "@/components/ScrollPlaneTrail";
+import { ScrollRevealEffects } from "@/components/ScrollRevealEffects";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -73,6 +74,7 @@ export default async function Home() {
     <>
       <SiteHeader />
       <main>
+        <ScrollRevealEffects />
         <section className="hero">
           <div className="hero-media" aria-hidden="true">
             <HeroVideo />
@@ -80,18 +82,21 @@ export default async function Home() {
           <div className="container hero-inner">
             <div className="hero-grid">
               <div className="hero-copy">
-                <h1>Спомени, които остават</h1>
+                <h1>
+                  Пътувания, подбрани с опит.
+                  <br />
+                  Създадени с отношение.
+                </h1>
                 <p>
-                  Всеки може да продаде пътуване. Малцина могат да създадат преживяване, което
-                  остава с вас за цял живот.
+                  Авторски маршрути, екзотични дестинации и специални преживявания, организирани с внимание към всеки детайл.
                 </p>
                 <div className="hero-actions">
                   <Link className="button" href="/offers">
                     Разгледай пътувания
                     <ArrowRight size={18} aria-hidden="true" />
                   </Link>
-                  <Link className="button secondary" href="/corporate">
-                    Корпоративни услуги
+                  <Link className="button secondary" href="/contacts#inquiry">
+                    Пътуване по мярка
                   </Link>
                 </div>
               </div>
@@ -115,30 +120,55 @@ export default async function Home() {
 
         <section className="signature-strip" aria-label="Подходът на RedTours">
           <div className="container signature-grid">
-            <div className="signature-intro">
-              <span className="eyebrow">Подходът на RedTours</span>
-              <p>Бутиковият избор личи в детайлите, които клиентът не трябва да мисли вместо екипа.</p>
-            </div>
-            <article className="signature-item">
-              <span className="signature-number">01</span>
-              <div>
-                <strong>Подбор</strong>
-                <span>Маршрути, хотели и преживявания, които минават през човешка селекция.</span>
-              </div>
+            <article className="signature-intro signature-card">
+              <Sparkles className="signature-watermark" size={150} strokeWidth={0.65} aria-hidden="true" />
+              <span className="eyebrow">Подбрано от RedTours</span>
+              <p>Нашата актуална селекция от пътувания, които си заслужават заради маршрута, момента и преживяванията по пътя.</p>
+              <p>Тук ще откриете както нови програми, така и любими дестинации, към които бихме се върнали отново.</p>
+              <Link className="signature-link" href="/offers">
+                Вижте всички предложения
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
             </article>
-            <article className="signature-item">
-              <span className="signature-number">02</span>
+            <article className="signature-item signature-card">
+              <Compass className="signature-watermark" size={150} strokeWidth={0.65} aria-hidden="true" />
               <div>
-                <strong>Ритъм</strong>
-                <span>Програми с мярка: време за откриване, почивка и личен момент.</span>
+                <strong>Авторски пътувания</strong>
+                <p>Има пътувания, които не могат да бъдат намерени в готов каталог.</p>
+                <p>Те започват с идея, преминават през внимателно проучване и се превръщат в маршрут с характер. Подбираме местата, темпото, хотелите, местните партньори и преживяванията така, че всеки ден да има смисъл, а цялото пътуване да се усеща като завършена история.</p>
               </div>
+              <Link className="signature-link" href="/offers?collection=red-signature">
+                Разгледайте авторските програми
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
             </article>
-            <article className="signature-item">
-              <span className="signature-number">03</span>
+            <article className="signature-item signature-card">
+              <Plane className="signature-watermark" size={150} strokeWidth={0.65} aria-hidden="true" />
               <div>
-                <strong>Грижа</strong>
-                <span>Организация и внимание преди, по време и след пътуването.</span>
+                <strong>Екзотични пътувания</strong>
+                <p>Далечните дестинации изискват повече от самолетен билет и хотел. Те изискват познаване на мястото, правилен ритъм, надеждни партньори и добра подготовка.</p>
+                <p>Ние се грижим за сложната част, за да можете вие да преживеете пътуването истински.</p>
               </div>
+              <Link className="signature-link" href="/offers?collection=red-escape">
+                Разгледайте екзотиките
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </article>
+            <article className="signature-item signature-card">
+              <Map className="signature-watermark" size={150} strokeWidth={0.65} aria-hidden="true" />
+              <div>
+                <strong>
+                  Вашето пътуване.
+                  <br />
+                  Създадено за вас.
+                </strong>
+                <p>Понякога готовата програма не е достатъчна.</p>
+                <p>Разкажете ни къде искате да отидете, как обичате да пътувате и какво е важно за вас. Ще създадем индивидуален маршрут, съобразен с вашите интереси, време, темпо и бюджет.</p>
+              </div>
+              <Link className="signature-link" href="/contacts#inquiry">
+                Разкажете ни за вашето пътуване
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
             </article>
           </div>
           <ScrollPlaneTrail />
@@ -151,11 +181,10 @@ export default async function Home() {
                 <span className="eyebrow collection-kicker">
                   <span>Red</span> Collections
                 </span>
-                <h2>Изберете по усещане, не само по дестинация.</h2>
+                <h2>Различни начини да видите света, събрани в тематични колекции.</h2>
               </div>
               <p>
-                За по-бърза ориентация RedTours подрежда предложенията по стил на пътуване:
-                луксозно, екзотично, семейно, индивидуално или кратко преживяване.
+                От емблематични маршрути и скрити кътчета на Европа до гастрономически приключения, дива природа и пътувания, създадени около специални събития.
               </p>
             </div>
             <div className="collection-grid">
@@ -183,48 +212,39 @@ export default async function Home() {
         <section className="section brand-proof" id="trust">
           <div className="container brand-proof-grid">
             <div className="brand-proof-copy">
-              <span className="eyebrow">Доверие с история</span>
-              <h2>Опитът личи в спокойствието на клиента.</h2>
-              <p>
-                Основана през 2011 година, Ред Турс ЕООД е регистриран туроператор с
-                лиценз РК 01-6737. Днес екипът работи с индивидуални клиенти, групи и
-                корпоративни партньори през три офиса в България.
-              </p>
-              <p>
-                Силата на RedTours е в прецизната подготовка: правилна дестинация, точен
-                транспорт, внимателно подбрано настаняване и програма, която спестява
-                време, излишно търсене и решения на сляпо.
-              </p>
-              <div className="brand-credentials" aria-label="Факти за RedTours">
-                <div>
-                  <span>Основана</span>
-                  <strong>2011</strong>
-                </div>
-                <div>
-                  <span>Туроператорски лиценз</span>
-                  <strong>РК 01-6737</strong>
-                </div>
-                <div>
-                  <span>Присъствие</span>
-                  <strong>3 офиса в България</strong>
-                </div>
-              </div>
+              <span className="eyebrow">Въвеждащ текст</span>
+              <h2>Защо да пътувате с RedTours?</h2>
+              <p>За нас доброто пътуване не започва с резервацията и не приключва с обратния полет. То започва с правилните въпроси, внимателния избор и познаването на детайлите.</p>
+              <Link className="brand-proof-link" href="/about">
+                Научете повече за нас
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
             </div>
             <div className="service-proof">
               <div className="proof-card">
-                <span><Plane size={18} aria-hidden="true" /></span>
-                <h3>Пътувания и почивки</h3>
-                <p>Самолетни билети, хотелски резервации, екскурзии, уикенд пакети и почивки в България и чужбина.</p>
+                <span><SearchCheck size={18} aria-hidden="true" /></span>
+                <h3>Подбрани с експертност</h3>
+                <p>Не включваме дестинации и услуги само защото са популярни. Оценяваме маршрута, сезонността, логистиката и реалната стойност на всяко предложение.</p>
               </div>
               <div className="proof-card">
-                <span><Hotel size={18} aria-hidden="true" /></span>
-                <h3>Индивидуални програми</h3>
-                <p>Маршрути по мярка, трансфери, коли под наем и подбор на допълнителни услуги според личния ритъм.</p>
+                <span><Compass size={18} aria-hidden="true" /></span>
+                <h3>Създадени с внимание</h3>
+                <p>Мислим за пътуването като за цялостно преживяване - от последователността на маршрута до времето, необходимо действително да усетите мястото.</p>
               </div>
               <div className="proof-card">
-                <span><BriefcaseBusiness size={18} aria-hidden="true" /></span>
-                <h3>Корпоративно обслужване</h3>
-                <p>Организация, оптимизация на разходи и спокойна координация за бизнес пътувания и екипни формати.</p>
+                <span><Handshake size={18} aria-hidden="true" /></span>
+                <h3>Надеждни партньори</h3>
+                <p>Работим с внимателно подбрани местни партньори, хотели, водачи и доставчици, на които можем да разчитаме.</p>
+              </div>
+              <div className="proof-card">
+                <span><HeartHandshake size={18} aria-hidden="true" /></span>
+                <h3>Лично отношение</h3>
+                <p>Зад всяко запитване стои реален човек от нашия екип, който познава продукта и може да ви помогне да направите информиран избор.</p>
+              </div>
+              <div className="proof-card">
+                <span><LifeBuoy size={18} aria-hidden="true" /></span>
+                <h3>Подкрепа по време на пътуването</h3>
+                <p>Оставаме до вас и след потвърждението на резервацията - с необходимата информация, организация и съдействие.</p>
               </div>
             </div>
           </div>

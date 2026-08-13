@@ -24,7 +24,20 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
   }
 
   const canCancelCreation = Boolean(offer && offer.status === "draft" && newMode === "1");
-  const isNewBlankDraft = canCancelCreation;
+  const hasSavedContent = Boolean(
+    offer.title ||
+      offer.summary ||
+      offer.description ||
+      offer.country ||
+      offer.region ||
+      offer.hero_image_url ||
+      offer.gallery_image_urls?.length ||
+      offer.destinations?.length ||
+      offer.itinerary_days?.length ||
+      offer.included_services?.length ||
+      offer.excluded_services?.length
+  );
+  const isNewBlankDraft = canCancelCreation && !hasSavedContent;
   const shouldHideDefaultProductType = Boolean(isNewBlankDraft || (offer.status === "draft" && offer.product_type === "package" && !offer.product_type_label));
   const shouldHideDefaultTransport = Boolean(isNewBlankDraft || (offer.status === "draft" && offer.transport === "mixed" && !offer.product_type_label));
 
@@ -53,6 +66,7 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
     dates: offer.dates ?? [],
     status: offer.status ?? "draft",
     heroImageUrl: offer.hero_image_url ?? "",
+    galleryImageUrls: offer.gallery_image_urls ?? [],
     seoMetaTitle: offer.seo_meta_title ?? "",
     seoMetaDescription: offer.seo_meta_description ?? "",
     seoKeywords: offer.seo_keywords ?? [],
