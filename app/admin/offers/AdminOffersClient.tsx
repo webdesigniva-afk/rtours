@@ -219,7 +219,7 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
               Филтри
               {activeFilterCount ? <span>{activeFilterCount}</span> : null}
             </button>
-            <Link href="/admin/offers/new">
+            <Link href="/admin/offers/new" prefetch={false}>
               <Plus size={17} aria-hidden="true" />
               Нова оферта
             </Link>
@@ -332,7 +332,7 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
                 <label className="offers-select-cell" aria-label={`Маркирай ${offer.title || "Нова оферта"}`}>
                   <input type="checkbox" checked={selectedSlugs.includes(offer.slug)} onChange={() => toggleOfferSelection(offer.slug)} disabled={isPending} />
                 </label>
-                <Link className="offers-title-cell" href={`/admin/offers/${offer.slug}`} role="cell">
+                <Link className="offers-title-cell" href={`/admin/offers/${offer.id}`} role="cell" prefetch={false}>
                   {offer.image ? <img src={offer.image} alt="" /> : <span className="offers-image-placeholder" aria-hidden="true"><img src="/brand/logo.png" alt="" /></span>}
                   <span>
                     <strong>{offer.title || "Нова оферта"}</strong>
@@ -355,21 +355,21 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
                     <MoreVertical size={18} aria-hidden="true" />
                   </button>
                   {openActions === offer.slug ? (
-                    <div className={`offers-row-menu ${index >= filteredOffers.length - 2 ? "is-anchored-up" : ""}`} role="menu">
+                    <div className={`offers-row-menu ${filteredOffers.length > 3 && index >= filteredOffers.length - 2 ? "is-anchored-up" : ""}`} role="menu">
                       {offer.status === "Архивирана" ? (
                         <>
                         <button type="button" role="menuitem" onClick={() => runOfferAction(offer, "restore")} disabled={isPending}>
                           <RotateCcw size={16} aria-hidden="true" />
                           Разархивирай
                         </button>
-                          <Link href={`/admin/offers/${offer.slug}`} role="menuitem">
+                          <Link href={`/admin/offers/${offer.id}`} role="menuitem" prefetch={false}>
                             <Eye size={16} aria-hidden="true" />
                             Отвори
                           </Link>
                         </>
                       ) : (
                         <>
-                          <Link href={`/admin/offers/${offer.slug}`} role="menuitem">
+                          <Link href={`/admin/offers/${offer.id}`} role="menuitem" prefetch={false}>
                             <Eye size={16} aria-hidden="true" />
                             Отвори
                           </Link>
@@ -395,13 +395,13 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
             {filteredOffers.length === 0 ? (
               <div className="offers-empty-state">
                 <Search size={22} aria-hidden="true" />
-                <strong>{offers.length ? "Няма оферти по тези критерии" : "Няма реални оферти"}</strong>
+                <strong>{offers.length ? "Няма оферти по тези критерии" : "Няма добавени оферти"}</strong>
                 <span>{offers.length ? "Промени филтрите или изчисти търсенето." : "Създай нова оферта, за да се появи в списъка."}</span>
               </div>
             ) : null}
           </div>
           <footer className="offers-table-footer">
-            <span>Показване на {filteredOffers.length} от {offers.length} реални оферти</span>
+            <span>Показване на {filteredOffers.length} от {offers.length} оферти</span>
           </footer>
         </section>
 

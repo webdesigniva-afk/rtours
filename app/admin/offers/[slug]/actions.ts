@@ -68,17 +68,6 @@ export async function cancelNewOfferDraft(slug: string) {
           review_notes ilike $2
           or review_notes ilike $3
           or slug like 'nova-oferta%'
-          or (
-            title in ('', 'Нова оферта')
-            and coalesce(summary, '') = ''
-            and coalesce(description, '') = ''
-            and coalesce(country, '') = ''
-            and coalesce(region, '') = ''
-            and coalesce(hero_image_url, '') = ''
-            and not exists (select 1 from offer_dates where offer_id = offers.id)
-            and not exists (select 1 from offer_itinerary_days where offer_id = offers.id)
-            and not exists (select 1 from offer_services where offer_id = offers.id)
-          )
         )
       returning slug
     `,
@@ -86,7 +75,7 @@ export async function cancelNewOfferDraft(slug: string) {
   );
 
   if (result.rows.length === 0) {
-    return { ok: false, message: "Тази оферта вече има съдържание или не е временна чернова." };
+    return { ok: false, message: "Редакцията е затворена без изтриване." };
   }
 
   revalidatePath("/admin/offers");
@@ -162,6 +151,12 @@ export type OfferSeoActionState = {
   newSlug?: string;
 };
 
+type OfferDestinationInput = {
+  country: string;
+  region: string;
+  city: string;
+};
+
 function slugifyLabel(label: string) {
   return label
     .toLowerCase()
@@ -211,22 +206,53 @@ function readStringList(formData: FormData, key: string) {
   return formData.getAll(key).map((value) => (typeof value === "string" ? value.trim() : ""));
 }
 
+function readDestinations(formData: FormData): OfferDestinationInput[] {
+  const countries = readStringList(formData, "destination_country");
+  const regions = readStringList(formData, "destination_region");
+  const cities = readStringList(formData, "destination_city");
+  const rowCount = Math.max(countries.length, regions.length, cities.length);
+  const destinations: OfferDestinationInput[] = [];
+
+  for (let index = 0; index < rowCount; index += 1) {
+    const country = countries[index] ?? "";
+    const region = regions[index] ?? "";
+    const city = cities[index] ?? "";
+
+    if (!country && !region && !city) {
+      continue;
+    }
+
+    destinations.push({
+      country: country || "Дестинация",
+      region,
+      city
+    });
+  }
+
+  return destinations;
+}
+
 const productTypeValues = new Set(["excursion", "holiday", "hotel", "flight", "service", "package"]);
 const transportValues = new Set(["flight", "bus", "own_transport", "mixed"]);
 const availabilityValues = new Set(["available", "limited", "on_request", "sold_out"]);
 
 export async function updateOfferContent(_state: OfferContentActionState, formData: FormData): Promise<OfferContentActionState> {
+  const offerIdInput = readString(formData, "offer_id");
   const slug = readString(formData, "slug");
   await requireAdminSession(slug);
 
   const title = readString(formData, "title");
+  const shouldExitAfterSave = readString(formData, "after_save") === "admin_offers";
 
-  if (!slug || !title) {
-    return { ok: false, message: "Заглавието е задължително." };
+  if (!slug) {
+    return { ok: false, message: "Липсва оферта за запис." };
   }
 
   const productType = readString(formData, "product_type");
+  const productTypeLabel = readString(formData, "product_type_label");
   const transport = readString(formData, "transport");
+  const destinations = readDestinations(formData);
+  const primaryDestination = destinations[0];
   const durationDays = readPositiveInteger(formData, "duration_days");
   const durationNights = readPositiveInteger(formData, "duration_nights");
   const itineraryDayNumbers = readStringList(formData, "itinerary_day_number");
@@ -244,46 +270,92 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
   const includedServices = readStringList(formData, "included_services").filter(Boolean);
   const excludedServices = readStringList(formData, "excluded_services").filter(Boolean);
   const description = readString(formData, "description");
+  const submittedCountry = primaryDestination?.country || readString(formData, "country");
+  const submittedRegion = primaryDestination?.region || primaryDestination?.city || readString(formData, "region");
+  const submittedSummary = readString(formData, "summary");
+  const hasSubmittedContent = Boolean(
+    title ||
+      productTypeValues.has(productType) ||
+      productTypeLabel ||
+      transportValues.has(transport) ||
+      durationDays ||
+      durationNights ||
+      submittedCountry ||
+      submittedRegion ||
+      destinations.length ||
+      submittedSummary ||
+      description ||
+      heroImageUrl ||
+      galleryImageUrls.length ||
+      itineraryRows.length ||
+      includedServices.length ||
+      excludedServices.length
+  );
 
   await dbQuery(
     `
       update offers
-      set product_type = $2::offer_product_type,
+      set product_type = case when $2 <> '' then $2::offer_product_type else product_type end,
+          product_type_label = nullif($13, ''),
           title = $3,
           country = nullif($4, ''),
           region = nullif($5, ''),
           duration_days = $6,
           duration_nights = $7,
-          transport = $8::transport_type,
+          transport = case when $8 <> '' then $8::transport_type else transport end,
           summary = nullif($9, ''),
           description = coalesce(nullif($10, ''), description),
           is_author_program = $11,
           hero_image_url = coalesce($12, hero_image_url),
           updated_at = now()
-      where slug = $1
+      where id = nullif($14, '')::uuid
+         or ($14 = '' and slug = $1)
     `,
     [
       slug,
-      productTypeValues.has(productType) ? productType : "package",
+      productTypeValues.has(productType) ? productType : "",
       title,
-      readString(formData, "country"),
-      readString(formData, "region"),
+      submittedCountry,
+      submittedRegion,
       durationDays,
       durationNights,
-      transportValues.has(transport) ? transport : "mixed",
-      readString(formData, "summary"),
+      transportValues.has(transport) ? transport : "",
+      submittedSummary,
       description,
       readString(formData, "is_author_program") !== "no",
-      heroImageUrl
+      heroImageUrl,
+      productTypeValues.has(productType) ? productTypeLabel : "",
+      offerIdInput
     ]
   );
 
-  const offerResult = await dbQuery<{ id: string }>("select id from offers where slug = $1 limit 1", [slug]);
+  const offerResult = await dbQuery<{ id: string }>(
+    "select id from offers where id = nullif($1, '')::uuid or ($1 = '' and slug = $2) limit 1",
+    [offerIdInput, slug]
+  );
   const offerId = offerResult.rows[0]?.id;
 
   if (offerId) {
     await dbQuery("delete from offer_itinerary_days where offer_id = $1", [offerId]);
     await dbQuery("delete from offer_services where offer_id = $1", [offerId]);
+    await dbQuery("delete from offer_destinations where offer_id = $1", [offerId]);
+
+    const destinationRows = destinations.length > 0
+      ? destinations
+      : submittedCountry || submittedRegion
+        ? [{ country: submittedCountry || "Дестинация", region: submittedRegion, city: "" }]
+        : [];
+
+    for (const [index, destination] of destinationRows.entries()) {
+      await dbQuery(
+        `
+          insert into offer_destinations (offer_id, country, region, city, is_primary, sort_order)
+          values ($1, $2, nullif($3, ''), nullif($4, ''), $5, $6)
+        `,
+        [offerId, destination.country, destination.region, destination.city, index === 0, index]
+      );
+    }
+
     if (heroImageUrl) {
       await dbQuery("delete from offer_media where offer_id = $1 and is_primary = true", [offerId]);
       await dbQuery(
@@ -335,11 +407,29 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
     }
   }
 
+  if (hasSubmittedContent || shouldExitAfterSave) {
+    await dbQuery(
+      `
+        update offers
+        set status = 'draft',
+            review_notes = nullif(trim(replace(coalesce(review_notes, ''), '[new-offer-draft] Създадена е празна чернова. Всички промени в редактора се записват автоматично.', '')), ''),
+            updated_at = now()
+        where id = nullif($2, '')::uuid
+           or ($2 = '' and slug = $1)
+      `,
+      [slug, offerIdInput]
+    );
+  }
+
   revalidatePath(`/admin/offers/${slug}`);
   revalidatePath("/admin/offers");
   revalidatePath("/offers");
   revalidatePath(`/offers/${slug}`);
   revalidatePath("/");
+
+  if (shouldExitAfterSave) {
+    redirect("/admin/offers");
+  }
 
   return { ok: true, message: heroImageUrl ? "Офертата е записана. Основната снимка е записана към офертата." : "Офертата е записана. Няма получена основна снимка в заявката." };
 }

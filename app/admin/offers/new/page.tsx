@@ -4,6 +4,6 @@ import { createBlankAdminOffer } from "./actions";
 export const dynamic = "force-dynamic";
 
 export default async function NewOfferPage() {
-  const slug = await createBlankAdminOffer();
-  redirect(`/admin/offers/${slug}?tab=offer&new=1`);
+  const offerId = await createBlankAdminOffer();
+  redirect(`/admin/offers/${offerId}?tab=offer&new=1`);
 }

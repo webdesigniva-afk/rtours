@@ -135,7 +135,7 @@ export async function createBlankAdminOffer() {
   const createdAt = new Date();
   const slug = await createUniqueOfferSlug(`nova-oferta-${createdAt.getTime()}`);
 
-  await dbQuery(
+  const result = await dbQuery<{ id: string }>(
     `
       insert into offers (
         slug,
@@ -153,18 +153,20 @@ export async function createBlankAdminOffer() {
         seo_meta_title,
         review_notes
       )
-      values ($1, 'excursion', 'Екскурзия', '', '', '', null, null, 'flight', 'manual', 'draft', true, null, $2)
+      values ($1, 'package', null, '', '', '', null, null, 'mixed', 'manual', 'draft', false, null, $2)
+      returning id
     `,
     [slug, "[new-offer-draft] Създадена е празна чернова. Всички промени в редактора се записват автоматично."]
   );
 
-  return slug;
+  return result.rows[0].id;
 }
 
 export async function createAdminOffer(formData: FormData) {
   await requireAdminSession();
 
   const submittedTitle = readString(formData, "title");
+  const shouldExitAfterSave = readString(formData, "after_save") === "admin_offers";
   const title = submittedTitle || `Нова чернова ${new Date().toLocaleString("bg-BG")}`;
 
   const shortTitle = readString(formData, "short_title");
@@ -296,5 +298,5 @@ export async function createAdminOffer(formData: FormData) {
     );
   }
 
-  redirect(`/admin/offers/${slug}?tab=dates-prices`);
+  redirect(shouldExitAfterSave ? "/admin/offers" : `/admin/offers/${slug}?tab=dates-prices`);
 }

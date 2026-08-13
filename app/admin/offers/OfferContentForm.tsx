@@ -1,6 +1,7 @@
 "use client";
 
 import { type ChangeEvent, type MouseEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,15 +24,19 @@ import {
 } from "lucide-react";
 
 export type OfferContentInitialData = {
+  id?: string;
   slug?: string;
   productType: string;
+  productTypeLabel: string;
   title: string;
   summary: string;
   description: string;
   country: string;
   region: string;
+  destinations?: Array<{ country: string; region: string; city: string }>;
   durationDays: number | string;
   durationNights: number | string;
+  transport: string;
   heroImageUrl: string;
   isAuthorProgram: boolean;
   itinerary: Array<{ day: number; title: string; description: string }>;
@@ -46,6 +51,10 @@ export type OfferContentDraftSummary = {
   region: string;
   durationDays: string;
   durationNights: string;
+  transport: string;
+  summary: string;
+  description: string;
+  hasHeroImage: boolean;
 };
 
 type ProductTypeOption = {
@@ -69,11 +78,6 @@ type ItineraryRow = {
   description: string;
 };
 
-type ServiceRow = {
-  id: string;
-  label: string;
-};
-
 const defaultProductTypeOptions: ProductTypeOption[] = [
   { slug: "excursion", label: "Екскурзия", productType: "excursion", isSystem: true },
   { slug: "holiday", label: "Почивка", productType: "holiday", isSystem: true },
@@ -81,6 +85,13 @@ const defaultProductTypeOptions: ProductTypeOption[] = [
   { slug: "hotel", label: "Хотел", productType: "hotel", isSystem: true },
   { slug: "flight", label: "Самолетен билет", productType: "flight", isSystem: true }
 ];
+
+function splitServiceText(value: string) {
+  return value
+    .split(/[\n,]+/)
+    .map((item) => item.replace(/^\s*[-*•\d.)]+/, "").trim())
+    .filter(Boolean);
+}
 
 const countryCodes = [
   "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
@@ -274,9 +285,10 @@ export function OfferContentForm({
   headerBadge,
   primarySubmitLabel = "Запази и продължи",
   secondarySubmitLabel = "Запази чернова",
-  autosave = false,
+  formId,
   onHeroImageChange,
-  onDraftChange
+  onDraftChange,
+  forceEmptyNewOffer = false
 }: {
   initial: OfferContentInitialData;
   action: (formData: FormData) => void;
@@ -286,28 +298,41 @@ export function OfferContentForm({
   headerBadge: string;
   primarySubmitLabel?: string;
   secondarySubmitLabel?: string;
-  autosave?: boolean;
+  formId?: string;
   onHeroImageChange?: (url: string) => void;
   onDraftChange?: (draft: OfferContentDraftSummary) => void;
+  forceEmptyNewOffer?: boolean;
 }) {
+  const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
-  const autosaveSubmitRef = useRef<HTMLButtonElement>(null);
-  const autosaveTimerRef = useRef<number | null>(null);
-  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const editorRef = useRef<HTMLDivElement>(null);
   const savedSelectionRef = useRef<Range | null>(null);
   const uploadSessionIdRef = useRef(crypto.randomUUID());
-  const [productType, setProductType] = useState(initial.productType || "excursion");
+  const shouldForceEmptyNewOffer = forceEmptyNewOffer || searchParams.get("new") === "1";
+  const hasExplicitProductType = Boolean(initial.productTypeLabel || (initial.productType && initial.productType !== "package"));
+  const normalizedInitialProductType = shouldForceEmptyNewOffer || !hasExplicitProductType ? "" : initial.productType;
+  const normalizedInitialTransport = shouldForceEmptyNewOffer || (initial.transport === "mixed" && !hasExplicitProductType) ? "" : initial.transport;
+  const [productType, setProductType] = useState(normalizedInitialProductType);
   const [productTypeOptions, setProductTypeOptions] = useState(defaultProductTypeOptions);
   const [isProductTypeOpen, setIsProductTypeOpen] = useState(false);
   const [isAddingProductType, setIsAddingProductType] = useState(false);
   const [newProductTypeLabel, setNewProductTypeLabel] = useState("");
   const [productTypeError, setProductTypeError] = useState("");
   const [title, setTitle] = useState(initial.title);
-  const [destinations, setDestinations] = useState<DestinationRow[]>([{ id: "primary", country: initial.country, region: initial.region, city: "" }]);
+  const initialDestinations = initial.destinations?.length
+    ? initial.destinations
+    : [{ country: initial.country, region: initial.region, city: "" }];
+  const [destinations, setDestinations] = useState<DestinationRow[]>(
+    initialDestinations.map((destination, index) => ({
+      id: index === 0 ? "primary" : crypto.randomUUID(),
+      country: destination.country,
+      region: destination.region,
+      city: destination.city
+    }))
+  );
   const [durationDays, setDurationDays] = useState(String(initial.durationDays ?? ""));
   const [durationNights, setDurationNights] = useState(String(initial.durationNights ?? ""));
-  const [transport, setTransport] = useState("flight");
+  const [transport, setTransport] = useState(normalizedInitialTransport);
   const [summary, setSummary] = useState(initial.summary);
   const [description, setDescription] = useState(initial.description);
   const [itineraryDays, setItineraryDays] = useState<ItineraryRow[]>(
@@ -315,8 +340,8 @@ export function OfferContentForm({
       ? initial.itinerary.map((day) => ({ id: crypto.randomUUID(), day: day.day, title: day.title, description: day.description }))
       : [{ id: crypto.randomUUID(), day: 1, title: "", description: "" }]
   );
-  const [includedServices, setIncludedServices] = useState<ServiceRow[]>(initial.included.length ? initial.included.map((label) => ({ id: crypto.randomUUID(), label })) : [{ id: crypto.randomUUID(), label: "" }]);
-  const [excludedServices, setExcludedServices] = useState<ServiceRow[]>(initial.excluded.length ? initial.excluded.map((label) => ({ id: crypto.randomUUID(), label })) : [{ id: crypto.randomUUID(), label: "" }]);
+  const [includedServicesText, setIncludedServicesText] = useState(initial.included.join("\n"));
+  const [excludedServicesText, setExcludedServicesText] = useState(initial.excluded.join("\n"));
   const heroImageInputRef = useRef<HTMLInputElement>(null);
   const latestHeroImageUrlRef = useRef(initial.heroImageUrl);
   const [heroPreview, setHeroPreview] = useState(initial.heroImageUrl);
@@ -327,24 +352,56 @@ export function OfferContentForm({
   const [editorPanel, setEditorPanel] = useState<"format" | "link" | "image" | "more" | null>(null);
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const selectedProductType = productTypeOptions.find((option) => option.slug === productType || option.productType === productType) ?? productTypeOptions[0];
+  const selectedProductType = productTypeOptions.find((option) => option.slug === productType || option.productType === productType);
   const primaryDestination = destinations[0] ?? { id: "primary", country: "", region: "", city: "" };
   const country = primaryDestination.country;
   const region = primaryDestination.region || primaryDestination.city;
   const routeLabel = destinations.map((destination) => [destination.city, destination.region, destination.country].filter(Boolean).join(", ")).filter(Boolean).join(" -> ");
+  const includedServices = splitServiceText(includedServicesText);
+  const excludedServices = splitServiceText(excludedServicesText);
+  const getCurrentDescription = useCallback(() => (editorMode === "visual" ? editorRef.current?.innerHTML ?? description : description), [description, editorMode]);
+
+  useEffect(() => {
+    setProductType(normalizedInitialProductType);
+    setTransport(normalizedInitialTransport);
+    setTitle(initial.title);
+    setSummary(initial.summary);
+    setDescription(initial.description);
+    setDurationDays(String(initial.durationDays ?? ""));
+    setDurationNights(String(initial.durationNights ?? ""));
+    const nextDestinations = initial.destinations?.length
+      ? initial.destinations
+      : [{ country: initial.country, region: initial.region, city: "" }];
+    setDestinations(
+      nextDestinations.map((destination, index) => ({
+        id: index === 0 ? "primary" : crypto.randomUUID(),
+        country: destination.country,
+        region: destination.region,
+        city: destination.city
+      }))
+    );
+    setIncludedServicesText(initial.included.join("\n"));
+    setExcludedServicesText(initial.excluded.join("\n"));
+    setHeroImageUrl(initial.heroImageUrl);
+    setHeroPreview(initial.heroImageUrl);
+    latestHeroImageUrlRef.current = initial.heroImageUrl;
+  }, [initial.slug, normalizedInitialProductType, normalizedInitialTransport]);
 
   useEffect(() => {
     onDraftChange?.({
-      productTypeLabel: selectedProductType.label,
+      productTypeLabel: selectedProductType?.label ?? "",
       title,
       country,
       region,
       durationDays,
-      durationNights
+      durationNights,
+      transport,
+      summary,
+      description: getCurrentDescription(),
+      hasHeroImage: Boolean(heroImageUrl)
     });
-  }, [country, durationDays, durationNights, onDraftChange, region, selectedProductType.label, title]);
+  }, [country, description, durationDays, durationNights, getCurrentDescription, heroImageUrl, onDraftChange, region, selectedProductType?.label, summary, title, transport]);
 
-  const getCurrentDescription = useCallback(() => (editorMode === "visual" ? editorRef.current?.innerHTML ?? description : description), [description, editorMode]);
   const syncDescription = () => setDescription(editorRef.current?.innerHTML ?? "");
   const syncFormBeforeSave = useCallback((formData?: FormData) => {
     const nextDescription = getCurrentDescription();
@@ -357,23 +414,6 @@ export function OfferContentForm({
     formData?.set("description", nextDescription);
     formData?.set("hero_image_url", nextHeroImageUrl);
   }, [getCurrentDescription, heroImageUrl]);
-  const runAutosaveNow = useCallback(() => {
-    if (!autosave || !formRef.current) return;
-
-    syncFormBeforeSave();
-    setAutosaveStatus("saving");
-    formRef.current.requestSubmit(autosaveSubmitRef.current ?? undefined);
-    window.setTimeout(() => setAutosaveStatus("saved"), 800);
-  }, [autosave, syncFormBeforeSave]);
-  const queueAutosave = useCallback(() => {
-    if (!autosave) return;
-
-    if (autosaveTimerRef.current) {
-      window.clearTimeout(autosaveTimerRef.current);
-    }
-
-    autosaveTimerRef.current = window.setTimeout(runAutosaveNow, 650);
-  }, [autosave, runAutosaveNow]);
   const keepEditorSelection = (event: MouseEvent<HTMLButtonElement>) => event.preventDefault();
   const saveEditorSelection = () => {
     const selection = window.getSelection();
@@ -405,7 +445,6 @@ export function OfferContentForm({
     syncDescription();
     syncEditorState();
     saveEditorSelection();
-    window.setTimeout(queueAutosave, 0);
   };
   const openEditorPanel = (panel: "format" | "link" | "image" | "more") => {
     saveEditorSelection();
@@ -461,15 +500,6 @@ export function OfferContentForm({
     return () => document.removeEventListener("selectionchange", syncEditorState);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (autosaveTimerRef.current) {
-        window.clearTimeout(autosaveTimerRef.current);
-        runAutosaveNow();
-      }
-    };
-  }, [runAutosaveNow]);
-
   const addProductType = async () => {
     const label = newProductTypeLabel.trim();
     if (!label) {
@@ -507,18 +537,6 @@ export function OfferContentForm({
   const updateItineraryDay = (id: string, field: "title" | "description", value: string) => setItineraryDays((current) => current.map((day) => (day.id === id ? { ...day, [field]: value } : day)));
   const addItineraryDay = () => setItineraryDays((current) => [...current, { id: crypto.randomUUID(), day: current.length + 1, title: "", description: "" }]);
   const removeItineraryDay = (id: string) => setItineraryDays((current) => renumberItineraryDays(current.length === 1 ? current : current.filter((day) => day.id !== id)));
-  const updateServiceItem = (type: "included" | "excluded", id: string, label: string) => {
-    const setter = type === "included" ? setIncludedServices : setExcludedServices;
-    setter((current) => current.map((item) => (item.id === id ? { ...item, label } : item)));
-  };
-  const addServiceItem = (type: "included" | "excluded") => {
-    const setter = type === "included" ? setIncludedServices : setExcludedServices;
-    setter((current) => [...current, { id: crypto.randomUUID(), label: "" }]);
-  };
-  const removeServiceItem = (type: "included" | "excluded", id: string) => {
-    const setter = type === "included" ? setIncludedServices : setExcludedServices;
-    setter((current) => (current.length === 1 ? current : current.filter((item) => item.id !== id)));
-  };
   const handleHeroFilesChange = (files: File[]) => {
     setHeroPreview((currentUrl) => {
       if (currentUrl && currentUrl.startsWith("blob:")) URL.revokeObjectURL(currentUrl);
@@ -527,7 +545,6 @@ export function OfferContentForm({
   };
   const applyGalleryUploadedUrls = (urls: string[]) => {
     setGalleryImageUrls(urls);
-    window.setTimeout(queueAutosave, 0);
   };
   const applyHeroUploadedUrls = (urls: string[]) => {
     const nextUrl = urls[0] ?? "";
@@ -539,8 +556,6 @@ export function OfferContentForm({
     if (heroImageInputRef.current) {
       heroImageInputRef.current.value = nextUrl;
     }
-
-    window.setTimeout(queueAutosave, 0);
   };
   const syncHeroInputBeforeSubmit = () => {
     syncFormBeforeSave();
@@ -548,9 +563,9 @@ export function OfferContentForm({
 
   return (
     <div className="offer-new-layout">
-      <form className="offer-new-form" action={action} ref={formRef} onInput={queueAutosave} onChange={queueAutosave} onSubmit={syncHeroInputBeforeSubmit}>
+      <form id={formId} className="offer-new-form" action={action} ref={formRef} onSubmit={syncHeroInputBeforeSubmit}>
+        {initial.id ? <input type="hidden" name="offer_id" value={initial.id} /> : null}
         {initial.slug ? <input type="hidden" name="slug" value={initial.slug} /> : null}
-        <button ref={autosaveSubmitRef} type="submit" formNoValidate hidden aria-hidden="true" tabIndex={-1} />
         <section className="offer-new-card">
           <header className="offer-new-card-header">
             <div>
@@ -562,12 +577,12 @@ export function OfferContentForm({
           <div className="offer-new-form-grid">
             <label>
               <span>Тип оферта <b>*</b></span>
-              <input type="hidden" name="product_type" value={selectedProductType.productType} />
-              <input type="hidden" name="product_type_label" value={selectedProductType.label} />
+              <input type="hidden" name="product_type" value={selectedProductType?.productType ?? ""} />
+              <input type="hidden" name="product_type_label" value={selectedProductType?.label ?? ""} />
               <div className="offer-new-custom-select">
                 <button type="button" onClick={() => setIsProductTypeOpen((value) => !value)} aria-expanded={isProductTypeOpen}>
                   <Plane size={18} aria-hidden="true" />
-                  <span>{selectedProductType.label}</span>
+                  <span>{selectedProductType?.label ?? "Избери"}</span>
                   <ChevronDown size={16} aria-hidden="true" />
                 </button>
                 {isProductTypeOpen ? (
@@ -591,7 +606,7 @@ export function OfferContentForm({
               </div>
             </label>
 
-            <label>
+            <label className="offer-new-title-field">
               <span className="offer-new-label-line"><span>Заглавие <b>*</b></span><em>{title.length}/100</em></span>
               <div className="offer-new-counted-input">
                 <input name="title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Напр. Кападокия - магията на балоните" required maxLength={100} />
@@ -625,7 +640,7 @@ export function OfferContentForm({
 
             <label className="offer-new-field"><span>Авторска програма</span><div className="offer-new-radio-panel"><label><input type="radio" name="is_author_program" value="yes" defaultChecked={initial.isAuthorProgram} /><span>Да</span></label><label><input type="radio" name="is_author_program" value="no" defaultChecked={!initial.isAuthorProgram} /><span>Не</span></label></div></label>
             <label><span>Продължителност <b>*</b></span><div className="offer-new-duration"><input name="duration_days" value={durationDays} onChange={(event) => setDurationDays(event.target.value)} inputMode="numeric" required /><span>дни</span><input name="duration_nights" value={durationNights} onChange={(event) => setDurationNights(event.target.value)} inputMode="numeric" /><span>нощувки</span></div></label>
-            <label><span>Транспорт <b>*</b></span><select name="transport" value={transport} onChange={(event) => setTransport(event.target.value)}><option value="flight">Самолет</option><option value="bus">Автобус</option><option value="own_transport">Собствен транспорт</option><option value="mixed">Комбинирано</option></select></label>
+            <label><span>Транспорт <b>*</b></span><select name="transport" value={transport} onChange={(event) => setTransport(event.target.value)} required><option value="" disabled>Избери</option><option value="flight">Самолет</option><option value="bus">Автобус</option><option value="own_transport">Собствен транспорт</option><option value="mixed">Комбинирано</option></select></label>
 
             <div className="offer-new-field offer-new-hero-media"><span>Основна снимка <b>*</b></span><UploadBox title="Качи основна снимка" hint="PNG, JPG или WEBP, макс. 5MB" action="Избери файл" uploadSessionId={uploadSessionIdRef.current} role="hero" required={!heroImageUrl} uploadedUrls={heroImageUrl ? [heroImageUrl] : []} onFilesChange={handleHeroFilesChange} onUploaded={applyHeroUploadedUrls} /><input ref={heroImageInputRef} type="hidden" name="hero_image_url" defaultValue={initial.heroImageUrl} /></div>
             <div className="offer-new-field offer-new-gallery-media"><span>Галерия (до 20 снимки)</span><UploadBox title="Качи още снимки" hint="или плъзнете файловете тук" action="Избери файлове" uploadSessionId={uploadSessionIdRef.current} role="gallery" multiple uploadedUrls={galleryImageUrls} onUploaded={applyGalleryUploadedUrls} />{galleryImageUrls.map((url) => <input type="hidden" name="gallery_image_urls" value={url} key={url} />)}</div>
@@ -654,24 +669,57 @@ export function OfferContentForm({
           </div>
 
           <section className="offer-itinerary-editor"><header><div><h3>Програма по дни</h3><p>Добавете програмата като отделни дни. Така после сайтът ще я показва като подреден маршрут.</p></div><button type="button" onClick={addItineraryDay}><Plus size={16} aria-hidden="true" />Добави ден</button></header><div className="offer-itinerary-list">{itineraryDays.map((day) => <article className="offer-itinerary-row" key={day.id}><div className="offer-itinerary-day-number"><span>Ден</span><strong>{day.day}</strong><input type="hidden" name="itinerary_day_number" value={day.day} /></div><label className="offer-edit-field"><span>Заглавие за деня</span><input name="itinerary_title" value={day.title} onChange={(event) => updateItineraryDay(day.id, "title", event.target.value)} placeholder="Напр. София - Истанбул" /></label><label className="offer-edit-field is-wide"><span>Описание</span><textarea name="itinerary_description" value={day.description} onChange={(event) => updateItineraryDay(day.id, "description", event.target.value)} placeholder="Опишете програмата за този ден..." rows={4} /></label><button type="button" onClick={() => removeItineraryDay(day.id)} disabled={itineraryDays.length === 1} aria-label="Премахни ден"><X size={16} aria-hidden="true" /></button></article>)}</div></section>
-          <section className="offer-services-editor"><header><div><h3>Услуги и условия в цената</h3><p>Разделете включеното и невключеното, за да не остава важна информация скрита в дълъг текст.</p></div></header><div className="offer-services-columns"><div className="offer-service-list"><header><strong>Цената включва</strong><button type="button" onClick={() => addServiceItem("included")}><Plus size={15} aria-hidden="true" />Добави</button></header>{includedServices.map((item, index) => <label className="offer-service-row" key={item.id}><span>{index + 1}</span><input name="included_services" value={item.label} onChange={(event) => updateServiceItem("included", item.id, event.target.value)} placeholder="Напр. самолетен билет, трансфер, нощувки..." /><button type="button" onClick={() => removeServiceItem("included", item.id)} disabled={includedServices.length === 1} aria-label="Премахни включена услуга"><X size={15} aria-hidden="true" /></button></label>)}</div><div className="offer-service-list"><header><strong>Цената не включва</strong><button type="button" onClick={() => addServiceItem("excluded")}><Plus size={15} aria-hidden="true" />Добави</button></header>{excludedServices.map((item, index) => <label className="offer-service-row" key={item.id}><span>{index + 1}</span><input name="excluded_services" value={item.label} onChange={(event) => updateServiceItem("excluded", item.id, event.target.value)} placeholder="Напр. лични разходи, допълнителни екскурзии..." /><button type="button" onClick={() => removeServiceItem("excluded", item.id)} disabled={excludedServices.length === 1} aria-label="Премахни невключена услуга"><X size={15} aria-hidden="true" /></button></label>)}</div></div></section>
+          <section className="offer-services-editor">
+            <header>
+              <div>
+                <h3>Услуги и условия в цената</h3>
+                <p>Пишете със запетаи или на отделни редове. В сайта ще се покажат като подредени точки.</p>
+              </div>
+            </header>
+            <div className="offer-services-columns">
+              <label className="offer-service-list">
+                <header>
+                  <strong>Цената включва</strong>
+                  <span>{includedServices.length} точки</span>
+                </header>
+                <textarea
+                  className="offer-service-textarea"
+                  value={includedServicesText}
+                  onChange={(event) => setIncludedServicesText(event.target.value)}
+                  placeholder="Напр. самолетен билет, трансфер, нощувки&#10;или: самолетен билет, трансфер, нощувки"
+                  rows={7}
+                />
+                {includedServices.map((item, index) => <input type="hidden" name="included_services" value={item} key={`included-${index}-${item}`} />)}
+              </label>
+              <label className="offer-service-list">
+                <header>
+                  <strong>Цената не включва</strong>
+                  <span>{excludedServices.length} точки</span>
+                </header>
+                <textarea
+                  className="offer-service-textarea"
+                  value={excludedServicesText}
+                  onChange={(event) => setExcludedServicesText(event.target.value)}
+                  placeholder="Напр. лични разходи, допълнителни екскурзии&#10;или: лични разходи, допълнителни екскурзии"
+                  rows={7}
+                />
+                {excludedServices.map((item, index) => <input type="hidden" name="excluded_services" value={item} key={`excluded-${index}-${item}`} />)}
+              </label>
+            </div>
+          </section>
 
           <footer className="offer-new-footer">
-            {autosave ? (
-              <span className="offer-autosave-message">
-                {isPending || autosaveStatus === "saving" ? "Автоматично записване..." : autosaveStatus === "saved" || statusOk ? "Всички промени са записани" : "Промените се записват автоматично"}
-              </span>
-            ) : statusMessage ? (
+            {statusMessage ? (
               <span className={statusOk ? "offer-save-message is-ok" : "offer-save-message is-error"}>{statusMessage}</span>
             ) : (
               <span />
             )}
-            {autosave ? null : <div><button type="submit" formNoValidate>{secondarySubmitLabel}</button><button className="primary" type="submit" disabled={isPending}>{isPending ? "Записване..." : primarySubmitLabel}<ArrowRightIcon size={17} aria-hidden="true" /></button></div>}
+            <div><button type="submit" name="after_save" value="admin_offers" formNoValidate>{secondarySubmitLabel}</button><button className="primary" type="submit" disabled={isPending}>{isPending ? "Записване..." : primarySubmitLabel}<ArrowRightIcon size={17} aria-hidden="true" /></button></div>
           </footer>
         </section>
       </form>
 
-      <aside className="offer-new-side"><section className="offer-new-preview"><header><h2>Преглед на картата</h2></header><article><div className={heroPreview ? "offer-new-preview-image" : "offer-new-preview-image is-empty"} style={heroPreview ? { backgroundImage: `linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.16)), url("${heroPreview}")` } : undefined}><span>{selectedProductType.label}</span>{!heroPreview ? <div><ImageIcon size={34} aria-hidden="true" /><strong>Основната снимка ще се покаже тук</strong></div> : null}</div><div className="offer-new-preview-copy"><h3>{title || "Заглавие на офертата"}</h3><p><CalendarDays size={15} aria-hidden="true" />{durationDays || "0"} дни / {durationNights || "0"} нощувки <MapPin size={15} aria-hidden="true" />{routeLabel || "Маршрут"}</p><span>{summary || "Кратко описание ще се визуализира тук..."}</span></div></article></section></aside>
+      <aside className="offer-new-side"><section className="offer-new-preview"><header><h2>Преглед на картата</h2></header><article><div className={heroPreview ? "offer-new-preview-image" : "offer-new-preview-image is-empty"} style={heroPreview ? { backgroundImage: `linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.16)), url("${heroPreview}")` } : undefined}><span>{selectedProductType?.label ?? "Тип оферта"}</span>{!heroPreview ? <div><ImageIcon size={34} aria-hidden="true" /><strong>Основната снимка ще се покаже тук</strong></div> : null}</div><div className="offer-new-preview-copy"><h3>{title || "Заглавие на офертата"}</h3><p><CalendarDays size={15} aria-hidden="true" />{durationDays || "0"} дни / {durationNights || "0"} нощувки <MapPin size={15} aria-hidden="true" />{routeLabel || "Маршрут"}</p><span>{summary || "Кратко описание ще се визуализира тук..."}</span></div></article></section></aside>
     </div>
   );
 }

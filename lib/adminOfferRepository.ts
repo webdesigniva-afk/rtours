@@ -4,6 +4,7 @@ export type AdminOfferRecord = {
   id: string;
   slug: string;
   product_type: string;
+  product_type_label: string | null;
   title: string;
   summary: string | null;
   description: string | null;
@@ -28,6 +29,11 @@ export type AdminOfferRecord = {
     depositAmount: string | null;
     paymentDueDays: number | null;
     notes: string | null;
+  }> | null;
+  destinations: Array<{
+    country: string;
+    region: string | null;
+    city: string | null;
   }> | null;
   source: string;
   import_provider: string | null;
@@ -63,6 +69,7 @@ export async function getAdminOfferBySlug(slug: string) {
         id,
         slug,
         product_type::text,
+        product_type_label,
         title,
         summary,
         description,
@@ -91,13 +98,28 @@ export async function getAdminOfferBySlug(slug: string) {
                 'paymentDueDays', date.payment_due_days,
                 'notes', date.notes
               )
-              order by date.sort_order, date.start_date nulls last, date.created_at
+              order by date.sort_order, date.start_date nulls last
             )
             from offer_dates date
             where date.offer_id = offers.id
           ),
           '[]'::jsonb
         ) as dates,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'country', destination.country,
+                'region', destination.region,
+                'city', destination.city
+              )
+              order by destination.sort_order
+            )
+            from offer_destinations destination
+            where destination.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as destinations,
         source::text,
         status::text,
         hero_image_url,
@@ -145,6 +167,7 @@ export async function getAdminOfferBySlug(slug: string) {
         updated_at::text
       from offers
       where slug = $1
+        or id::text = $1
       limit 1
     `,
     [slug]
@@ -154,6 +177,7 @@ export async function getAdminOfferBySlug(slug: string) {
 }
 
 export type AdminOfferListItem = {
+  id: string;
   slug: string;
   title: string;
   destination: string;
@@ -168,7 +192,8 @@ export type AdminOfferListItem = {
   updatedAt: string;
 };
 
-function mapProductType(productType: string): AdminOfferListItem["type"] {
+function mapProductType(productType: string, label?: string | null): AdminOfferListItem["type"] {
+  if (!label) return "Екскурзия";
   if (productType === "holiday") return "Почивка";
   return "Екскурзия";
 }
@@ -307,10 +332,11 @@ export async function listAdminOfferItems() {
   );
 
   return result.rows.map((offer): AdminOfferListItem => ({
+    id: offer.id,
     slug: offer.slug,
     title: offer.title,
     destination: [offer.country, offer.region].filter(Boolean).join(", ") || "Без дестинация",
-    type: mapProductType(offer.product_type),
+    type: mapProductType(offer.product_type, offer.product_type_label),
     source: mapSource(offer.source, offer.import_provider, offer.import_source, offer.import_last_synced_at),
     departures: offer.dates_count ?? 0,
     price: offer.price_from ? `${Number(offer.price_from).toLocaleString("bg-BG")} ${offer.currency}` : "не е въведена",

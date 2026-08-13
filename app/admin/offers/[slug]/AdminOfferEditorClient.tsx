@@ -1,7 +1,7 @@
 "use client";
 
 import { type ChangeEvent, type MouseEvent, useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Archive,
   ArrowLeft,
@@ -42,22 +42,26 @@ import {
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import { PublicOfferDetail, type PublicOfferDetailData } from "@/components/PublicOfferDetail";
 import { OfferContentForm, type OfferContentDraftSummary } from "../OfferContentForm";
-import { cancelNewOfferDraft, createOfferBadge, publishOfferChanges, saveOfferDraft, updateOfferContent, updateOfferDatesPrices, updateOfferSeo } from "./actions";
+import { cancelNewOfferDraft, createOfferBadge, publishOfferChanges, updateOfferContent, updateOfferDatesPrices, updateOfferSeo } from "./actions";
 
 type OfferStatus = "draft" | "review" | "published" | "archived" | "needs_changes" | string;
 
 export type AdminOfferEditorInitialOffer = {
+  id: string;
   slug: string;
   productType: string;
+  productTypeLabel: string;
   title: string;
   summary: string;
   description: string;
   country: string;
   region: string;
+  destinations: Array<{ country: string; region: string; city: string }>;
   durationDays: number | string;
   durationNights: number | string;
   priceFrom: number;
   currency: "EUR" | "BGN";
+  transport: string;
   dates: Array<{
     id: string;
     label: string | null;
@@ -68,7 +72,7 @@ export type AdminOfferEditorInitialOffer = {
     seatsTotal: number | null;
     seatsAvailable: number | null;
     priceFrom: string | null;
-    currency: "EUR" | "BGN";
+    currency: "EUR" | "BGN" | "";
     depositAmount: string | null;
     paymentDueDays: number | null;
     notes: string | null;
@@ -335,6 +339,12 @@ function tabFromKey(tabKey?: string) {
 
 export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminOfferEditorInitialOffer; initialTabKey?: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isNewUrlMode = searchParams.get("new") === "1";
+  const isNewCreationFlow = offer.canCancelCreation || isNewUrlMode;
+  const shouldShowEmptyEditor = offer.isNewBlankDraft || isNewUrlMode;
+  const contentFormId = `offer-content-form-${offer.slug}`;
+  const contentFormVersion = `${offer.slug}-${offer.updatedAt}-${shouldShowEmptyEditor ? "empty" : "saved"}`;
   const [activeTab, setActiveTab] = useState(tabFromKey(initialTabKey));
   const [status, setStatus] = useState<OfferStatus>(offer.status);
   const [tagOptions, setTagOptions] = useState<TagItem[]>(availableTags);
@@ -346,9 +356,9 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const [selectedExperience, setSelectedExperience] = useState<string[]>([]);
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedTravelType, setSelectedTravelType] = useState<string[]>([]);
-  const [showOnHome, setShowOnHome] = useState(true);
-  const [featuredByRedTours, setFeaturedByRedTours] = useState(true);
-  const [showInSignature, setShowInSignature] = useState(true);
+  const [showOnHome, setShowOnHome] = useState(!isNewCreationFlow);
+  const [featuredByRedTours, setFeaturedByRedTours] = useState(!isNewCreationFlow);
+  const [showInSignature, setShowInSignature] = useState(!isNewCreationFlow);
   const [showInPromo, setShowInPromo] = useState(false);
   const [priority, setPriority] = useState(10);
   const [seoTitle, setSeoTitle] = useState(offer.seoMetaTitle || offer.title);
@@ -359,15 +369,20 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const [seoStructuredDataType, setSeoStructuredDataType] = useState(offer.seoStructuredDataType || "TouristTrip");
   const [currentHeroImageUrl, setCurrentHeroImageUrl] = useState(offer.heroImageUrl);
   const [contentDraft, setContentDraft] = useState<OfferContentDraftSummary>({
-    productTypeLabel: offer.isNewBlankDraft ? "" : productTypeLabel(offer.productType),
+    productTypeLabel: shouldShowEmptyEditor || !offer.productType ? "" : offer.productTypeLabel || productTypeLabel(offer.productType),
     title: offer.title,
     country: offer.country,
     region: offer.region,
     durationDays: String(offer.durationDays ?? ""),
-    durationNights: String(offer.durationNights ?? "")
+    durationNights: String(offer.durationNights ?? ""),
+    transport: offer.transport,
+    summary: offer.summary,
+    description: offer.description,
+    hasHeroImage: Boolean(offer.heroImageUrl)
   });
   const [message, setMessage] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [showCancelDraftModal, setShowCancelDraftModal] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isTagPending, startTagTransition] = useTransition();
   const [seoState, seoAction, isSeoPending] = useActionState(updateOfferSeo, { ok: false, message: "" });
@@ -507,32 +522,28 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
 
   const workflowStatus: Record<string, { status: SectionStatus; percent: number; filled: string[]; missing: string[] }> = {
     "Оферта": {
-      status: offer.title && offer.country && offer.region && offer.summary && currentHeroImageUrl ? "partial" : "missing",
-      percent: Math.round(
-        ([
-          offer.title,
-          offer.productType,
-          offer.country,
-          offer.region,
-          offer.durationDays,
-          offer.summary,
-          offer.description,
-          currentHeroImageUrl
-        ].filter(Boolean).length /
-          9) *
-          100
-      ),
+      status: contentDraft.title && contentDraft.productTypeLabel && contentDraft.country && contentDraft.region && contentDraft.summary && currentHeroImageUrl ? "partial" : "missing",
+      percent: Math.round(([contentDraft.productTypeLabel, contentDraft.title, contentDraft.country, contentDraft.region, contentDraft.durationDays, contentDraft.transport, contentDraft.summary, contentDraft.description, currentHeroImageUrl].filter(Boolean).length / 9) * 100),
       filled: [
-        offer.title ? `Заглавие: ${offer.title}` : "",
-        offer.country && offer.region ? `Дестинация: ${offer.country}, ${offer.region}` : "",
-        offer.durationDays ? `Продължителност: ${offer.durationDays} дни / ${offer.durationNights} нощувки` : "",
-        offer.summary ? "Кратко описание: попълнено" : "",
-        offer.description ? "Пълно описание: попълнено" : "",
+        contentDraft.productTypeLabel ? `Тип: ${contentDraft.productTypeLabel}` : "",
+        contentDraft.title ? `Заглавие: ${contentDraft.title}` : "",
+        contentDraft.country && contentDraft.region ? `Дестинация: ${contentDraft.country}, ${contentDraft.region}` : "",
+        contentDraft.durationDays ? `Продължителност: ${contentDraft.durationDays} дни / ${contentDraft.durationNights || 0} нощувки` : "",
+        contentDraft.transport ? "Транспорт: избран" : "",
+        contentDraft.summary ? "Кратко описание: попълнено" : "",
+        contentDraft.description ? "Пълно описание: попълнено" : "",
         currentHeroImageUrl ? "Основна снимка: качена" : "",
         offer.itinerary.length ? `Програма: ${offer.itinerary.length} дни` : ""
       ].filter(Boolean),
       missing: [
-        !offer.description ? "Пълно описание" : "",
+        !contentDraft.productTypeLabel ? "Тип оферта" : "",
+        !contentDraft.title ? "Заглавие" : "",
+        !contentDraft.country ? "Държава" : "",
+        !contentDraft.region ? "Регион / дестинация" : "",
+        !contentDraft.durationDays ? "Продължителност" : "",
+        !contentDraft.transport ? "Транспорт" : "",
+        !contentDraft.summary ? "Кратко описание" : "",
+        !contentDraft.description ? "Пълно описание" : "",
         !currentHeroImageUrl ? "Основна снимка" : "",
         !offer.itinerary.length ? "Програма по дни" : "",
         "Какво включва цената",
@@ -549,7 +560,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
     },
     "Публикуване": {
       status: selectedTags.length && (showOnHome || featuredByRedTours || showInSignature || showInPromo) ? "partial" : "missing",
-      percent: Math.min(95, selectedTags.length * 10 + collections.length * 8 + selectedTravelType.length * 6 + (showOnHome ? 12 : 0) + (featuredByRedTours ? 10 : 0) + (showInSignature ? 10 : 0)),
+      percent: Math.min(95, selectedTags.length * 10 + collections.length * 8 + selectedTravelType.length * 6),
       filled: [
         selectedTags.length ? `Етикети: ${selectedTags.map((tag) => tag.label).join(", ")}` : "",
         collections.length ? `Колекции: ${collections.join(", ")}` : "",
@@ -598,16 +609,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
     });
   }
 
-  function saveDraft() {
-    startTransition(async () => {
-      const result = await saveOfferDraft(offer.slug);
-      if (result.ok) {
-        setStatus(result.status);
-        setMessage("Черновата е запазена. Статусът е синхронизиран в системата.");
-      }
-    });
-  }
-
   function publishChanges() {
     startTransition(async () => {
       const result = await publishOfferChanges(offer.slug);
@@ -618,17 +619,28 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
     });
   }
 
-  function cancelOfferCreation() {
+  function cancelEditing() {
+    const shouldAskAboutNewDraft = Boolean(offer.canCancelCreation || isNewUrlMode);
+
+    if (!shouldAskAboutNewDraft) {
+      router.push("/admin/offers");
+      return;
+    }
+
+    setShowCancelDraftModal(true);
+  }
+
+  function discardNewDraft() {
     startTransition(async () => {
       const result = await cancelNewOfferDraft(offer.slug);
       if (result?.ok === false) {
-        setMessage(result.message);
+        router.push("/admin/offers");
       }
     });
   }
 
   const activeTag = selectedTags[0];
-  const isNewOfferFlow = offer.canCancelCreation || offer.slug.startsWith("nova-oferta");
+  const isNewOfferFlow = offer.canCancelCreation || isNewUrlMode;
   const breadcrumbTitle = isNewOfferFlow ? "Нова оферта" : contentDraft.title.trim() || "Нова оферта";
   const durationLabel = Number(contentDraft.durationDays) || Number(contentDraft.durationNights)
     ? `${contentDraft.durationDays || 0} дни / ${contentDraft.durationNights || 0} нощувки`
@@ -665,7 +677,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
               <Eye size={17} aria-hidden="true" />
               Преглед в сайта
             </button>
-            <button type="button" onClick={saveDraft} disabled={isPending}>
+            <button type="submit" form={contentFormId} name="after_save" value="admin_offers" formNoValidate disabled={isPending}>
               <Save size={17} aria-hidden="true" />
               Запази чернова
             </button>
@@ -673,12 +685,10 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
               Публикувай промените
               <ChevronDown size={17} aria-hidden="true" />
             </button>
-            {status === "draft" ? (
-              <button className="danger" type="button" onClick={cancelOfferCreation} disabled={isPending}>
-                <X size={17} aria-hidden="true" />
-                Отказ
-              </button>
-            ) : null}
+            <button className="danger" type="button" onClick={cancelEditing} disabled={isPending}>
+              <X size={17} aria-hidden="true" />
+              Отказ
+            </button>
           </div>
         </header>
 
@@ -688,7 +698,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
           <header>
             <div>
               <h2>Редакция на офертата</h2>
-              <p>Секциите показват какво е попълнено и къде липсва информация.</p>
             </div>
             <strong>{completionPercent}% готова</strong>
           </header>
@@ -711,14 +720,13 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         <div className={activeTab === "Оферта" ? "offer-editor-grid is-offer-tab" : activeTab === "Дати и цени" || activeTab === "Публикуване" ? "offer-editor-grid is-dates-tab" : "offer-editor-grid"}>
           <div className="offer-editor-main">
             <div hidden={activeTab !== "Оферта"}>
-              <OfferContentWorkspace offer={offer} currentHeroImageUrl={currentHeroImageUrl} onHeroImageChange={setCurrentHeroImageUrl} onDraftChange={setContentDraft} />
+              <OfferContentWorkspace key={contentFormVersion} offer={offer} currentHeroImageUrl={currentHeroImageUrl} onHeroImageChange={setCurrentHeroImageUrl} onDraftChange={setContentDraft} forceEmptyNewOffer={shouldShowEmptyEditor} formId={contentFormId} />
             </div>
             <div hidden={activeTab !== "Дати и цени"}>
               <DatesPricesWorkspace offer={offer} />
             </div>
 
-            {activeTab === "Публикуване" ? (
-              <>
+            <div hidden={activeTab !== "Публикуване"}>
                 <section className="offer-editor-card">
                   <header>
                     <h2>Етикети</h2>
@@ -881,8 +889,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                     </button>
                   </div>
                 </form>
-              </>
-            ) : null}
+            </div>
 
             {activeTab !== "Оферта" ? (
               <section className="offer-preview-card">
@@ -928,6 +935,31 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
 
         </div>
       </section>
+
+      {showCancelDraftModal ? (
+        <div className="offers-modal-backdrop" role="presentation">
+          <section className="offers-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="cancel-new-offer-title">
+            <header>
+              <span>Нова оферта</span>
+              <h2 id="cancel-new-offer-title">Да се запази ли като чернова?</h2>
+            </header>
+            <div>
+              <p>
+                Ако я запазиш, офертата ще остане в списъка като чернова и можеш да я довършиш по-късно.
+                Ако натиснеш „Отказ“, новата оферта ще бъде изтрита.
+              </p>
+            </div>
+            <footer>
+              <button type="submit" form={contentFormId} name="after_save" value="admin_offers" formNoValidate className="primary" disabled={isPending}>
+                Запази
+              </button>
+              <button type="button" className="danger" onClick={discardNewDraft} disabled={isPending}>
+                Отказ
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
 
       {isPreviewOpen ? (
         <div className="offer-editor-full-preview" role="dialog" aria-modal="true" aria-label="Преглед на офертата">
@@ -1109,12 +1141,16 @@ function OfferContentWorkspace({
   offer,
   currentHeroImageUrl,
   onHeroImageChange,
-  onDraftChange
+  onDraftChange,
+  forceEmptyNewOffer,
+  formId
 }: {
   offer: AdminOfferEditorInitialOffer;
   currentHeroImageUrl: string;
   onHeroImageChange: (url: string) => void;
   onDraftChange: (draft: OfferContentDraftSummary) => void;
+  forceEmptyNewOffer: boolean;
+  formId: string;
 }) {
   const [state, action, isPending] = useActionState(updateOfferContent, { ok: false, message: "" });
 
@@ -1125,19 +1161,24 @@ function OfferContentWorkspace({
       statusMessage={state.message}
       statusOk={state.ok}
       isPending={isPending}
-      autosave
+      formId={formId}
       onHeroImageChange={onHeroImageChange}
       onDraftChange={onDraftChange}
+      forceEmptyNewOffer={forceEmptyNewOffer}
       initial={{
+        id: offer.id,
         slug: offer.slug,
-        productType: offer.productType,
+        productType: forceEmptyNewOffer ? "" : offer.productType,
+        productTypeLabel: forceEmptyNewOffer ? "" : offer.productTypeLabel,
         title: offer.title,
         summary: offer.summary,
         description: offer.description,
         country: offer.country,
         region: offer.region,
+        destinations: forceEmptyNewOffer ? [] : offer.destinations,
         durationDays: offer.durationDays,
         durationNights: offer.durationNights,
+        transport: forceEmptyNewOffer ? "" : offer.transport,
         heroImageUrl: currentHeroImageUrl || offer.heroImageUrl,
         isAuthorProgram: offer.isAuthorProgram,
         itinerary: offer.itinerary,
@@ -1400,7 +1441,7 @@ function OfferContentWorkspace({
               ) : null}
             </div>
           </label>
-          <label>
+          <label className="offer-new-title-field">
             <span className="offer-new-label-line">
               <span>Заглавие <b>*</b></span>
               <em>{title.length}/100</em>
@@ -1729,7 +1770,7 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
     seatsTotal: string;
     seatsAvailable: string;
     priceFrom: string;
-    currency: "EUR" | "BGN";
+    currency: "EUR" | "BGN" | "";
     availability: string;
     depositAmount: string;
     paymentDueDays: string;
@@ -1745,8 +1786,8 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
     seatsTotal: "",
     seatsAvailable: "",
     priceFrom: "",
-    currency: offer.currency,
-    availability: "available",
+    currency: "EUR",
+    availability: "",
     depositAmount: "",
     paymentDueDays: "",
     notes: ""
@@ -1764,13 +1805,13 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
           seatsTotal: date.seatsTotal === null ? "" : String(date.seatsTotal),
           seatsAvailable: date.seatsAvailable === null ? "" : String(date.seatsAvailable),
           priceFrom: date.priceFrom || "",
-          currency: date.currency || offer.currency,
+          currency: date.currency || "EUR",
           availability: date.availability || "on_request",
           depositAmount: date.depositAmount || "",
           paymentDueDays: date.paymentDueDays === null ? "" : String(date.paymentDueDays),
           notes: date.notes || ""
         }))
-      : [createEmptyDeparture()]
+      : []
   );
 
   const updateDeparture = (key: string, field: keyof DepartureDraft, value: string) => {
@@ -1785,7 +1826,7 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
       }
 
       const next = current.filter((departure) => departure.key !== key);
-      return next.length ? next : [createEmptyDeparture()];
+      return next;
     });
   };
 
@@ -1866,6 +1907,7 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
                 <label>
                   <span>Валута</span>
                   <select name="departure_currency" value={departure.currency} onChange={(event) => updateDeparture(departure.key, "currency", event.target.value)}>
+                    <option value="" disabled>Избери</option>
                     <option value="EUR">EUR</option>
                     <option value="BGN">BGN</option>
                   </select>
@@ -1886,6 +1928,7 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
               <label className="offer-date-status">
                 <span>Статус</span>
                 <select name="departure_status" value={departure.availability} onChange={(event) => updateDeparture(departure.key, "availability", event.target.value)}>
+                  <option value="" disabled>Избери</option>
                   <option value="available">Активно</option>
                   <option value="limited">Последни места</option>
                   <option value="on_request">По заявка</option>
