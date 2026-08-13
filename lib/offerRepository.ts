@@ -274,11 +274,7 @@ export async function listPublishedPublicOffers() {
     `
   );
 
-  const databaseOffers = result.rows.map(mapPublicOffer);
-  const databaseSlugs = new Set(databaseOffers.map((offer) => offer.slug));
-  const seededFallbacks = getPublishedOffers().filter((offer) => !databaseSlugs.has(offer.slug));
-
-  return [...databaseOffers, ...seededFallbacks];
+  return result.rows.map(mapPublicOffer);
 }
 
 export async function getPublishedPublicOfferBySlug(slug: string) {
@@ -398,5 +394,5 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
     return mapPublicOffer(result.rows[0]);
   }
 
-  return getPublishedOfferBySlug(slug);
+  return undefined;
 }

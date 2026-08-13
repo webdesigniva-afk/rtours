@@ -41,8 +41,8 @@ import {
 } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import { PublicOfferDetail, type PublicOfferDetailData } from "@/components/PublicOfferDetail";
-import { OfferContentForm } from "../OfferContentForm";
-import { createOfferBadge, publishOfferChanges, saveOfferDraft, updateOfferContent, updateOfferDatesPrices, updateOfferSeo } from "./actions";
+import { OfferContentForm, type OfferContentDraftSummary } from "../OfferContentForm";
+import { cancelNewOfferDraft, createOfferBadge, publishOfferChanges, saveOfferDraft, updateOfferContent, updateOfferDatesPrices, updateOfferSeo } from "./actions";
 
 type OfferStatus = "draft" | "review" | "published" | "archived" | "needs_changes" | string;
 
@@ -54,8 +54,8 @@ export type AdminOfferEditorInitialOffer = {
   description: string;
   country: string;
   region: string;
-  durationDays: number;
-  durationNights: number;
+  durationDays: number | string;
+  durationNights: number | string;
   priceFrom: number;
   currency: "EUR" | "BGN";
   dates: Array<{
@@ -84,6 +84,8 @@ export type AdminOfferEditorInitialOffer = {
   itinerary: Array<{ day: number; title: string; description: string }>;
   included: string[];
   excluded: string[];
+  canCancelCreation: boolean;
+  isNewBlankDraft: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -356,6 +358,14 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const [seoKeywords, setSeoKeywords] = useState((offer.seoKeywords.length ? offer.seoKeywords : [offer.country, offer.region, offer.title].filter(Boolean)).join(", "));
   const [seoStructuredDataType, setSeoStructuredDataType] = useState(offer.seoStructuredDataType || "TouristTrip");
   const [currentHeroImageUrl, setCurrentHeroImageUrl] = useState(offer.heroImageUrl);
+  const [contentDraft, setContentDraft] = useState<OfferContentDraftSummary>({
+    productTypeLabel: offer.isNewBlankDraft ? "" : productTypeLabel(offer.productType),
+    title: offer.title,
+    country: offer.country,
+    region: offer.region,
+    durationDays: String(offer.durationDays ?? ""),
+    durationNights: String(offer.durationNights ?? "")
+  });
   const [message, setMessage] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -385,8 +395,8 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       description: offer.description,
       country: offer.country,
       region: offer.region,
-      durationDays: offer.durationDays,
-      durationNights: offer.durationNights,
+      durationDays: Number(offer.durationDays) || 0,
+      durationNights: Number(offer.durationNights) || 0,
       priceFrom: offer.priceFrom,
       currency: offer.currency,
       priceNote: "Запитване преди потвърждение",
@@ -608,28 +618,47 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
     });
   }
 
+  function cancelOfferCreation() {
+    startTransition(async () => {
+      const result = await cancelNewOfferDraft(offer.slug);
+      if (result?.ok === false) {
+        setMessage(result.message);
+      }
+    });
+  }
+
   const activeTag = selectedTags[0];
+  const isNewOfferFlow = offer.canCancelCreation || offer.slug.startsWith("nova-oferta");
+  const breadcrumbTitle = isNewOfferFlow ? "Нова оферта" : contentDraft.title.trim() || "Нова оферта";
+  const durationLabel = Number(contentDraft.durationDays) || Number(contentDraft.durationNights)
+    ? `${contentDraft.durationDays || 0} дни / ${contentDraft.durationNights || 0} нощувки`
+    : "";
+  const hasHeaderDetails = Boolean(contentDraft.title.trim() || contentDraft.country || contentDraft.region || durationLabel);
+  const headerDetails = [
+    hasHeaderDetails ? contentDraft.productTypeLabel : "",
+    contentDraft.title.trim(),
+    contentDraft.country,
+    contentDraft.region,
+    durationLabel
+  ].filter(Boolean);
 
   return (
     <AdminWorkspace active="offers">
       <section className="offer-editor">
         <div className="offer-editor-breadcrumb">
           <span>Оферти</span>
-          <span>{offer.title}</span>
+          <span>{breadcrumbTitle}</span>
         </div>
 
         <header className="offer-editor-header">
           <div>
             <div className="offer-title-line">
-              <h1>{offer.title}</h1>
               <span className={statusClass(status)}>
                 <CircleDot size={12} aria-hidden="true" />
                 {statusLabel(status)}
               </span>
             </div>
-            <p>
-              {productTypeLabel(offer.productType)} · {offer.country} · {offer.region} · {offer.durationDays} дни / {offer.durationNights} нощувки
-            </p>
+            {headerDetails.length ? <p>{headerDetails.join(" / ")}</p> : null}
           </div>
           <div className="offer-editor-actions">
             <button type="button" onClick={() => setIsPreviewOpen(true)}>
@@ -644,6 +673,12 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
               Публикувай промените
               <ChevronDown size={17} aria-hidden="true" />
             </button>
+            {status === "draft" ? (
+              <button className="danger" type="button" onClick={cancelOfferCreation} disabled={isPending}>
+                <X size={17} aria-hidden="true" />
+                Отказ
+              </button>
+            ) : null}
           </div>
         </header>
 
@@ -675,6 +710,13 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
 
         <div className={activeTab === "Оферта" ? "offer-editor-grid is-offer-tab" : activeTab === "Дати и цени" || activeTab === "Публикуване" ? "offer-editor-grid is-dates-tab" : "offer-editor-grid"}>
           <div className="offer-editor-main">
+            <div hidden={activeTab !== "Оферта"}>
+              <OfferContentWorkspace offer={offer} currentHeroImageUrl={currentHeroImageUrl} onHeroImageChange={setCurrentHeroImageUrl} onDraftChange={setContentDraft} />
+            </div>
+            <div hidden={activeTab !== "Дати и цени"}>
+              <DatesPricesWorkspace offer={offer} />
+            </div>
+
             {activeTab === "Публикуване" ? (
               <>
                 <section className="offer-editor-card">
@@ -840,11 +882,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                   </div>
                 </form>
               </>
-            ) : activeTab === "Дати и цени" ? (
-              <DatesPricesWorkspace offer={offer} />
-            ) : (
-              <OfferContentWorkspace offer={offer} currentHeroImageUrl={currentHeroImageUrl} onHeroImageChange={setCurrentHeroImageUrl} />
-            )}
+            ) : null}
 
             {activeTab !== "Оферта" ? (
               <section className="offer-preview-card">
@@ -1070,11 +1108,13 @@ function UploadBox({
 function OfferContentWorkspace({
   offer,
   currentHeroImageUrl,
-  onHeroImageChange
+  onHeroImageChange,
+  onDraftChange
 }: {
   offer: AdminOfferEditorInitialOffer;
   currentHeroImageUrl: string;
   onHeroImageChange: (url: string) => void;
+  onDraftChange: (draft: OfferContentDraftSummary) => void;
 }) {
   const [state, action, isPending] = useActionState(updateOfferContent, { ok: false, message: "" });
 
@@ -1087,6 +1127,7 @@ function OfferContentWorkspace({
       isPending={isPending}
       autosave
       onHeroImageChange={onHeroImageChange}
+      onDraftChange={onDraftChange}
       initial={{
         slug: offer.slug,
         productType: offer.productType,

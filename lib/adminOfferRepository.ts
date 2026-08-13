@@ -30,6 +30,10 @@ export type AdminOfferRecord = {
     notes: string | null;
   }> | null;
   source: string;
+  import_provider: string | null;
+  import_source: string | null;
+  import_change_state: "new" | "changed" | "expired" | "unavailable" | "unchanged" | null;
+  import_last_synced_at: string | null;
   status: string;
   hero_image_url: string | null;
   seo_meta_title: string | null;
@@ -45,7 +49,9 @@ export type AdminOfferRecord = {
   }> | null;
   included_services: string[] | null;
   excluded_services: string[] | null;
+  review_notes: string | null;
   dates_count?: number;
+  future_dates_count?: number;
   created_at: string;
   updated_at: string;
 };
@@ -134,6 +140,7 @@ export async function getAdminOfferBySlug(slug: string) {
           ),
           '{}'::text[]
         ) as excluded_services,
+        review_notes,
         created_at::text,
         updated_at::text
       from offers
@@ -154,10 +161,11 @@ export type AdminOfferListItem = {
   source: string;
   departures: number;
   price: string;
-  status: "Публикувана" | "За преглед" | "Импортирана" | "Чернова" | "Архивирана";
+  status: "Чернова" | "За преглед" | "Публикувана" | "⚠ Променена" | "Изтекла" | "Архивирана" | "⚠ Грешка";
   publication: "site" | "draft";
   collection: "Red Signature" | "Red Escape" | "Red Moments" | "Без колекция";
   image: string;
+  updatedAt: string;
 };
 
 function mapProductType(productType: string): AdminOfferListItem["type"] {
@@ -165,18 +173,60 @@ function mapProductType(productType: string): AdminOfferListItem["type"] {
   return "Екскурзия";
 }
 
-function mapSource(source: string) {
-  if (source === "xml") return "XML импорт";
-  if (source === "api") return "API синхронизация";
-  if (source === "erp") return "ERP";
-  return "RedTours";
+function formatProvider(provider?: string | null) {
+  if (!provider) return "";
+
+  return provider
+    .replace(/[_-]+/g, " ")
+    .replace(/\bxml\b/gi, "")
+    .replace(/\bapi\b/gi, "")
+    .replace(/\bcsv\b/gi, "")
+    .replace(/\bexcel\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function mapStatus(status: string): AdminOfferListItem["status"] {
-  if (status === "published") return "Публикувана";
-  if (status === "review") return "За преглед";
-  if (status === "archived") return "Архивирана";
-  if (status === "needs_changes") return "За преглед";
+function relativeSyncTime(value?: string | null) {
+  if (!value) return "";
+
+  const syncedAt = new Date(value).getTime();
+  const diffMs = Date.now() - syncedAt;
+  if (!Number.isFinite(diffMs) || diffMs < 0) return "";
+
+  const minutes = Math.max(1, Math.round(diffMs / 60000));
+  if (minutes < 60) return `синхронизирана преди ${minutes} мин.`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `синхронизирана преди ${hours} ч.`;
+
+  const days = Math.round(hours / 24);
+  return `синхронизирана преди ${days} д.`;
+}
+
+function mapSource(source: string, provider?: string | null, importSource?: string | null, lastSyncedAt?: string | null) {
+  const detectedSource = importSource || source;
+  const providerLabel = formatProvider(provider);
+  const syncLabel = relativeSyncTime(lastSyncedAt);
+  const withSync = (label: string) => syncLabel ? `${label} · ${syncLabel}` : label;
+
+  if (detectedSource === "xml") return withSync(providerLabel ? `XML • ${providerLabel}` : "XML");
+  if (detectedSource === "api") return withSync(providerLabel ? `API • ${providerLabel}` : "API");
+  if (detectedSource === "erp") return withSync(providerLabel ? `ERP • ${providerLabel}` : "ERP");
+  if (detectedSource === "labeling") return "Ръчен импорт";
+  if (provider?.toLocaleLowerCase("bg-BG").includes("excel") || provider?.toLocaleLowerCase("bg-BG").includes("csv")) return "CSV/Excel";
+  return "Ръчен импорт";
+}
+
+function mapStatus(offer: AdminOfferRecord): AdminOfferListItem["status"] {
+  const hasImport = Boolean(offer.import_source || offer.import_provider);
+
+  if (offer.status === "archived") return "Архивирана";
+  if (offer.import_change_state === "unavailable") return "⚠ Грешка";
+  if (offer.import_change_state === "changed") return "⚠ Променена";
+  if (offer.import_change_state === "expired") return "Изтекла";
+  if ((offer.dates_count ?? 0) > 0 && (offer.future_dates_count ?? 0) === 0) return "Изтекла";
+  if (offer.status === "published") return "Публикувана";
+  if (offer.status === "review" || offer.status === "needs_changes" || (hasImport && offer.import_change_state === "new")) return "За преглед";
   return "Чернова";
 }
 
@@ -203,7 +253,42 @@ export async function listAdminOfferItems() {
           from offer_dates date
           where date.offer_id = offers.id
         ) as dates_count,
+        (
+          select count(*)::int
+          from offer_dates date
+          where date.offer_id = offers.id
+            and date.availability <> 'sold_out'
+            and (date.end_date is null or date.end_date >= current_date)
+        ) as future_dates_count,
         source::text,
+        (
+          select import.provider
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_provider,
+        (
+          select import.source::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_source,
+        (
+          select import.change_state::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_change_state,
+        (
+          select import.last_synced_at::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_last_synced_at,
         status::text,
         hero_image_url,
         seo_meta_title,
@@ -226,12 +311,13 @@ export async function listAdminOfferItems() {
     title: offer.title,
     destination: [offer.country, offer.region].filter(Boolean).join(", ") || "Без дестинация",
     type: mapProductType(offer.product_type),
-    source: mapSource(offer.source),
+    source: mapSource(offer.source, offer.import_provider, offer.import_source, offer.import_last_synced_at),
     departures: offer.dates_count ?? 0,
     price: offer.price_from ? `${Number(offer.price_from).toLocaleString("bg-BG")} ${offer.currency}` : "не е въведена",
-    status: mapStatus(offer.status),
+    status: mapStatus(offer),
     publication: offer.status === "published" ? "site" : "draft",
     collection: "Без колекция",
-    image: offer.hero_image_url || "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=220&q=72"
+    image: offer.hero_image_url || "",
+    updatedAt: offer.updated_at
   }));
 }

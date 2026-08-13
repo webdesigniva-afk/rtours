@@ -3,7 +3,7 @@ import { getAdminOfferBySlug } from "@/lib/adminOfferRepository";
 
 type AdminOfferEditorPageProps = {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ tab?: string }>;
+  searchParams?: Promise<{ tab?: string; new?: string }>;
 };
 
 function toNumber(value: string | null | undefined, fallback: number) {
@@ -13,20 +13,37 @@ function toNumber(value: string | null | undefined, fallback: number) {
 
 export default async function AdminOfferEditorPage({ params, searchParams }: AdminOfferEditorPageProps) {
   const { slug } = await params;
-  const { tab } = (await searchParams) ?? {};
+  const { tab, new: newMode } = (await searchParams) ?? {};
   const offer = await getAdminOfferBySlug(slug).catch(() => null);
+  const canCancelCreation = Boolean(
+    offer &&
+      (newMode === "1" || offer.slug.startsWith("nova-oferta") || offer.review_notes?.includes("[new-offer-draft]") || offer.review_notes?.includes("празна чернова"))
+  );
+  const isNewBlankDraft = Boolean(
+    offer &&
+      canCancelCreation &&
+      !offer.summary &&
+      !offer.description &&
+      !offer.country &&
+      !offer.region &&
+      !offer.hero_image_url &&
+      !offer.dates?.length &&
+      !offer.itinerary_days?.length &&
+      !offer.included_services?.length &&
+      !offer.excluded_services?.length
+  );
 
   const initialOffer: AdminOfferEditorInitialOffer = {
     slug,
     productType: offer?.product_type ?? "excursion",
-    title: offer?.title ?? "Нова оферта",
-    summary: offer?.summary ?? "Кратко описание ще се визуализира тук.",
+    title: canCancelCreation && (!offer?.title || offer.title === "Нова оферта" || offer.slug.startsWith("nova-oferta")) ? "" : offer?.title ?? "",
+    summary: isNewBlankDraft ? "" : offer?.summary ?? "",
     description: offer?.description ?? "",
-    country: offer?.country ?? "Държава",
-    region: offer?.region ?? "Регион",
-    durationDays: offer?.duration_days ?? 1,
-    durationNights: offer?.duration_nights ?? 0,
-    priceFrom: toNumber(offer?.price_from, 999),
+    country: isNewBlankDraft ? "" : offer?.country ?? "",
+    region: isNewBlankDraft ? "" : offer?.region ?? "",
+    durationDays: isNewBlankDraft ? "" : offer?.duration_days ?? "",
+    durationNights: isNewBlankDraft ? "" : offer?.duration_nights ?? "",
+    priceFrom: isNewBlankDraft ? 0 : toNumber(offer?.price_from, 0),
     currency: offer?.currency ?? "EUR",
     dates: offer?.dates ?? [],
     status: offer?.status ?? "draft",
@@ -40,6 +57,8 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
     itinerary: offer?.itinerary_days ?? [],
     included: offer?.included_services ?? [],
     excluded: offer?.excluded_services ?? [],
+    canCancelCreation,
+    isNewBlankDraft,
     createdAt: offer?.created_at ?? "",
     updatedAt: offer?.updated_at ?? ""
   };

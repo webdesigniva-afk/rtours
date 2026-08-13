@@ -56,6 +56,44 @@ export async function publishOfferChanges(slug: string) {
   return { ok: true, status: "published" as const };
 }
 
+export async function cancelNewOfferDraft(slug: string) {
+  await requireAdminSession(slug);
+
+  const result = await dbQuery<{ slug: string }>(
+    `
+      delete from offers
+      where slug = $1
+        and status = 'draft'
+        and (
+          review_notes ilike $2
+          or review_notes ilike $3
+          or slug like 'nova-oferta%'
+          or (
+            title in ('', 'Нова оферта')
+            and coalesce(summary, '') = ''
+            and coalesce(description, '') = ''
+            and coalesce(country, '') = ''
+            and coalesce(region, '') = ''
+            and coalesce(hero_image_url, '') = ''
+            and not exists (select 1 from offer_dates where offer_id = offers.id)
+            and not exists (select 1 from offer_itinerary_days where offer_id = offers.id)
+            and not exists (select 1 from offer_services where offer_id = offers.id)
+          )
+        )
+      returning slug
+    `,
+    [slug, "%празна чернова%", "%[new-offer-draft]%"]
+  );
+
+  if (result.rows.length === 0) {
+    return { ok: false, message: "Тази оферта вече има съдържание или не е временна чернова." };
+  }
+
+  revalidatePath("/admin/offers");
+  revalidatePath(`/admin/offers/${slug}`);
+  redirect("/admin/offers");
+}
+
 export async function createOfferBadge(slug: string, label: string) {
   await requireAdminSession(slug);
 

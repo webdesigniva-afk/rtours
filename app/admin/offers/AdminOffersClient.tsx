@@ -1,201 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import {
-  Archive,
-  CalendarDays,
-  CheckCircle2,
-  ChevronDown,
-  CloudUpload,
-  Copy,
-  DatabaseZap,
-  Eye,
-  FileSpreadsheet,
-  FileUp,
-  GripVertical,
-  MoreVertical,
-  Plus,
-  Search,
-  UploadCloud,
-  X
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { Archive, Check, Copy, Eye, Filter, MoreVertical, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import type { AdminOfferListItem } from "@/lib/adminOfferRepository";
+import { archiveAdminOffer, bulkAdminOfferAction, deleteAdminOffer, duplicateAdminOffer, restoreAdminOffer } from "./actions";
 
 type StatusTab = "Всички" | "Публикувани" | "Чернови" | "Импортирани" | "За преглед" | "Архивирани";
-
 type OfferRow = AdminOfferListItem;
+type ConfirmAction = { offer: OfferRow; action: "archive" | "delete" } | null;
+type BulkAction = "archive" | "delete" | "publish";
+type BulkConfirmAction = { action: BulkAction; offers: OfferRow[] } | null;
 
-const statusTabs: Array<{ label: StatusTab; total: number }> = [
-  { label: "Всички", total: 356 },
-  { label: "Публикувани", total: 218 },
-  { label: "Чернови", total: 42 },
-  { label: "Импортирани", total: 68 },
-  { label: "За преглед", total: 12 },
-  { label: "Архивирани", total: 16 }
-];
-
-const demoOffers: OfferRow[] = [
-  {
-    slug: "kapadokiya-magiyata-na-balonite",
-    title: "Кападокия - магията на балоните",
-    destination: "Турция",
-    type: "Екскурзия",
-    source: "RedTours",
-    departures: 4,
-    price: "999 EUR",
-    status: "Публикувана",
-    publication: "site",
-    collection: "Red Signature",
-    image: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "maldivi-luks-i-spokoystvie",
-    title: "Малдиви - лукс и спокойствие",
-    destination: "Малдиви",
-    type: "Почивка",
-    source: "RedTours",
-    departures: 7,
-    price: "2 990 EUR",
-    status: "Публикувана",
-    publication: "site",
-    collection: "Red Moments",
-    image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "italia-amalfiysko-kraybrezhie",
-    title: "Италия - Амалфийско крайбрежие",
-    destination: "Италия",
-    type: "Екскурзия",
-    source: "RedTours",
-    departures: 5,
-    price: "1 690 EUR",
-    status: "Публикувана",
-    publication: "site",
-    collection: "Red Escape",
-    image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "maroko-imperski-gradove",
-    title: "Мароко - имперски градове",
-    destination: "Мароко",
-    type: "Екскурзия",
-    source: "Туроператор X",
-    departures: 12,
-    price: "1 890 EUR",
-    status: "За преглед",
-    publication: "draft",
-    collection: "Red Signature",
-    image: "https://images.unsplash.com/photo-1548018560-c7196548e84d?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "gartsia-semeyna-pochivka",
-    title: "Гърция - семейна почивка",
-    destination: "Гърция",
-    type: "Почивка",
-    source: "RedTours",
-    departures: 9,
-    price: "749 EUR",
-    status: "Публикувана",
-    publication: "site",
-    collection: "Red Moments",
-    image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "alpiyski-varhove-i-ezera",
-    title: "Алпийски върхове и езера",
-    destination: "Швейцария, Италия",
-    type: "Екскурзия",
-    source: "Туроператор Y",
-    departures: 6,
-    price: "1 550 EUR",
-    status: "Импортирана",
-    publication: "site",
-    collection: "Red Escape",
-    image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "sredizemnomorski-kruiz",
-    title: "Средиземноморски круиз",
-    destination: "Испания, Франция, Италия",
-    type: "Круиз",
-    source: "API синхронизация",
-    departures: 23,
-    price: "1 299 EUR",
-    status: "Импортирана",
-    publication: "draft",
-    collection: "Без колекция",
-    image: "https://images.unsplash.com/photo-1548574505-5e239809ee19?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "nyu-york-gradat-nikoga-ne-spi",
-    title: "Ню Йорк - градът никога не спи",
-    destination: "САЩ",
-    type: "Екскурзия",
-    source: "RedTours",
-    departures: 3,
-    price: "1 850 EUR",
-    status: "Чернова",
-    publication: "draft",
-    collection: "Без колекция",
-    image: "https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "london-klasika-i-modernost",
-    title: "Лондон - класика и модерност",
-    destination: "Великобритания",
-    type: "Екскурзия",
-    source: "XML импорт",
-    departures: 8,
-    price: "1 199 EUR",
-    status: "За преглед",
-    publication: "draft",
-    collection: "Red Escape",
-    image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=220&q=72"
-  },
-  {
-    slug: "koledna-praga",
-    title: "Коледна Прага",
-    destination: "Чехия",
-    type: "Екскурзия",
-    source: "RedTours",
-    departures: 2,
-    price: "599 EUR",
-    status: "Чернова",
-    publication: "draft",
-    collection: "Red Moments",
-    image: "https://images.unsplash.com/photo-1519677100203-a0e668c92439?auto=format&fit=crop&w=220&q=72"
-  }
-];
-
-const imports = [
-  ["Импорт от TravelCo XML", "travelco_offers_20240811.xml", "Успешен", "128 нови, 15 обновени", "11.08.2026 14:32", "Ива Петрова"],
-  ["API синхронизация - TourOperator API", "Автоматична синхронизация", "Частичен", "5 грешки", "11.08.2026 12:15", "Система"],
-  ["Импорт от Excel файл", "offers_bulk_import.xlsx", "Успешен", "63 нови", "10.08.2026 16:45", "Мария Николова"]
-];
-
-const stats = [
-  ["356", "Всички оферти"],
-  ["218", "Публикувани"],
-  ["68", "Импортирани"],
-  ["42", "Чернови"],
-  ["12", "За преглед"],
-  ["16", "Архивирани"]
-];
-
-const fieldOptions = {
-  destination: ["Турция", "Малдиви", "Италия", "Мароко", "Гърция", "Чехия"],
-  type: ["Екскурзия", "Почивка", "Круиз"],
-  source: ["RedTours", "Туроператор X", "Туроператор Y", "API синхронизация", "XML импорт"],
-  publication: ["На сайта", "Чернова"],
-  collection: ["Red Signature", "Red Escape", "Red Moments", "Без колекция"]
-};
+const statusTabLabels: StatusTab[] = ["Всички", "Публикувани", "Чернови", "Импортирани", "За преглед", "Архивирани"];
 
 function statusClass(status: OfferRow["status"]) {
   if (status === "Публикувана") return "is-published";
   if (status === "За преглед") return "is-review";
-  if (status === "Импортирана") return "is-imported";
+  if (status === "⚠ Променена") return "is-changed";
+  if (status === "Изтекла") return "is-expired";
+  if (status === "⚠ Грешка") return "is-error";
   return "is-draft";
 }
 
@@ -209,46 +35,101 @@ function tabMatchesOffer(activeTab: StatusTab, offer: OfferRow) {
   if (activeTab === "Всички") return true;
   if (activeTab === "Публикувани") return offer.status === "Публикувана";
   if (activeTab === "Чернови") return offer.status === "Чернова";
-  if (activeTab === "Импортирани") return offer.status === "Импортирана";
-  if (activeTab === "За преглед") return offer.status === "За преглед";
+  if (activeTab === "Импортирани") return offer.source.startsWith("XML") || offer.source.startsWith("API") || offer.source.startsWith("ERP") || offer.source === "CSV/Excel";
+  if (activeTab === "За преглед") return offer.status === "За преглед" || offer.status === "⚠ Променена" || offer.status === "⚠ Грешка";
   return offer.status === "Архивирана";
 }
 
+function uniqueOptions(offers: OfferRow[], key: keyof Pick<OfferRow, "destination" | "type" | "source" | "status" | "collection">) {
+  return Array.from(new Set(offers.map((offer) => offer[key]).filter(Boolean))).sort((first, second) => String(first).localeCompare(String(second), "bg"));
+}
+
+function countForTab(tab: StatusTab, offers: OfferRow[]) {
+  return offers.filter((offer) => tabMatchesOffer(tab, offer)).length;
+}
+
+function formatUpdatedAt(value: string) {
+  const updatedAt = new Date(value);
+  const timestamp = updatedAt.getTime();
+
+  if (!Number.isFinite(timestamp)) return "няма данни";
+
+  const now = new Date();
+  const diffMs = now.getTime() - timestamp;
+  if (diffMs < 0) return "току-що";
+
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "току-що";
+  if (minutes < 60) return `преди ${minutes} мин`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `преди ${hours} ${hours === 1 ? "час" : "часа"}`;
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (updatedAt.toDateString() === yesterday.toDateString()) return "вчера";
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `преди ${days} ${days === 1 ? "ден" : "дни"}`;
+
+  return new Intl.DateTimeFormat("bg-BG", { day: "2-digit", month: "2-digit", year: "numeric" }).format(updatedAt);
+}
+
 export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOfferListItem[] }) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<StatusTab>("Всички");
   const [query, setQuery] = useState("");
   const [destinationFilter, setDestinationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [publicationFilter, setPublicationFilter] = useState("");
   const [collectionFilter, setCollectionFilter] = useState("");
-  const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [openActions, setOpenActions] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState("Готово за работа. Избери действие от списъка с оферти.");
-  const [creationMode, setCreationMode] = useState<"full" | "quick" | null>(null);
-  const offers = initialOffers.length > 0 ? initialOffers : demoOffers;
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [bulkConfirmAction, setBulkConfirmAction] = useState<BulkConfirmAction>(null);
+  const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const offers = initialOffers;
+
+  const filterOptions = useMemo(
+    () => ({
+      destination: uniqueOptions(offers, "destination"),
+      type: uniqueOptions(offers, "type"),
+      source: uniqueOptions(offers, "source"),
+      status: uniqueOptions(offers, "status"),
+      collection: uniqueOptions(offers, "collection")
+    }),
+    [offers]
+  );
+
+  const activeFilterCount = [query, destinationFilter, typeFilter, sourceFilter, statusFilter, collectionFilter].filter(Boolean).length;
+  const statusTabs = useMemo(() => statusTabLabels.map((label) => ({ label, total: countForTab(label, offers) })), [offers]);
 
   const filteredOffers = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("bg-BG");
 
     return offers.filter((offer) => {
-      const searchable = [offer.title, offer.destination, offer.type, offer.source, offer.status, offer.collection]
+      const searchable = [offer.title, offer.destination, offer.type, offer.source, offer.status, offer.collection, offer.price]
         .join(" ")
         .toLocaleLowerCase("bg-BG");
 
       return (
         tabMatchesOffer(activeTab, offer) &&
         (!normalizedQuery || searchable.includes(normalizedQuery)) &&
-        (!destinationFilter || offer.destination.includes(destinationFilter)) &&
+        (!destinationFilter || offer.destination === destinationFilter) &&
         (!typeFilter || offer.type === typeFilter) &&
         (!sourceFilter || offer.source === sourceFilter) &&
         (!statusFilter || offer.status === statusFilter) &&
-        (!publicationFilter || (publicationFilter === "На сайта" ? offer.publication === "site" : offer.publication === "draft")) &&
         (!collectionFilter || offer.collection === collectionFilter)
       );
     });
-  }, [activeTab, collectionFilter, destinationFilter, offers, publicationFilter, query, sourceFilter, statusFilter, typeFilter]);
+  }, [activeTab, collectionFilter, destinationFilter, offers, query, sourceFilter, statusFilter, typeFilter]);
+  const visibleSlugs = filteredOffers.map((offer) => offer.slug);
+  const selectedOffers = offers.filter((offer) => selectedSlugs.includes(offer.slug));
+  const selectedVisibleCount = visibleSlugs.filter((slug) => selectedSlugs.includes(slug)).length;
+  const allVisibleSelected = visibleSlugs.length > 0 && selectedVisibleCount === visibleSlugs.length;
+  const selectedCount = selectedOffers.length;
 
   function clearFilters() {
     setQuery("");
@@ -256,19 +137,72 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
     setTypeFilter("");
     setSourceFilter("");
     setStatusFilter("");
-    setPublicationFilter("");
     setCollectionFilter("");
     setActiveTab("Всички");
-    setActionMessage("Филтрите са изчистени.");
   }
 
-  function runImport(kind: string) {
-    setActionMessage(`${kind} е подготвен за следващата стъпка: избор на файл/доставчик и преглед преди публикуване.`);
-  }
-
-  function runRowAction(offer: OfferRow, action: string) {
+  function runOfferAction(offer: OfferRow, action: "archive" | "duplicate" | "delete" | "restore") {
     setOpenActions(null);
-    setActionMessage(`${action}: ${offer.title}`);
+
+    if (action === "archive" || action === "delete") {
+      setConfirmAction({ offer, action });
+      return;
+    }
+
+    startTransition(async () => {
+      const result = action === "duplicate" ? await duplicateAdminOffer(offer.slug) : await restoreAdminOffer(offer.slug);
+
+      void result;
+      router.refresh();
+    });
+  }
+
+  function toggleOfferSelection(slug: string) {
+    setSelectedSlugs((current) => current.includes(slug) ? current.filter((item) => item !== slug) : [...current, slug]);
+  }
+
+  function toggleVisibleSelection() {
+    setSelectedSlugs((current) => {
+      if (allVisibleSelected) {
+        return current.filter((slug) => !visibleSlugs.includes(slug));
+      }
+
+      return Array.from(new Set([...current, ...visibleSlugs]));
+    });
+  }
+
+  function requestBulkAction(action: BulkAction) {
+    setBulkConfirmAction({ action, offers: selectedOffers });
+    setOpenActions(null);
+  }
+
+  function confirmBulkAction() {
+    if (!bulkConfirmAction) return;
+
+    const { action, offers: selected } = bulkConfirmAction;
+    setBulkConfirmAction(null);
+
+    startTransition(async () => {
+      const result = await bulkAdminOfferAction(selected.map((offer) => offer.slug), action);
+
+      void result;
+      setSelectedSlugs([]);
+      router.refresh();
+    });
+  }
+
+  function confirmPendingAction() {
+    if (!confirmAction) return;
+
+    const { offer, action } = confirmAction;
+    setConfirmAction(null);
+
+    startTransition(async () => {
+      const result = action === "archive" ? await archiveAdminOffer(offer.slug) : await deleteAdminOffer(offer.slug);
+
+      void result;
+      router.refresh();
+    });
   }
 
   return (
@@ -280,58 +214,73 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
             <p>Начало / Оферти</p>
           </div>
           <div className="offers-index-actions">
-            <div className="offers-import-menu">
-              <button type="button" aria-haspopup="menu">
-                <CloudUpload size={17} aria-hidden="true" />
-                Импорт
-                <ChevronDown size={16} aria-hidden="true" />
-              </button>
-              <div role="menu">
-                <button type="button" role="menuitem" onClick={() => runImport("Импорт от XML файл")}>
-                  <FileUp size={18} aria-hidden="true" />
-                  <span>
-                    <strong>Импорт от XML файл</strong>
-                    <em>Туроператори и доставчици</em>
-                  </span>
-                </button>
-                <button type="button" role="menuitem" onClick={() => runImport("Импорт чрез API")}>
-                  <DatabaseZap size={18} aria-hidden="true" />
-                  <span>
-                    <strong>Импорт чрез API</strong>
-                    <em>Автоматична синхронизация</em>
-                  </span>
-                </button>
-                <button type="button" role="menuitem" onClick={() => runImport("Импорт от CSV файл")}>
-                  <FileSpreadsheet size={18} aria-hidden="true" />
-                  <span>
-                    <strong>Импорт от CSV файл</strong>
-                    <em>Масово зареждане</em>
-                  </span>
-                </button>
-                <button type="button" role="menuitem" onClick={() => runImport("Ръчен импорт")}>
-                  <UploadCloud size={18} aria-hidden="true" />
-                  <span>
-                    <strong>Ръчен импорт</strong>
-                    <em>Създаване и свързване</em>
-                  </span>
-                </button>
-              </div>
-            </div>
+            <button type="button" onClick={() => setIsFiltersOpen((value) => !value)} aria-expanded={isFiltersOpen}>
+              <Filter size={17} aria-hidden="true" />
+              Филтри
+              {activeFilterCount ? <span>{activeFilterCount}</span> : null}
+            </button>
             <Link href="/admin/offers/new">
               <Plus size={17} aria-hidden="true" />
               Нова оферта
             </Link>
-            <button className="primary" type="button" onClick={() => setCreationMode("quick")}>
-              <Plus size={17} aria-hidden="true" />
-              Бърза оферта
-            </button>
           </div>
         </header>
 
-        <div className="offers-action-feedback" role="status">
-          <CheckCircle2 size={17} aria-hidden="true" />
-          <span>{actionMessage}</span>
-        </div>
+        {isFiltersOpen ? (
+          <section className="offers-filter-panel offers-filter-panel-inline">
+            <header>
+              <h2>Филтри</h2>
+              <button type="button" onClick={clearFilters}>
+                <X size={16} aria-hidden="true" />
+                Изчисти
+              </button>
+            </header>
+            <div className="offers-filter-grid">
+              <label>
+                <span>Търсене</span>
+                <div className="offers-search-field">
+                  <Search size={16} aria-hidden="true" />
+                  <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Заглавие, дестинация, статус..." />
+                </div>
+              </label>
+              <label>
+                <span>Дестинация</span>
+                <select value={destinationFilter} onChange={(event) => setDestinationFilter(event.target.value)}>
+                  <option value="">Всички дестинации</option>
+                  {filterOptions.destination.map((option) => <option value={option} key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Тип</span>
+                <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
+                  <option value="">Всички типове</option>
+                  {filterOptions.type.map((option) => <option value={option} key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Източник</span>
+                <select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}>
+                  <option value="">Всички източници</option>
+                  {filterOptions.source.map((option) => <option value={option} key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Статус</span>
+                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                  <option value="">Всички статуси</option>
+                  {filterOptions.status.map((option) => <option value={option} key={option}>{option}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Колекция</span>
+                <select value={collectionFilter} onChange={(event) => setCollectionFilter(event.target.value)}>
+                  <option value="">Всички колекции</option>
+                  {filterOptions.collection.map((option) => <option value={option} key={option}>{option}</option>)}
+                </select>
+              </label>
+            </div>
+          </section>
+        ) : null}
 
         <nav className="offers-status-tabs" aria-label="Статуси на офертите">
           {statusTabs.map(({ label, total }) => (
@@ -342,281 +291,185 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
           ))}
         </nav>
 
-        <div className="offers-index-grid">
-          <div className="offers-index-main">
-            <section className="offers-table-panel">
-              <div className="offers-table" role="table" aria-label="Всички оферти">
-                <div className="offers-table-row offers-table-head" role="row">
-                  <span role="columnheader">Оферта</span>
-                  <span role="columnheader">Тип</span>
-                  <span role="columnheader">Източник</span>
-                  <span role="columnheader">Отпътувания</span>
-                  <span role="columnheader">Цена от</span>
-                  <span role="columnheader">Статус</span>
-                  <span role="columnheader">Публикация</span>
-                  <span role="columnheader" />
-                </div>
-                {filteredOffers.map((offer) => (
-                  <article className="offers-table-row" role="row" key={offer.slug}>
-                    <GripVertical size={16} aria-hidden="true" />
-                    <Link className="offers-title-cell" href={`/admin/offers/${offer.slug}`} role="cell">
-                      <img src={offer.image} alt="" />
-                      <span>
-                        <strong>{offer.title}</strong>
-                        <em>{offer.destination}</em>
-                      </span>
-                    </Link>
-                    <span className={`offers-type-pill ${typeClass(offer.type)}`} role="cell">{offer.type}</span>
-                    <span className="offers-source-pill" role="cell">{offer.source}</span>
-                    <strong role="cell">{offer.departures}</strong>
-                    <strong role="cell">от {offer.price}</strong>
-                    <span className={`offers-status-pill ${statusClass(offer.status)}`} role="cell">{offer.status}</span>
-                    <span className="offers-publication" role="cell">
-                      <i className={offer.publication === "site" ? "is-live" : ""} />
-                      {offer.publication === "site" ? "На сайта" : "Чернова"}
-                    </span>
-                    <div className="offers-row-actions">
-                      <button
-                        type="button"
-                        aria-expanded={openActions === offer.slug}
-                        aria-label={`Действия за ${offer.title}`}
-                        onClick={() => setOpenActions(openActions === offer.slug ? null : offer.slug)}
-                      >
-                        <MoreVertical size={18} aria-hidden="true" />
-                      </button>
-                      {openActions === offer.slug ? (
-                        <div className="offers-row-menu" role="menu">
+        {selectedCount > 0 ? (
+          <section className="offers-bulk-bar" aria-live="polite">
+            <strong>{selectedCount} избрани</strong>
+            <button type="button" onClick={() => requestBulkAction("publish")} disabled={isPending}>
+              <Check size={16} aria-hidden="true" />
+              Одобри и публикувай
+            </button>
+            <button type="button" onClick={() => requestBulkAction("archive")} disabled={isPending}>
+              <Archive size={16} aria-hidden="true" />
+              Архивирай
+            </button>
+            <button className="danger" type="button" onClick={() => requestBulkAction("delete")} disabled={isPending}>
+              <Trash2 size={16} aria-hidden="true" />
+              Изтрий
+            </button>
+            <button type="button" onClick={() => setSelectedSlugs([])} disabled={isPending}>
+              <X size={16} aria-hidden="true" />
+              Изчисти
+            </button>
+          </section>
+        ) : null}
+
+        <section className="offers-table-panel">
+          <div className="offers-table" role="table" aria-label="Всички оферти">
+            <div className="offers-table-row offers-table-head" role="row">
+              <label className="offers-select-cell" aria-label="Маркирай всички видими оферти">
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection} disabled={filteredOffers.length === 0 || isPending} />
+              </label>
+              <span role="columnheader">Оферта</span>
+              <span role="columnheader">Тип</span>
+              <span role="columnheader">Източник</span>
+              <span role="columnheader">Цена от</span>
+              <span role="columnheader">Статус</span>
+              <span role="columnheader">Обновена</span>
+              <span role="columnheader" />
+            </div>
+            {filteredOffers.map((offer, index) => (
+              <article className={`offers-table-row ${selectedSlugs.includes(offer.slug) ? "is-selected" : ""}`} role="row" key={offer.slug}>
+                <label className="offers-select-cell" aria-label={`Маркирай ${offer.title || "Нова оферта"}`}>
+                  <input type="checkbox" checked={selectedSlugs.includes(offer.slug)} onChange={() => toggleOfferSelection(offer.slug)} disabled={isPending} />
+                </label>
+                <Link className="offers-title-cell" href={`/admin/offers/${offer.slug}`} role="cell">
+                  {offer.image ? <img src={offer.image} alt="" /> : <span className="offers-image-placeholder" aria-hidden="true"><img src="/brand/logo.png" alt="" /></span>}
+                  <span>
+                    <strong>{offer.title || "Нова оферта"}</strong>
+                    <em>{offer.destination}</em>
+                  </span>
+                </Link>
+                <span className={`offers-type-pill ${typeClass(offer.type)}`} role="cell">{offer.type}</span>
+                <span className="offers-source-pill" role="cell">{offer.source}</span>
+                <strong role="cell">{offer.price}</strong>
+                <span className={`offers-status-pill ${statusClass(offer.status)}`} role="cell">{offer.status}</span>
+                <time className="offers-updated" dateTime={offer.updatedAt} role="cell" suppressHydrationWarning>{formatUpdatedAt(offer.updatedAt)}</time>
+                <div className="offers-row-actions">
+                  <button
+                    type="button"
+                    aria-expanded={openActions === offer.slug}
+                    aria-label={`Действия за ${offer.title || "Нова оферта"}`}
+                    onClick={() => setOpenActions(openActions === offer.slug ? null : offer.slug)}
+                    disabled={isPending}
+                  >
+                    <MoreVertical size={18} aria-hidden="true" />
+                  </button>
+                  {openActions === offer.slug ? (
+                    <div className={`offers-row-menu ${index >= filteredOffers.length - 2 ? "is-anchored-up" : ""}`} role="menu">
+                      {offer.status === "Архивирана" ? (
+                        <>
+                        <button type="button" role="menuitem" onClick={() => runOfferAction(offer, "restore")} disabled={isPending}>
+                          <RotateCcw size={16} aria-hidden="true" />
+                          Разархивирай
+                        </button>
                           <Link href={`/admin/offers/${offer.slug}`} role="menuitem">
                             <Eye size={16} aria-hidden="true" />
                             Отвори
                           </Link>
-                          <button type="button" role="menuitem" onClick={() => runRowAction(offer, "Дублиране като чернова")}>
+                        </>
+                      ) : (
+                        <>
+                          <Link href={`/admin/offers/${offer.slug}`} role="menuitem">
+                            <Eye size={16} aria-hidden="true" />
+                            Отвори
+                          </Link>
+                          <button type="button" role="menuitem" onClick={() => runOfferAction(offer, "duplicate")} disabled={isPending}>
                             <Copy size={16} aria-hidden="true" />
                             Дублирай
                           </button>
-                          <button type="button" role="menuitem" onClick={() => runRowAction(offer, "Архивиране")}>
+                          <button type="button" role="menuitem" onClick={() => runOfferAction(offer, "archive")} disabled={isPending}>
                             <Archive size={16} aria-hidden="true" />
                             Архивирай
                           </button>
-                        </div>
-                      ) : null}
+                        </>
+                      )}
+                      <button className="is-danger" type="button" role="menuitem" onClick={() => runOfferAction(offer, "delete")} disabled={isPending}>
+                        <Trash2 size={16} aria-hidden="true" />
+                        Изтрий
+                      </button>
                     </div>
-                  </article>
-                ))}
-                {filteredOffers.length === 0 ? (
-                  <div className="offers-empty-state">
-                    <Search size={22} aria-hidden="true" />
-                    <strong>Няма оферти по тези критерии</strong>
-                    <span>Промени филтрите или изчисти търсенето.</span>
-                  </div>
-                ) : null}
-              </div>
-              <footer className="offers-table-footer">
-                <span>Показване на {filteredOffers.length === 0 ? "0" : "1"} до {filteredOffers.length} от {filteredOffers.length} видими резултата</span>
-                <div>
-                  <button type="button" onClick={() => setActionMessage("Това е първата страница от текущия филтриран списък.")}>‹</button>
-                  {[1, 2, 3, 4, 5].map((page) => (
-                    <button
-                      className={page === 1 ? "is-active" : ""}
-                      type="button"
-                      key={page}
-                      onClick={() => setActionMessage(`Страница ${page} ще зареди съответния набор оферти след връзка с базата.`)}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <span>...</span>
-                  <button type="button" onClick={() => setActionMessage("Преминаване към последната страница след реална пагинация.")}>36</button>
-                  <button type="button" onClick={() => setActionMessage("Следваща страница ще работи с реалната пагинация.")}>›</button>
+                  ) : null}
                 </div>
-              </footer>
-            </section>
-
-            <section className="offers-imports-panel">
-              <header>
-                <h2>Последни импорти</h2>
-                <button type="button" onClick={() => setActionMessage("Отваряне на пълния журнал на импортите.")}>Виж всички импорти</button>
-              </header>
-              {imports.map(([title, file, status, result, date, user]) => (
-                <article key={title}>
-                  <span>{title.includes("API") ? "API" : title.includes("Excel") ? "CSV" : "XML"}</span>
-                  <div>
-                    <strong>{title}</strong>
-                    <em>{file}</em>
-                  </div>
-                  <mark>{status}</mark>
-                  <p>{result}</p>
-                  <time>{date}</time>
-                  <p>{user}</p>
-                  <button type="button" onClick={() => setActionMessage(`Преглед на импорт: ${title}`)}>Преглед</button>
-                </article>
-              ))}
-            </section>
+              </article>
+            ))}
+            {filteredOffers.length === 0 ? (
+              <div className="offers-empty-state">
+                <Search size={22} aria-hidden="true" />
+                <strong>{offers.length ? "Няма оферти по тези критерии" : "Няма реални оферти"}</strong>
+                <span>{offers.length ? "Промени филтрите или изчисти търсенето." : "Създай нова оферта, за да се появи в списъка."}</span>
+              </div>
+            ) : null}
           </div>
+          <footer className="offers-table-footer">
+            <span>Показване на {filteredOffers.length} от {offers.length} реални оферти</span>
+          </footer>
+        </section>
 
-          <aside className="offers-index-side">
-            <section className="offers-filter-panel">
-              <header>
-                <h2>Филтри</h2>
-                <button type="button" onClick={clearFilters}>Изчисти всички</button>
-              </header>
-              <label>
-                <span>Търсене</span>
-                <div className="offers-search-field">
-                  <Search size={16} aria-hidden="true" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Заглавие, дестинация, туроператор..."
-                  />
-                </div>
-              </label>
-              <label>
-                <span>Дестинация</span>
-                <select value={destinationFilter} onChange={(event) => setDestinationFilter(event.target.value)}>
-                  <option value="">Всички дестинации</option>
-                  {fieldOptions.destination.map((option) => <option value={option} key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>Тип пътуване</span>
-                <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}>
-                  <option value="">Всички типове</option>
-                  {fieldOptions.type.map((option) => <option value={option} key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>Източник</span>
-                <select value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value)}>
-                  <option value="">Всички източници</option>
-                  {fieldOptions.source.map((option) => <option value={option} key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>Статус</span>
-                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                  <option value="">Всички статуси</option>
-                  {["Публикувана", "За преглед", "Импортирана", "Чернова", "Архивирана"].map((option) => <option value={option} key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>Публикация в сайта</span>
-                <select value={publicationFilter} onChange={(event) => setPublicationFilter(event.target.value)}>
-                  <option value="">Всички</option>
-                  {fieldOptions.publication.map((option) => <option value={option} key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label>
-                <span>Колекции</span>
-                <select value={collectionFilter} onChange={(event) => setCollectionFilter(event.target.value)}>
-                  <option value="">Всички колекции</option>
-                  {fieldOptions.collection.map((option) => <option value={option} key={option}>{option}</option>)}
-                </select>
-              </label>
-              {showMoreFilters ? (
-                <div className="offers-advanced-filters">
-                  <label>
-                    <span>Етикет</span>
-                    <select defaultValue="">
-                      <option value="">Всички етикети</option>
-                      <option>Последни места</option>
-                      <option>Авторска програма</option>
-                      <option>Наш избор</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Видимост</span>
-                    <select defaultValue="">
-                      <option value="">Всички позиции</option>
-                      <option>Начална страница</option>
-                      <option>Търсачка</option>
-                      <option>Промо секция</option>
-                    </select>
-                  </label>
-                </div>
-              ) : null}
-              <label>
-                <span>Период на отпътуване</span>
-                <div className="offers-date-filter">
-                  <CalendarDays size={16} aria-hidden="true" />
-                  <input placeholder="От дата" onFocus={() => setActionMessage("Филтърът по дати ще бъде вързан към реалните отпътувания на офертите.")} />
-                  <span>+</span>
-                  <input placeholder="До дата" onFocus={() => setActionMessage("Филтърът по дати ще бъде вързан към реалните отпътувания на офертите.")} />
-                </div>
-              </label>
-              <button className="offers-more-filters" type="button" onClick={() => setShowMoreFilters(!showMoreFilters)}>
-                {showMoreFilters ? "Скрий допълнителни" : "Още филтри"}
-                <ChevronDown size={16} aria-hidden="true" />
-              </button>
-            </section>
-
-            <section className="offers-stat-panel">
-              <h2>Бърза статистика</h2>
-              <div>
-                {stats.map(([value, label]) => (
-                  <article key={label}>
-                    <strong>{value}</strong>
-                    <span>{label}</span>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="offers-expiring-panel">
-              <h2>Скоро изтичащи публикации</h2>
-              <div>
-                <span>Малдиви - лукс и спокойствие</span>
-                <time>31.08.2026</time>
-              </div>
-              <div>
-                <span>Алпийски върхове и езера</span>
-                <time>05.09.2026</time>
-              </div>
-              <div>
-                <span>Кападокия - магията на балоните</span>
-                <time>10.09.2026</time>
-              </div>
-              <button type="button" onClick={() => setActionMessage("Отваряне на списък с всички публикации с крайна дата.")}>Виж всички</button>
-            </section>
-          </aside>
-        </div>
-
-        {creationMode ? (
-          <div className="offers-modal-backdrop" role="presentation" onMouseDown={() => setCreationMode(null)}>
-            <section className="offers-create-modal" role="dialog" aria-modal="true" aria-labelledby="offer-create-title" onMouseDown={(event) => event.stopPropagation()}>
+        {confirmAction ? (
+          <div className="offers-modal-backdrop" role="presentation" onMouseDown={() => setConfirmAction(null)}>
+            <section className="offers-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="offers-confirm-title" onMouseDown={(event) => event.stopPropagation()}>
               <header>
                 <div>
-                  <span>Бързо създаване</span>
-                  <h2 id="offer-create-title">Минимална чернова</h2>
+                  <span>{confirmAction.action === "archive" ? "Архивиране" : "Изтриване"}</span>
+                  <h2 id="offers-confirm-title">
+                    {confirmAction.action === "archive" ? "Архивиране на оферта" : "Изтриване на оферта"}
+                  </h2>
                 </div>
-                <button type="button" aria-label="Затвори" onClick={() => setCreationMode(null)}>
+                <button type="button" aria-label="Затвори" onClick={() => setConfirmAction(null)}>
                   <X size={18} aria-hidden="true" />
                 </button>
               </header>
               <div>
-                <label>
-                  <span>Заглавие</span>
-                  <input placeholder="Напр. Кападокия - магията на балоните" />
-                </label>
-                <label>
-                  <span>Тип</span>
-                  <select defaultValue="Екскурзия">
-                    <option>Екскурзия</option>
-                    <option>Почивка</option>
-                    <option>Круиз</option>
-                    <option>Хотел</option>
-                  </select>
-                </label>
+                <strong>{confirmAction.offer.title || "Нова оферта"}</strong>
+                {confirmAction.action === "archive" ? (
+                  <p>
+                    Сигурни ли сте, че искате да архивирате тази оферта? Ако се архивира, няма да бъде видима в сайта. Може да бъде разархивирана от секцията Архивирани.
+                  </p>
+                ) : (
+                  <p>
+                    Сигурни ли сте, че искате да изтриете тази оферта? Това действие премахва офертата и свързаните с нея данни и не може да бъде отменено.
+                  </p>
+                )}
               </div>
               <footer>
-                <button type="button" onClick={() => setCreationMode(null)}>Отказ</button>
-                <Link
-                  className="primary"
-                  href="/admin/offers/kapadokiya-magiyata-na-balonite"
-                  onClick={() => setActionMessage("Създаване на чернова и отваряне на редактора.")}
-                >
-                  Създай чернова
-                </Link>
+                <button type="button" onClick={() => setConfirmAction(null)}>Отказ</button>
+                <button className={confirmAction.action === "delete" ? "danger" : "primary"} type="button" onClick={confirmPendingAction} disabled={isPending}>
+                  {confirmAction.action === "archive" ? "Архивирай" : "Изтрий"}
+                </button>
+              </footer>
+            </section>
+          </div>
+        ) : null}
+
+        {bulkConfirmAction ? (
+          <div className="offers-modal-backdrop" role="presentation" onMouseDown={() => setBulkConfirmAction(null)}>
+            <section className="offers-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="offers-bulk-confirm-title" onMouseDown={(event) => event.stopPropagation()}>
+              <header>
+                <div>
+                  <span>Масово действие</span>
+                  <h2 id="offers-bulk-confirm-title">
+                    {bulkConfirmAction.action === "publish" ? "Одобряване и публикуване" : bulkConfirmAction.action === "archive" ? "Архивиране на оферти" : "Изтриване на оферти"}
+                  </h2>
+                </div>
+                <button type="button" aria-label="Затвори" onClick={() => setBulkConfirmAction(null)}>
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </header>
+              <div>
+                <strong>{bulkConfirmAction.offers.length} избрани оферти</strong>
+                {bulkConfirmAction.action === "publish" ? (
+                  <p>Сигурни ли сте, че искате да одобрите и публикувате избраните оферти? След публикуване те ще бъдат видими в сайта.</p>
+                ) : bulkConfirmAction.action === "archive" ? (
+                  <p>Сигурни ли сте, че искате да архивирате избраните оферти? След архивиране няма да бъдат видими в сайта и могат да бъдат разархивирани от секцията Архивирани.</p>
+                ) : (
+                  <p>Сигурни ли сте, че искате да изтриете избраните оферти? Това действие премахва офертите и свързаните с тях данни и не може да бъде отменено.</p>
+                )}
+              </div>
+              <footer>
+                <button type="button" onClick={() => setBulkConfirmAction(null)}>Отказ</button>
+                <button className={bulkConfirmAction.action === "delete" ? "danger" : "primary"} type="button" onClick={confirmBulkAction} disabled={isPending}>
+                  {bulkConfirmAction.action === "publish" ? "Публикувай" : bulkConfirmAction.action === "archive" ? "Архивирай" : "Изтрий"}
+                </button>
               </footer>
             </section>
           </div>

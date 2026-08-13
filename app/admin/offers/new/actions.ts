@@ -133,7 +133,6 @@ export async function createBlankAdminOffer() {
   await requireAdminSession();
 
   const createdAt = new Date();
-  const title = "Нова оферта";
   const slug = await createUniqueOfferSlug(`nova-oferta-${createdAt.getTime()}`);
 
   await dbQuery(
@@ -154,9 +153,9 @@ export async function createBlankAdminOffer() {
         seo_meta_title,
         review_notes
       )
-      values ($1, 'excursion', 'Екскурзия', $2, '', '', 6, 5, 'flight', 'manual', 'draft', true, $2, $3)
+      values ($1, 'excursion', 'Екскурзия', '', '', '', null, null, 'flight', 'manual', 'draft', true, null, $2)
     `,
-    [slug, title, "Създадена е празна чернова. Всички промени в редактора се записват автоматично."]
+    [slug, "[new-offer-draft] Създадена е празна чернова. Всички промени в редактора се записват автоматично."]
   );
 
   return slug;

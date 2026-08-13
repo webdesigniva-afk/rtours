@@ -39,6 +39,15 @@ export type OfferContentInitialData = {
   excluded: string[];
 };
 
+export type OfferContentDraftSummary = {
+  productTypeLabel: string;
+  title: string;
+  country: string;
+  region: string;
+  durationDays: string;
+  durationNights: string;
+};
+
 type ProductTypeOption = {
   slug: string;
   label: string;
@@ -266,7 +275,8 @@ export function OfferContentForm({
   primarySubmitLabel = "Запази и продължи",
   secondarySubmitLabel = "Запази чернова",
   autosave = false,
-  onHeroImageChange
+  onHeroImageChange,
+  onDraftChange
 }: {
   initial: OfferContentInitialData;
   action: (formData: FormData) => void;
@@ -278,8 +288,10 @@ export function OfferContentForm({
   secondarySubmitLabel?: string;
   autosave?: boolean;
   onHeroImageChange?: (url: string) => void;
+  onDraftChange?: (draft: OfferContentDraftSummary) => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const autosaveSubmitRef = useRef<HTMLButtonElement>(null);
   const autosaveTimerRef = useRef<number | null>(null);
   const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const editorRef = useRef<HTMLDivElement>(null);
@@ -293,8 +305,8 @@ export function OfferContentForm({
   const [productTypeError, setProductTypeError] = useState("");
   const [title, setTitle] = useState(initial.title);
   const [destinations, setDestinations] = useState<DestinationRow[]>([{ id: "primary", country: initial.country, region: initial.region, city: "" }]);
-  const [durationDays, setDurationDays] = useState(String(initial.durationDays || 6));
-  const [durationNights, setDurationNights] = useState(String(initial.durationNights || 5));
+  const [durationDays, setDurationDays] = useState(String(initial.durationDays ?? ""));
+  const [durationNights, setDurationNights] = useState(String(initial.durationNights ?? ""));
   const [transport, setTransport] = useState("flight");
   const [summary, setSummary] = useState(initial.summary);
   const [description, setDescription] = useState(initial.description);
@@ -321,6 +333,17 @@ export function OfferContentForm({
   const region = primaryDestination.region || primaryDestination.city;
   const routeLabel = destinations.map((destination) => [destination.city, destination.region, destination.country].filter(Boolean).join(", ")).filter(Boolean).join(" -> ");
 
+  useEffect(() => {
+    onDraftChange?.({
+      productTypeLabel: selectedProductType.label,
+      title,
+      country,
+      region,
+      durationDays,
+      durationNights
+    });
+  }, [country, durationDays, durationNights, onDraftChange, region, selectedProductType.label, title]);
+
   const getCurrentDescription = useCallback(() => (editorMode === "visual" ? editorRef.current?.innerHTML ?? description : description), [description, editorMode]);
   const syncDescription = () => setDescription(editorRef.current?.innerHTML ?? "");
   const syncFormBeforeSave = useCallback((formData?: FormData) => {
@@ -337,12 +360,11 @@ export function OfferContentForm({
   const runAutosaveNow = useCallback(() => {
     if (!autosave || !formRef.current) return;
 
-    const formData = new FormData(formRef.current);
-    syncFormBeforeSave(formData);
+    syncFormBeforeSave();
     setAutosaveStatus("saving");
-    action(formData);
+    formRef.current.requestSubmit(autosaveSubmitRef.current ?? undefined);
     window.setTimeout(() => setAutosaveStatus("saved"), 800);
-  }, [action, autosave, syncFormBeforeSave]);
+  }, [autosave, syncFormBeforeSave]);
   const queueAutosave = useCallback(() => {
     if (!autosave) return;
 
@@ -528,6 +550,7 @@ export function OfferContentForm({
     <div className="offer-new-layout">
       <form className="offer-new-form" action={action} ref={formRef} onInput={queueAutosave} onChange={queueAutosave} onSubmit={syncHeroInputBeforeSubmit}>
         {initial.slug ? <input type="hidden" name="slug" value={initial.slug} /> : null}
+        <button ref={autosaveSubmitRef} type="submit" formNoValidate hidden aria-hidden="true" tabIndex={-1} />
         <section className="offer-new-card">
           <header className="offer-new-card-header">
             <div>
