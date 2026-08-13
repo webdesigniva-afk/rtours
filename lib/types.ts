@@ -126,6 +126,17 @@ export interface OfferDate {
   endDate: string;
   departurePoints?: string;
   availability: "available" | "limited" | "on_request" | "sold_out";
+  seatsTotal?: number;
+  seatsConfirmed?: number;
+  seatsOption?: number;
+  seatsAvailable?: number;
+  priceFrom?: number;
+  currency?: "EUR" | "BGN";
+  priceStatus?: "fixed" | "option_until" | "dynamic" | "budgetary";
+  optionUntil?: string;
+  depositAmount?: number;
+  paymentDueDays?: number;
+  notes?: string;
 }
 
 export interface OfferDestinationPoint {

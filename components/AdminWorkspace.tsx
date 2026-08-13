@@ -29,7 +29,7 @@ import type { LucideIcon } from "lucide-react";
 import { logoutAdmin } from "@/app/admin/actions";
 
 type AdminWorkspaceProps = {
-  active: "dashboard" | "offers" | "imports";
+  active: "dashboard" | "offers" | "imports" | "inquiries";
   children: React.ReactNode;
 };
 
@@ -68,7 +68,7 @@ const groups: Array<{ label: string; items: AdminNavItem[] }> = [
   {
     label: "Комуникация",
     items: [
-      { href: "/admin/offers", label: "Съобщения", icon: Mail, badge: "12" },
+      { href: "/admin/inquiries", label: "Запитвания", icon: Mail, id: "inquiries" },
       { href: "/admin/offers", label: "Известия", icon: Bell, badge: "5" }
     ]
   },

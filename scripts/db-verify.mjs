@@ -27,7 +27,8 @@ const expectedTables = [
   "offer_taxonomy_terms",
   "offer_visibility_rules",
   "import_taxonomy_mappings",
-  "inquiries"
+  "inquiries",
+  "schema_migrations"
 ];
 
 const expectedViews = ["offer_search_index"];

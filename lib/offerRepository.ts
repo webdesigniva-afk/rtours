@@ -1,6 +1,6 @@
 import { getPublishedOfferBySlug, getPublishedOffers, offers } from "./data";
 import { dbQuery } from "./db";
-import type { Offer, OfferStatus } from "./types";
+import type { Offer, OfferStatus, TaxonomyTermType } from "./types";
 
 export type OfferStatusSummary = {
   status: OfferStatus;
@@ -65,6 +65,17 @@ type PublicOfferRow = {
     endDate: string | null;
     departurePoints: string | null;
     availability: "available" | "limited" | "on_request" | "sold_out";
+    seatsTotal: number | null;
+    seatsConfirmed: number | null;
+    seatsOption: number | null;
+    seatsAvailable: number | null;
+    priceFrom: string | null;
+    currency: "EUR" | "BGN";
+    priceStatus: "fixed" | "option_until" | "dynamic" | "budgetary";
+    optionUntil: string | null;
+    depositAmount: string | null;
+    paymentDueDays: number | null;
+    notes: string | null;
   }> | null;
   destinations: Array<{
     country: string;
@@ -84,6 +95,13 @@ type PublicOfferRow = {
   highlights: string[] | null;
   included_services: string[] | null;
   excluded_services: string[] | null;
+  taxonomy_terms: Array<{
+    type: string;
+    slug: string;
+    name: string;
+    publicLabel: string | null;
+  }> | null;
+  visibility_placements: string[] | null;
   seo_meta_title: string | null;
   seo_meta_description: string | null;
   seo_keywords: string[] | null;
@@ -120,6 +138,8 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     meals: day.meals || undefined,
     transport: day.transport || undefined
   })) ?? [];
+  const taxonomyTerms = row.taxonomy_terms ?? [];
+  const termsByType = (type: string) => taxonomyTerms.filter((term) => term.type === type);
 
   return {
     slug: row.slug,
@@ -129,14 +149,14 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     summary,
     description: row.description || summary,
     destinationSlug: row.slug,
-    collectionSlugs: [],
+    collectionSlugs: termsByType("collection").map((term) => term.slug),
     country,
     region,
     destinations,
     durationDays,
     durationNights,
     transport: row.transport as Offer["transport"],
-    priceFrom: Number.isFinite(priceFrom) ? priceFrom : 999,
+    priceFrom: Number.isFinite(priceFrom) ? priceFrom : 0,
     currency: row.currency,
     priceNote: "Запитване преди потвърждение",
     source: row.source as Offer["source"],
@@ -150,11 +170,33 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
           startDate: date.startDate || "",
           endDate: date.endDate || "",
           departurePoints: date.departurePoints || undefined,
-          availability: date.availability
+          availability: date.availability,
+          seatsTotal: date.seatsTotal ?? undefined,
+          seatsConfirmed: date.seatsConfirmed ?? undefined,
+          seatsOption: date.seatsOption ?? undefined,
+          seatsAvailable: date.seatsAvailable ?? undefined,
+          priceFrom: date.priceFrom === null ? undefined : Number(date.priceFrom),
+          currency: date.currency,
+          priceStatus: date.priceStatus,
+          optionUntil: date.optionUntil || undefined,
+          depositAmount: date.depositAmount === null ? undefined : Number(date.depositAmount),
+          paymentDueDays: date.paymentDueDays ?? undefined,
+          notes: date.notes || undefined
         }))
       : [{ label: "Дати по заявка", startDate: "", endDate: "", availability: "on_request" }],
-    moods: [],
-    tags: [],
+    moods: termsByType("mood").map((term) => term.slug) as Offer["moods"],
+    tags: termsByType("badge").map((term) => term.publicLabel || term.name),
+    taxonomyTerms: taxonomyTerms.map((term) => ({
+      termSlug: term.slug,
+      termType: term.type as TaxonomyTermType,
+      source: "manual"
+    })),
+    taxonomyTermSlugs: taxonomyTerms.map((term) => term.slug),
+    badgeSlugs: termsByType("badge").map((term) => term.slug),
+    audienceSlugs: termsByType("audience").map((term) => term.slug),
+    categorySlugs: termsByType("category").map((term) => term.slug),
+    themeSlugs: termsByType("theme").map((term) => term.slug),
+    visibilityPlacements: (row.visibility_placements ?? []) as Offer["visibilityPlacements"],
     highlights: row.highlights ?? [],
     included: row.included_services ?? [],
     excluded: row.excluded_services ?? [],
@@ -210,7 +252,18 @@ export async function listPublishedPublicOffers() {
                 'startDate', date.start_date::text,
                 'endDate', date.end_date::text,
                 'departurePoints', date.departure_points,
-                'availability', date.availability::text
+                'availability', date.availability::text,
+                'seatsTotal', date.seats_total,
+                'seatsConfirmed', date.seats_confirmed,
+                'seatsOption', date.seats_option,
+                'seatsAvailable', date.seats_available,
+                'priceFrom', date.price_from::text,
+                'currency', date.currency,
+                'priceStatus', date.price_status::text,
+                'optionUntil', date.option_until::text,
+                'depositAmount', date.deposit_amount::text,
+                'paymentDueDays', date.payment_due_days,
+                'notes', date.notes
               )
               order by date.sort_order, date.start_date nulls last
             )
@@ -280,6 +333,35 @@ export async function listPublishedPublicOffers() {
           ),
           '{}'::text[]
         ) as excluded_services,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'type', term.type::text,
+                'slug', term.slug,
+                'name', term.name,
+                'publicLabel', term.public_label
+              )
+              order by term.type, term.sort_order, term.name
+            )
+            from offer_taxonomy_terms assigned
+            join taxonomy_terms term on term.id = assigned.term_id
+            where assigned.offer_id = offers.id
+              and term.is_public = true
+          ),
+          '[]'::jsonb
+        ) as taxonomy_terms,
+        coalesce(
+          (
+            select array_agg(rule.placement::text order by rule.priority desc, rule.placement::text)
+            from offer_visibility_rules rule
+            where rule.offer_id = offers.id
+              and rule.is_enabled = true
+              and (rule.starts_at is null or rule.starts_at <= now())
+              and (rule.ends_at is null or rule.ends_at >= now())
+          ),
+          '{}'::text[]
+        ) as visibility_placements,
         seo_meta_title,
         seo_meta_description,
         seo_keywords,
@@ -335,7 +417,18 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
                 'startDate', date.start_date::text,
                 'endDate', date.end_date::text,
                 'departurePoints', date.departure_points,
-                'availability', date.availability::text
+                'availability', date.availability::text,
+                'seatsTotal', date.seats_total,
+                'seatsConfirmed', date.seats_confirmed,
+                'seatsOption', date.seats_option,
+                'seatsAvailable', date.seats_available,
+                'priceFrom', date.price_from::text,
+                'currency', date.currency,
+                'priceStatus', date.price_status::text,
+                'optionUntil', date.option_until::text,
+                'depositAmount', date.deposit_amount::text,
+                'paymentDueDays', date.payment_due_days,
+                'notes', date.notes
               )
               order by date.sort_order, date.start_date nulls last
             )
@@ -405,6 +498,35 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
           ),
           '{}'::text[]
         ) as excluded_services,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'type', term.type::text,
+                'slug', term.slug,
+                'name', term.name,
+                'publicLabel', term.public_label
+              )
+              order by term.type, term.sort_order, term.name
+            )
+            from offer_taxonomy_terms assigned
+            join taxonomy_terms term on term.id = assigned.term_id
+            where assigned.offer_id = offers.id
+              and term.is_public = true
+          ),
+          '[]'::jsonb
+        ) as taxonomy_terms,
+        coalesce(
+          (
+            select array_agg(rule.placement::text order by rule.priority desc, rule.placement::text)
+            from offer_visibility_rules rule
+            where rule.offer_id = offers.id
+              and rule.is_enabled = true
+              and (rule.starts_at is null or rule.starts_at <= now())
+              and (rule.ends_at is null or rule.ends_at >= now())
+          ),
+          '{}'::text[]
+        ) as visibility_placements,
         seo_meta_title,
         seo_meta_description,
         seo_keywords,

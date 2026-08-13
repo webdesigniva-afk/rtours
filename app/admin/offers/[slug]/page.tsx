@@ -84,6 +84,8 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
     highlights: offer.highlights ?? [],
     included: offer.included_services ?? [],
     excluded: offer.excluded_services ?? [],
+    taxonomyTerms: offer.taxonomy_terms ?? [],
+    visibilityRules: offer.visibility_rules ?? [],
     canCancelCreation,
     isNewBlankDraft,
     createdAt: offer.created_at ?? "",

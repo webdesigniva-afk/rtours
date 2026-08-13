@@ -10,12 +10,18 @@ const transportLabel = {
 };
 
 export function OfferCard({ offer }: { offer: Offer }) {
+  const priceLabel = offer.priceFrom > 0
+    ? `от ${offer.priceFrom.toLocaleString("bg-BG")} ${offer.currency}`
+    : "Цена при запитване";
+  const primaryBadge = offer.tags[0];
+
   return (
     <article className="offer-card">
       <Link href={`/offers/${offer.slug}`}>
         <img src={offer.heroImage} alt={offer.title} />
       </Link>
       <div className="card-body">
+        {primaryBadge ? <span className="offer-card-badge">{primaryBadge}</span> : null}
         <div className="card-meta">
           <span className="pill">
             <MapPin size={15} aria-hidden="true" />
@@ -31,9 +37,7 @@ export function OfferCard({ offer }: { offer: Offer }) {
         </h3>
         <p>{offer.summary}</p>
         <div className="offer-actions">
-          <span className="offer-price">
-            от {offer.priceFrom.toLocaleString("bg-BG")} {offer.currency}
-          </span>
+          <span className="offer-price">{priceLabel}</span>
           <span className="pill">
             <Plane size={15} aria-hidden="true" />
             {transportLabel[offer.transport]}
@@ -43,4 +47,3 @@ export function OfferCard({ offer }: { offer: Offer }) {
     </article>
   );
 }
-

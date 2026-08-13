@@ -9,6 +9,7 @@ import {
   CalendarDays,
   Camera,
   ChevronDown,
+  CheckCircle2,
   Code2,
   CircleDot,
   Eye,
@@ -37,12 +38,13 @@ import {
   Underline,
   Users,
   WalletCards,
-  X
+  X,
+  XCircle
 } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import { PublicOfferDetail, type PublicOfferDetailData } from "@/components/PublicOfferDetail";
 import { OfferContentForm, type OfferContentDraftSummary } from "../OfferContentForm";
-import { cancelNewOfferDraft, createOfferBadge, publishOfferChanges, updateOfferContent, updateOfferDatesPrices, updateOfferSeo } from "./actions";
+import { cancelNewOfferDraft, createOfferBadge, publishOfferChanges, updateOfferContent, updateOfferDatesPrices, updateOfferPublishing, updateOfferSeo } from "./actions";
 
 type OfferStatus = "draft" | "review" | "published" | "archived" | "needs_changes" | string;
 
@@ -70,9 +72,13 @@ export type AdminOfferEditorInitialOffer = {
     departurePoints: string | null;
     availability: string;
     seatsTotal: number | null;
+    seatsConfirmed: number | null;
+    seatsOption: number | null;
     seatsAvailable: number | null;
     priceFrom: string | null;
     currency: "EUR" | "BGN" | "";
+    priceStatus: string;
+    optionUntil: string | null;
     depositAmount: string | null;
     paymentDueDays: number | null;
     notes: string | null;
@@ -90,10 +96,18 @@ export type AdminOfferEditorInitialOffer = {
   highlights: string[];
   included: string[];
   excluded: string[];
+  taxonomyTerms: Array<{ type: string; slug: string; name: string; publicLabel: string | null }>;
+  visibilityRules: Array<{ placement: string; isEnabled: boolean; priority: number }>;
   canCancelCreation: boolean;
   isNewBlankDraft: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+type DatesPricesDraftSummary = {
+  priceFrom: number;
+  currency: "EUR" | "BGN";
+  dates: PublicOfferDetailData["dates"];
 };
 
 type EditableItineraryDay = {
@@ -186,6 +200,10 @@ type TagItem = {
 };
 
 const defaultProductTypeOptions: ProductTypeOption[] = [
+  { slug: "standard-red-tours-program", label: "Standard Red tours Program", productType: "package", isSystem: true },
+  { slug: "tailor-made", label: "Tailor-made", productType: "package", isSystem: true },
+  { slug: "corporate-incentive", label: "Corporate / Incentive", productType: "package", isSystem: true },
+  { slug: "group-request", label: "Group Request", productType: "package", isSystem: true },
   { slug: "excursion", label: "Екскурзия", productType: "excursion", isSystem: true },
   { slug: "holiday", label: "Почивка", productType: "holiday", isSystem: true },
   { slug: "package", label: "Пакет", productType: "package", isSystem: true },
@@ -356,6 +374,23 @@ function formatDateTime(value?: string) {
   });
 }
 
+function labelsForTaxonomyType(offer: AdminOfferEditorInitialOffer, type: string) {
+  return offer.taxonomyTerms
+    .filter((term) => term.type === type)
+    .map((term) => term.publicLabel || term.name)
+    .filter(Boolean);
+}
+
+function isVisibilityEnabled(offer: AdminOfferEditorInitialOffer, placement: string, fallback = false) {
+  const rule = offer.visibilityRules.find((item) => item.placement === placement);
+  return rule ? rule.isEnabled : fallback;
+}
+
+function visibilityPriority(offer: AdminOfferEditorInitialOffer, fallback = 10) {
+  const priorities = offer.visibilityRules.map((rule) => rule.priority).filter((value) => Number.isFinite(value));
+  return priorities.length ? Math.max(...priorities) : fallback;
+}
+
 function SelectionButton({
   item,
   selected,
@@ -392,6 +427,44 @@ function tabFromKey(tabKey?: string) {
   return "Оферта";
 }
 
+function formatDepartureLabel(date: AdminOfferEditorInitialOffer["dates"][number]) {
+  if (date.label?.trim()) return date.label;
+  if (date.startDate && date.endDate) return `${date.startDate} - ${date.endDate}`;
+  if (date.startDate) return date.startDate;
+  if (date.endDate) return `до ${date.endDate}`;
+  return "Дати по заявка";
+}
+
+function mapAdminDatesToPublicPreview(offer: AdminOfferEditorInitialOffer): DatesPricesDraftSummary {
+  const activeDates = offer.dates.filter((date) => date.availability !== "sold_out");
+  const prices = activeDates.map((date) => Number(date.priceFrom)).filter((price) => Number.isFinite(price) && price > 0);
+
+  return {
+    priceFrom: prices.length ? Math.min(...prices) : offer.priceFrom,
+    currency: offer.currency,
+    dates: activeDates.length
+      ? activeDates.map((date) => ({
+          label: formatDepartureLabel(date),
+          startDate: date.startDate || "",
+          endDate: date.endDate || undefined,
+          departurePoints: date.departurePoints || undefined,
+          availability: date.availability as "available" | "limited" | "on_request" | "sold_out",
+          seatsTotal: date.seatsTotal ?? undefined,
+          seatsConfirmed: date.seatsConfirmed ?? undefined,
+          seatsOption: date.seatsOption ?? undefined,
+          seatsAvailable: date.seatsAvailable ?? undefined,
+          priceFrom: date.priceFrom ? Number(date.priceFrom) : undefined,
+          currency: date.currency || offer.currency,
+          priceStatus: (date.priceStatus || "budgetary") as "fixed" | "option_until" | "dynamic" | "budgetary",
+          optionUntil: date.optionUntil || undefined,
+          depositAmount: date.depositAmount ? Number(date.depositAmount) : undefined,
+          paymentDueDays: date.paymentDueDays ?? undefined,
+          notes: date.notes || undefined
+        }))
+      : [{ label: "Дати по заявка", startDate: "" }]
+  };
+}
+
 export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminOfferEditorInitialOffer; initialTabKey?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -402,20 +475,28 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const contentFormVersion = `${offer.slug}-${offer.updatedAt}-${shouldShowEmptyEditor ? "empty" : "saved"}`;
   const [activeTab, setActiveTab] = useState(tabFromKey(initialTabKey));
   const [status, setStatus] = useState<OfferStatus>(offer.status);
-  const [tagOptions, setTagOptions] = useState<TagItem[]>(availableTags);
-  const [activeTagLabels, setActiveTagLabels] = useState<string[]>([]);
-  const [collections, setCollections] = useState<string[]>([]);
+  const initialBadgeLabels = labelsForTaxonomyType(offer, "badge");
+  const initialCollectionLabels = labelsForTaxonomyType(offer, "collection");
+  const initialTagOptions = [
+    ...availableTags,
+    ...initialBadgeLabels
+      .filter((label) => !availableTags.some((tag) => tag.label === label))
+      .map((label) => ({ label, tone: "red" as const }))
+  ];
+  const [tagOptions, setTagOptions] = useState<TagItem[]>(initialTagOptions);
+  const [activeTagLabels, setActiveTagLabels] = useState<string[]>(initialBadgeLabels);
+  const [collections, setCollections] = useState<string[]>(initialCollectionLabels);
   const [showTagMenu, setShowTagMenu] = useState(false);
   const [newTagLabel, setNewTagLabel] = useState("");
-  const [selectedAudience, setSelectedAudience] = useState<string[]>([]);
-  const [selectedExperience, setSelectedExperience] = useState<string[]>([]);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [selectedTravelType, setSelectedTravelType] = useState<string[]>([]);
-  const [showOnHome, setShowOnHome] = useState(!isNewCreationFlow);
-  const [featuredByRedTours, setFeaturedByRedTours] = useState(!isNewCreationFlow);
-  const [showInSignature, setShowInSignature] = useState(!isNewCreationFlow);
-  const [showInPromo, setShowInPromo] = useState(false);
-  const [priority, setPriority] = useState(10);
+  const [selectedAudience, setSelectedAudience] = useState<string[]>(labelsForTaxonomyType(offer, "audience"));
+  const [selectedExperience, setSelectedExperience] = useState<string[]>(labelsForTaxonomyType(offer, "mood"));
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(labelsForTaxonomyType(offer, "theme"));
+  const [selectedTravelType, setSelectedTravelType] = useState<string[]>(labelsForTaxonomyType(offer, "category"));
+  const [showOnHome, setShowOnHome] = useState(isVisibilityEnabled(offer, "homepage", false));
+  const [featuredByRedTours, setFeaturedByRedTours] = useState(initialBadgeLabels.includes("Наш избор"));
+  const [showInSignature, setShowInSignature] = useState(isVisibilityEnabled(offer, "collection_page", initialCollectionLabels.includes("Red Signature")));
+  const [showInPromo, setShowInPromo] = useState(isVisibilityEnabled(offer, "promo_section", false));
+  const [priority, setPriority] = useState(visibilityPriority(offer, 10));
   const [seoTitle, setSeoTitle] = useState(offer.seoMetaTitle || offer.title);
   const [seoDescription, setSeoDescription] = useState(offer.seoMetaDescription || offer.summary);
   const [seoSlug, setSeoSlug] = useState(offer.slug);
@@ -435,6 +516,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
     description: offer.description,
     hasHeroImage: Boolean(offer.heroImageUrl)
   });
+  const [datesDraft, setDatesDraft] = useState<DatesPricesDraftSummary>(() => mapAdminDatesToPublicPreview(offer));
   const [message, setMessage] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showCancelDraftModal, setShowCancelDraftModal] = useState(false);
@@ -447,6 +529,29 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const seoPreviewImageUrl = currentHeroImageUrl.trim();
   const seoUrlPath = `/offers/${seoSlug || offer.slug}`;
   const seoDescriptionPreview = seoDescription || "Кратко описание на офертата за резултатите в Google.";
+  const activeDeparturesCount = offer.dates.filter((date) => date.availability !== "sold_out").length;
+  const hasIncludedServices = offer.included.some((item) => item.trim());
+  const hasExcludedServices = offer.excluded.some((item) => item.trim());
+  const hasActiveDepartureWithPrice = offer.dates.some((date) => date.availability !== "sold_out" && Number(date.priceFrom) > 0);
+  const hasSeoBasics = Boolean((seoTitle || offer.seoMetaTitle || offer.title).trim() && (seoDescription || offer.seoMetaDescription || offer.summary).trim());
+  const hasSavedTaxonomy = offer.taxonomyTerms.length > 0;
+  const hasSavedVisibility = offer.visibilityRules.some((rule) => rule.isEnabled);
+  const publishRequirements = [
+    { label: "Основни данни", ok: Boolean(offer.title && offer.country && offer.region && offer.durationDays && offer.transport), detail: "заглавие, дестинация, продължителност и транспорт" },
+    { label: "Описание", ok: Boolean(offer.summary && offer.description), detail: "кратко и пълно представяне" },
+    { label: "Основна снимка", ok: Boolean(currentHeroImageUrl), detail: "публична hero визия" },
+    { label: "Програма по дни", ok: offer.itinerary.length > 0, detail: "поне един ден с маршрут" },
+    { label: "Услуги", ok: hasIncludedServices && hasExcludedServices, detail: "какво включва и какво не включва цената" },
+    { label: "Дати и цени", ok: activeDeparturesCount > 0, detail: hasActiveDepartureWithPrice ? "има активна дата с цена" : "активна дата, цената е при запитване" },
+    { label: "Категоризация", ok: hasSavedTaxonomy, detail: "taxonomy етикети, колекции, аудитория и тип пътуване" },
+    { label: "Показване", ok: hasSavedVisibility, detail: "листинг, търсене, начална страница или колекция" },
+    { label: "SEO основа", ok: hasSeoBasics, detail: "заглавие и meta описание" }
+  ];
+  const publishMissing = publishRequirements.filter((item) => !item.ok);
+  const canPublish = publishMissing.length === 0;
+  const previewPriceLabel = datesDraft.priceFrom > 0
+    ? `${datesDraft.priceFrom.toLocaleString("bg-BG")} ${datesDraft.currency}`
+    : "Цена при запитване";
   const seoKeywordSuggestions = useMemo(
     () => Array.from(new Set([offer.country, offer.region, productTypeLabel(offer.productType), ...selectedTags.map((tag) => tag.label), ...collections, ...selectedTravelType].filter(Boolean))).slice(0, 10),
     [collections, offer.country, offer.productType, offer.region, selectedTags, selectedTravelType]
@@ -468,21 +573,22 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       region: offer.region,
       durationDays: Number(offer.durationDays) || 0,
       durationNights: Number(offer.durationNights) || 0,
-      priceFrom: offer.priceFrom,
-      currency: offer.currency,
+      priceFrom: datesDraft.priceFrom,
+      currency: datesDraft.currency,
       priceNote: "Запитване преди потвърждение",
       productType: offer.productType,
-      transport: "flight",
+      productTypeLabel: offer.productTypeLabel,
+      transport: offer.transport,
       isAuthorProgram: offer.isAuthorProgram,
       heroImage: currentHeroImageUrl,
       gallery: offer.galleryImageUrls,
-      dates: [{ label: "Дати по заявка", startDate: "" }],
+      dates: datesDraft.dates,
       itinerary: offer.itinerary,
       highlights: offer.highlights,
       included: offer.included,
       excluded: offer.excluded
     }),
-    [currentHeroImageUrl, offer]
+    [currentHeroImageUrl, datesDraft, offer]
   );
 
   const sectionStatus = useMemo<Record<string, { status: SectionStatus; percent: number; filled: string[]; missing: string[] }>>(
@@ -610,10 +716,18 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       ].filter(Boolean)
     },
     "Дати и цени": {
-      status: offer.priceFrom ? "partial" : "missing",
-      percent: offer.priceFrom ? 35 : 0,
-      filled: offer.priceFrom ? [`Базова цена от: ${offer.priceFrom.toLocaleString("bg-BG")} ${offer.currency}`] : [],
-      missing: ["Поне едно отпътуване", "Капацитет и места", "Ценови варианти", "Депозит и срок за плащане"]
+      status: activeDeparturesCount ? "partial" : "missing",
+      percent: activeDeparturesCount ? (offer.priceFrom ? 55 : 35) : 0,
+      filled: [
+        activeDeparturesCount ? `Активни отпътувания: ${activeDeparturesCount}` : "",
+        offer.priceFrom ? `Базова цена от: ${offer.priceFrom.toLocaleString("bg-BG")} ${offer.currency}` : "Цена: при запитване"
+      ].filter(Boolean),
+      missing: [
+        !activeDeparturesCount ? "Поне едно отпътуване" : "",
+        "Капацитет и места",
+        "Ценови варианти",
+        "Депозит и срок за плащане"
+      ].filter(Boolean)
     },
     "Публикуване": {
       status: selectedTags.length && (showOnHome || featuredByRedTours || showInSignature || showInPromo) ? "partial" : "missing",
@@ -671,7 +785,47 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       const result = await publishOfferChanges(offer.slug);
       if (result.ok) {
         setStatus(result.status);
-        setMessage("Промените са публикувани и публичната оферта е обновена.");
+        setMessage(result.message);
+      } else {
+        setMessage(result.message);
+      }
+    });
+  }
+
+  function savePublishingSettings() {
+    startTransition(async () => {
+      const badgeLabels = Array.from(new Set([
+        ...activeTagLabels,
+        featuredByRedTours ? "Наш избор" : "",
+        showInPromo ? "Промо оферта" : ""
+      ].filter(Boolean)));
+      const collectionLabels = Array.from(new Set([
+        ...collections,
+        showInSignature ? "Red Signature" : ""
+      ].filter(Boolean)));
+      const travelTypeLabels = selectedTravelType.length ? selectedTravelType : [productTypeLabel(offer.productType)].filter(Boolean);
+
+      const result = await updateOfferPublishing(offer.slug, {
+        terms: [
+          ...badgeLabels.map((label) => ({ type: "badge", label })),
+          ...collectionLabels.map((label) => ({ type: "collection", label })),
+          ...selectedAudience.map((label) => ({ type: "audience", label })),
+          ...selectedExperience.map((label) => ({ type: "mood", label })),
+          ...selectedInterests.map((label) => ({ type: "theme", label })),
+          ...travelTypeLabels.map((label) => ({ type: "category", label }))
+        ],
+        visibilityRules: [
+          { placement: "offers_index", isEnabled: true, priority },
+          { placement: "search", isEnabled: true, priority },
+          { placement: "homepage", isEnabled: showOnHome, priority },
+          { placement: "collection_page", isEnabled: showInSignature || collectionLabels.length > 0, priority },
+          { placement: "promo_section", isEnabled: showInPromo, priority }
+        ]
+      });
+
+      setMessage(result.message);
+      if (result.ok) {
+        router.refresh();
       }
     });
   }
@@ -738,9 +892,9 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
               <Save size={17} aria-hidden="true" />
               {isContentMediaUploading ? "Качване..." : "Запази чернова"}
             </button>
-            <button className="primary" type="button" onClick={publishChanges} disabled={isPending}>
+            <button className="primary" type="button" onClick={publishChanges} disabled={isPending || !canPublish} title={canPublish ? "Публикувай офертата" : "Има липсващи данни преди публикуване"}>
+              <CheckCircle2 size={17} aria-hidden="true" />
               Публикувай промените
-              <ChevronDown size={17} aria-hidden="true" />
             </button>
             <button className="danger" type="button" onClick={cancelEditing} disabled={isPending}>
               <X size={17} aria-hidden="true" />
@@ -780,10 +934,41 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
               <OfferContentWorkspace key={contentFormVersion} offer={offer} currentHeroImageUrl={currentHeroImageUrl} onHeroImageChange={setCurrentHeroImageUrl} onDraftChange={setContentDraft} onMediaUploadChange={setIsContentMediaUploading} forceEmptyNewOffer={shouldShowEmptyEditor} formId={contentFormId} />
             </div>
             <div hidden={activeTab !== "Дати и цени"}>
-              <DatesPricesWorkspace offer={offer} />
+              <DatesPricesWorkspace offer={offer} onDraftChange={setDatesDraft} />
             </div>
 
             <div hidden={activeTab !== "Публикуване"}>
+                <section className={canPublish ? "offer-editor-card offer-readiness-card is-ready" : "offer-editor-card offer-readiness-card"}>
+                  <header>
+                    <div>
+                      <h2>Готовност за публикуване</h2>
+                      <span>проверява само данни, които са записани и се използват от публичната страница</span>
+                    </div>
+                    <strong>{canPublish ? "Готова" : `${publishMissing.length} липсващи`}</strong>
+                  </header>
+                  <div className="offer-readiness-grid">
+                    {publishRequirements.map((requirement) => {
+                      const Icon = requirement.ok ? CheckCircle2 : XCircle;
+
+                      return (
+                        <article className={requirement.ok ? "is-ok" : "is-missing"} key={requirement.label}>
+                          <Icon size={18} aria-hidden="true" />
+                          <div>
+                            <strong>{requirement.label}</strong>
+                            <span>{requirement.detail}</span>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                  <footer className="offer-readiness-footer">
+                    <p>{canPublish ? "Офертата покрива минималния стандарт за публична страница." : "Попълнете липсващите секции, запазете промените и опитайте отново."}</p>
+                    <button className="primary" type="button" onClick={publishChanges} disabled={isPending || !canPublish}>
+                      {isPending ? "Публикуване..." : "Публикувай офертата"}
+                    </button>
+                  </footer>
+                </section>
+
                 <section className="offer-editor-card">
                   <header>
                     <h2>Етикети</h2>
@@ -874,6 +1059,12 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                       <span>Приоритет</span>
                       <input type="number" value={priority} min={0} max={100} onChange={(event) => setPriority(Number(event.target.value))} />
                     </div>
+                  </div>
+                  <div className="offer-editor-actions">
+                    <button className="secondary" type="button" onClick={savePublishingSettings} disabled={isPending}>
+                      <Save size={16} aria-hidden="true" />
+                      {isPending ? "Записване..." : "Запази публикуване"}
+                    </button>
                   </div>
                 </section>
 
@@ -979,10 +1170,8 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                   </div>
                 </div>
                 <div className="offer-preview-price">
-                  <span>от</span>
-                  <strong>
-                    {offer.priceFrom.toLocaleString("bg-BG")} {offer.currency}
-                  </strong>
+                  {offer.priceFrom > 0 ? <span>от</span> : <span />}
+                  <strong>{previewPriceLabel}</strong>
                   <button type="button" onClick={() => setIsPreviewOpen(true)}>Виж офертата</button>
                 </div>
               </article>
@@ -1315,10 +1504,10 @@ function OfferContentWorkspace({
     setItineraryDays((current) => renumberItineraryDays(current.length === 1 ? current : current.filter((day) => day.id !== id)));
   };
   const [includedServices, setIncludedServices] = useState<EditableServiceItem[]>(
-    createServiceItems(offer.included, defaultIncludedServices)
+    createServiceItems(offer.included)
   );
   const [excludedServices, setExcludedServices] = useState<EditableServiceItem[]>(
-    createServiceItems(offer.excluded, defaultExcludedServices)
+    createServiceItems(offer.excluded)
   );
   const selectedProductType = productTypeOptions.find((option) => option.slug === productType || option.productType === productType) ?? productTypeOptions[0];
   const primaryDestination = destinations[0] ?? { id: "primary", country: "", region: "", city: "" };
@@ -1803,7 +1992,7 @@ function OfferContentWorkspace({
                       name="included_services"
                       value={item.label}
                       onChange={(event) => updateServiceItem("included", item.id, event.target.value)}
-                      placeholder="Напр. самолетен билет, трансфер, нощувки..."
+                      placeholder={`Напр. ${defaultIncludedServices[index] || "конкретна включена услуга"}`}
                     />
                     <button type="button" onClick={() => removeServiceItem("included", item.id)} disabled={includedServices.length === 1} aria-label="Премахни включена услуга">
                       <X size={15} aria-hidden="true" />
@@ -1827,7 +2016,7 @@ function OfferContentWorkspace({
                       name="excluded_services"
                       value={item.label}
                       onChange={(event) => updateServiceItem("excluded", item.id, event.target.value)}
-                      placeholder="Напр. лични разходи, допълнителни екскурзии..."
+                      placeholder={`Напр. ${defaultExcludedServices[index] || "конкретна невключена услуга"}`}
                     />
                     <button type="button" onClick={() => removeServiceItem("excluded", item.id)} disabled={excludedServices.length === 1} aria-label="Премахни невключена услуга">
                       <X size={15} aria-hidden="true" />
@@ -1842,7 +2031,7 @@ function OfferContentWorkspace({
           {state.message ? <span className={state.ok ? "offer-save-message is-ok" : "offer-save-message is-error"}>{state.message}</span> : <span />}
           <div>
             <button type="submit" formNoValidate>Запази чернова</button>
-            <button className="primary" type="submit" disabled={isPending}>
+            <button className="primary" type="submit" name="after_save" value="dates_prices" disabled={isPending}>
               {isPending ? "Записване..." : "Запази и продължи"}
               <ArrowRight size={17} aria-hidden="true" />
             </button>
@@ -1886,17 +2075,28 @@ function OfferContentWorkspace({
   );
 }
 
-function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }) {
+function DatesPricesWorkspace({
+  offer,
+  onDraftChange
+}: {
+  offer: AdminOfferEditorInitialOffer;
+  onDraftChange: (draft: DatesPricesDraftSummary) => void;
+}) {
   type DepartureDraft = {
     key: string;
     id: string;
+    label: string;
     startDate: string;
     endDate: string;
     departurePoints: string;
     seatsTotal: string;
+    seatsConfirmed: string;
+    seatsOption: string;
     seatsAvailable: string;
     priceFrom: string;
     currency: "EUR" | "BGN" | "";
+    priceStatus: string;
+    optionUntil: string;
     availability: string;
     depositAmount: string;
     paymentDueDays: string;
@@ -1906,14 +2106,19 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
   const createEmptyDeparture = (): DepartureDraft => ({
     key: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     id: "",
+    label: "",
     startDate: "",
     endDate: "",
     departurePoints: "",
     seatsTotal: "",
+    seatsConfirmed: "",
+    seatsOption: "",
     seatsAvailable: "",
     priceFrom: "",
     currency: "EUR",
-    availability: "",
+    priceStatus: "budgetary",
+    optionUntil: "",
+    availability: "on_request",
     depositAmount: "",
     paymentDueDays: "",
     notes: ""
@@ -1925,13 +2130,18 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
       ? offer.dates.map((date) => ({
           key: date.id,
           id: date.id,
+          label: date.label || "",
           startDate: date.startDate || "",
           endDate: date.endDate || "",
           departurePoints: date.departurePoints || "",
           seatsTotal: date.seatsTotal === null ? "" : String(date.seatsTotal),
+          seatsConfirmed: date.seatsConfirmed === null ? "" : String(date.seatsConfirmed),
+          seatsOption: date.seatsOption === null ? "" : String(date.seatsOption),
           seatsAvailable: date.seatsAvailable === null ? "" : String(date.seatsAvailable),
           priceFrom: date.priceFrom || "",
           currency: date.currency || "EUR",
+          priceStatus: date.priceStatus || "budgetary",
+          optionUntil: date.optionUntil ? date.optionUntil.slice(0, 16) : "",
           availability: date.availability || "on_request",
           depositAmount: date.depositAmount || "",
           paymentDueDays: date.paymentDueDays === null ? "" : String(date.paymentDueDays),
@@ -1956,10 +2166,47 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
     });
   };
 
-  const activeDepartures = departures.filter((departure) => departure.availability !== "sold_out");
-  const prices = activeDepartures.map((departure) => Number(departure.priceFrom)).filter((price) => Number.isFinite(price) && price > 0);
+  const activeDepartures = useMemo(() => departures.filter((departure) => departure.availability !== "sold_out"), [departures]);
+  const prices = useMemo(() => activeDepartures.map((departure) => Number(departure.priceFrom)).filter((price) => Number.isFinite(price) && price > 0), [activeDepartures]);
   const lowestPrice = prices.length ? Math.min(...prices) : offer.priceFrom;
   const totalSeats = activeDepartures.reduce((sum, departure) => sum + (Number.parseInt(departure.seatsTotal, 10) || 0), 0);
+  const confirmedSeats = activeDepartures.reduce((sum, departure) => sum + (Number.parseInt(departure.seatsConfirmed, 10) || 0), 0);
+  const optionSeats = activeDepartures.reduce((sum, departure) => sum + (Number.parseInt(departure.seatsOption, 10) || 0), 0);
+  const requestOnlyCount = activeDepartures.filter((departure) => !Number(departure.priceFrom)).length;
+  const getDepartureLabel = (departure: DepartureDraft) => {
+    if (departure.label.trim()) return departure.label.trim();
+    if (departure.startDate && departure.endDate) return `${departure.startDate} - ${departure.endDate}`;
+    if (departure.startDate) return departure.startDate;
+    if (departure.endDate) return `до ${departure.endDate}`;
+    return "Дати по заявка";
+  };
+
+  useEffect(() => {
+    onDraftChange({
+      priceFrom: lowestPrice,
+      currency: prices.length ? (activeDepartures.find((departure) => Number(departure.priceFrom) === lowestPrice)?.currency || offer.currency || "EUR") as "EUR" | "BGN" : offer.currency,
+      dates: activeDepartures.length
+        ? activeDepartures.map((departure) => ({
+            label: getDepartureLabel(departure),
+            startDate: departure.startDate,
+            endDate: departure.endDate || undefined,
+            departurePoints: departure.departurePoints || undefined,
+            availability: (departure.availability || "on_request") as "available" | "limited" | "on_request" | "sold_out",
+            seatsTotal: departure.seatsTotal ? Number(departure.seatsTotal) : undefined,
+            seatsConfirmed: departure.seatsConfirmed ? Number(departure.seatsConfirmed) : undefined,
+            seatsOption: departure.seatsOption ? Number(departure.seatsOption) : undefined,
+            seatsAvailable: departure.seatsAvailable ? Number(departure.seatsAvailable) : undefined,
+            priceFrom: departure.priceFrom ? Number(departure.priceFrom) : undefined,
+            currency: departure.currency || offer.currency,
+            priceStatus: (departure.priceStatus || "budgetary") as "fixed" | "option_until" | "dynamic" | "budgetary",
+            optionUntil: departure.optionUntil || undefined,
+            depositAmount: departure.depositAmount ? Number(departure.depositAmount) : undefined,
+            paymentDueDays: departure.paymentDueDays ? Number(departure.paymentDueDays) : undefined,
+            notes: departure.notes || undefined
+          }))
+        : [{ label: "Дати по заявка", startDate: "" }]
+    });
+  }, [activeDepartures, lowestPrice, offer.currency, onDraftChange, prices.length]);
 
   return (
     <form className="offer-workflow-stack offer-dates-form" action={formAction}>
@@ -1979,14 +2226,16 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
         <div className="offer-dates-summary">
           <span><strong>{departures.length}</strong> отпътувания</span>
           <span><strong>{totalSeats || "—"}</strong> места общо</span>
-          <span><strong>{lowestPrice ? lowestPrice.toLocaleString("bg-BG") : "—"} {offer.currency}</strong> най-ниска цена</span>
+          <span><strong>{confirmedSeats || "—"} / {optionSeats || "—"}</strong> confirmed / option</span>
+          <span><strong>{lowestPrice ? `${lowestPrice.toLocaleString("bg-BG")} ${offer.currency}` : "при запитване"}</strong> най-ниска цена</span>
+          <span><strong>{requestOnlyCount || "—"}</strong> периода без фиксирана цена</span>
         </div>
       </section>
 
       <section className="offer-editor-card">
         <div className="offer-departures-editor" role="table" aria-label="Отпътувания и цени">
           <div className="offer-departures-head" role="row">
-            <span>Период</span>
+            <span>Период / публичен етикет</span>
             <span>Отпътуване</span>
             <span>Места</span>
             <span>Цена</span>
@@ -1998,15 +2247,21 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
           {departures.map((departure, index) => (
             <article className={departure.availability === "sold_out" ? "offer-departure-row is-muted" : "offer-departure-row"} key={departure.key} role="row">
               <input type="hidden" name="departure_id" value={departure.id} />
-              <div className="offer-date-cell">
+              <div className="offer-date-period-cell">
                 <label>
-                  <span>От</span>
-                  <input type="date" name="departure_start" value={departure.startDate} onChange={(event) => updateDeparture(departure.key, "startDate", event.target.value)} />
+                  <span>Публичен етикет</span>
+                  <input name="departure_label" value={departure.label} onChange={(event) => updateDeparture(departure.key, "label", event.target.value)} placeholder="Напр. Целогодишно, Май 2027, По запитване" />
                 </label>
-                <label>
-                  <span>До</span>
-                  <input type="date" name="departure_end" value={departure.endDate} onChange={(event) => updateDeparture(departure.key, "endDate", event.target.value)} />
-                </label>
+                <div className="offer-date-cell">
+                  <label>
+                    <span>От</span>
+                    <input type="date" name="departure_start" value={departure.startDate} onChange={(event) => updateDeparture(departure.key, "startDate", event.target.value)} />
+                  </label>
+                  <label>
+                    <span>До</span>
+                    <input type="date" name="departure_end" value={departure.endDate} onChange={(event) => updateDeparture(departure.key, "endDate", event.target.value)} />
+                  </label>
+                </div>
               </div>
 
               <label className="offer-date-status">
@@ -2018,6 +2273,14 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
                 <label>
                   <span>Капацитет</span>
                   <input type="number" min="0" name="departure_seats_total" value={departure.seatsTotal} onChange={(event) => updateDeparture(departure.key, "seatsTotal", event.target.value)} placeholder="48" />
+                </label>
+                <label>
+                  <span>Потвърдени</span>
+                  <input type="number" min="0" name="departure_seats_confirmed" value={departure.seatsConfirmed} onChange={(event) => updateDeparture(departure.key, "seatsConfirmed", event.target.value)} placeholder="31" />
+                </label>
+                <label>
+                  <span>Опция</span>
+                  <input type="number" min="0" name="departure_seats_option" value={departure.seatsOption} onChange={(event) => updateDeparture(departure.key, "seatsOption", event.target.value)} placeholder="4" />
                 </label>
                 <label>
                   <span>Свободни</span>
@@ -2041,6 +2304,19 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
               </div>
 
               <div className="offer-date-cell is-compact">
+                <label>
+                  <span>Статус цена</span>
+                  <select name="departure_price_status" value={departure.priceStatus} onChange={(event) => updateDeparture(departure.key, "priceStatus", event.target.value)}>
+                    <option value="fixed">FIXED</option>
+                    <option value="option_until">OPTION UNTIL</option>
+                    <option value="dynamic">DYNAMIC</option>
+                    <option value="budgetary">BUDGETARY</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Опция до</span>
+                  <input type="datetime-local" name="departure_option_until" value={departure.optionUntil} onChange={(event) => updateDeparture(departure.key, "optionUntil", event.target.value)} disabled={departure.priceStatus !== "option_until"} />
+                </label>
                 <label>
                   <span>Депозит</span>
                   <input type="number" min="0" step="0.01" name="departure_deposit" value={departure.depositAmount} onChange={(event) => updateDeparture(departure.key, "depositAmount", event.target.value)} placeholder="300" />
@@ -2072,14 +2348,31 @@ function DatesPricesWorkspace({ offer }: { offer: AdminOfferEditorInitialOffer }
               </label>
             </article>
           ))}
+          {departures.length === 0 ? (
+            <div className="offer-departures-empty">
+              <CalendarDays size={24} aria-hidden="true" />
+              <strong>Добавете първо отпътуване или период по запитване</strong>
+              <span>Може да въведете точни дати, публичен етикет като „Целогодишно“, цена, депозит и наличности.</span>
+              <button type="button" onClick={() => setDepartures((current) => [...current, createEmptyDeparture()])}>
+                <Plus size={16} aria-hidden="true" />
+                Добави отпътуване
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="offer-workflow-footer">
           {state.message ? <p className={state.ok ? "offer-editor-feedback" : "offer-editor-feedback is-error"}>{state.message}</p> : null}
-          <button type="submit" disabled={isPending}>
-            <Save size={16} aria-hidden="true" />
-            {isPending ? "Записване..." : "Запази дати и цени"}
-          </button>
+          <div>
+            <button type="submit" disabled={isPending}>
+              <Save size={16} aria-hidden="true" />
+              {isPending ? "Записване..." : "Запази дати и цени"}
+            </button>
+            <button className="primary" type="submit" name="after_save" value="publishing" disabled={isPending}>
+              {isPending ? "Записване..." : "Запази и продължи"}
+              <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </section>
     </form>

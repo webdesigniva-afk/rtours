@@ -23,9 +23,13 @@ export type AdminOfferRecord = {
     departurePoints: string | null;
     availability: string;
     seatsTotal: number | null;
+    seatsConfirmed: number | null;
+    seatsOption: number | null;
     seatsAvailable: number | null;
     priceFrom: string | null;
     currency: "EUR" | "BGN";
+    priceStatus: string;
+    optionUntil: string | null;
     depositAmount: string | null;
     paymentDueDays: number | null;
     notes: string | null;
@@ -60,6 +64,17 @@ export type AdminOfferRecord = {
   highlights: string[] | null;
   included_services: string[] | null;
   excluded_services: string[] | null;
+  taxonomy_terms: Array<{
+    type: string;
+    slug: string;
+    name: string;
+    publicLabel: string | null;
+  }> | null;
+  visibility_rules: Array<{
+    placement: string;
+    isEnabled: boolean;
+    priority: number;
+  }> | null;
   review_notes: string | null;
   dates_count?: number;
   future_dates_count?: number;
@@ -96,9 +111,13 @@ export async function getAdminOfferBySlug(slug: string) {
                 'departurePoints', date.departure_points,
                 'availability', date.availability::text,
                 'seatsTotal', date.seats_total,
+                'seatsConfirmed', date.seats_confirmed,
+                'seatsOption', date.seats_option,
                 'seatsAvailable', date.seats_available,
                 'priceFrom', date.price_from::text,
                 'currency', date.currency,
+                'priceStatus', date.price_status::text,
+                'optionUntil', date.option_until::text,
                 'depositAmount', date.deposit_amount::text,
                 'paymentDueDays', date.payment_due_days,
                 'notes', date.notes
@@ -187,6 +206,38 @@ export async function getAdminOfferBySlug(slug: string) {
           ),
           '{}'::text[]
         ) as excluded_services,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'type', term.type::text,
+                'slug', term.slug,
+                'name', term.name,
+                'publicLabel', term.public_label
+              )
+              order by term.type, term.sort_order, term.name
+            )
+            from offer_taxonomy_terms assigned
+            join taxonomy_terms term on term.id = assigned.term_id
+            where assigned.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as taxonomy_terms,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'placement', rule.placement::text,
+                'isEnabled', rule.is_enabled,
+                'priority', rule.priority
+              )
+              order by rule.placement::text
+            )
+            from offer_visibility_rules rule
+            where rule.offer_id = offers.id
+          ),
+          '[]'::jsonb
+        ) as visibility_rules,
         review_notes,
         created_at::text,
         updated_at::text

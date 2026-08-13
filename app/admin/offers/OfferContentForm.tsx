@@ -99,6 +99,10 @@ type HighlightRow = {
 type EditorPanel = "format" | "link" | "image" | "more" | null;
 
 const defaultProductTypeOptions: ProductTypeOption[] = [
+  { slug: "standard-red-tours-program", label: "Standard Red tours Program", productType: "package", isSystem: true },
+  { slug: "tailor-made", label: "Tailor-made", productType: "package", isSystem: true },
+  { slug: "corporate-incentive", label: "Corporate / Incentive", productType: "package", isSystem: true },
+  { slug: "group-request", label: "Group Request", productType: "package", isSystem: true },
   { slug: "excursion", label: "Екскурзия", productType: "excursion", isSystem: true },
   { slug: "holiday", label: "Почивка", productType: "holiday", isSystem: true },
   { slug: "package", label: "Пакет", productType: "package", isSystem: true },
@@ -144,8 +148,8 @@ const presentationPlaceholder = [
   "Защо Red tours го препоръчва?"
 ].join("\n");
 
-function getInitialServices(services: string[], fallback: string[]) {
-  return services.length ? services : fallback;
+function getInitialServices(services: string[]) {
+  return services;
 }
 
 function createSummaryFromDescription(value: string) {
@@ -420,8 +424,8 @@ export function OfferContentForm({
         }))
       : [{ id: crypto.randomUUID(), day: 1, title: "", description: "", accommodation: "", meals: "", transport: "" }]
   );
-  const [includedServicesText, setIncludedServicesText] = useState(getInitialServices(initial.included, defaultIncludedServices).join("\n"));
-  const [excludedServicesText, setExcludedServicesText] = useState(getInitialServices(initial.excluded, defaultExcludedServices).join("\n"));
+  const [includedServicesText, setIncludedServicesText] = useState(getInitialServices(initial.included).join("\n"));
+  const [excludedServicesText, setExcludedServicesText] = useState(getInitialServices(initial.excluded).join("\n"));
   const heroImageInputRef = useRef<HTMLInputElement>(null);
   const galleryInputsRef = useRef<HTMLDivElement>(null);
   const latestHeroImageUrlRef = useRef(initial.heroImageUrl);
@@ -480,8 +484,8 @@ export function OfferContentForm({
         city: destination.city
       }))
     );
-    setIncludedServicesText(getInitialServices(initial.included, defaultIncludedServices).join("\n"));
-    setExcludedServicesText(getInitialServices(initial.excluded, defaultExcludedServices).join("\n"));
+    setIncludedServicesText(getInitialServices(initial.included).join("\n"));
+    setExcludedServicesText(getInitialServices(initial.excluded).join("\n"));
     setHeroImageUrl(initial.heroImageUrl);
     setHeroPreview(initial.heroImageUrl);
     setGalleryImageUrls(initial.galleryImageUrls ?? []);
@@ -991,7 +995,7 @@ export function OfferContentForm({
                   className="offer-service-textarea"
                   value={includedServicesText}
                   onChange={(event) => setIncludedServicesText(event.target.value)}
-                  placeholder="Напр. самолетен билет, трансфер, нощувки&#10;или: самолетен билет, трансфер, нощувки"
+                  placeholder={`Примерни точки:\n${defaultIncludedServices.join("\n")}`}
                   rows={10}
                 />
                 {includedServices.map((item, index) => <input type="hidden" name="included_services" value={item} key={`included-${index}-${item}`} />)}
@@ -1005,7 +1009,7 @@ export function OfferContentForm({
                   className="offer-service-textarea"
                   value={excludedServicesText}
                   onChange={(event) => setExcludedServicesText(event.target.value)}
-                  placeholder="Напр. лични разходи, допълнителни екскурзии&#10;или: лични разходи, допълнителни екскурзии"
+                  placeholder={`Примерни точки:\n${defaultExcludedServices.join("\n")}`}
                   rows={7}
                 />
                 {excludedServices.map((item, index) => <input type="hidden" name="excluded_services" value={item} key={`excluded-${index}-${item}`} />)}

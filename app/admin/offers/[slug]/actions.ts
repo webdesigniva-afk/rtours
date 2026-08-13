@@ -38,6 +38,107 @@ export async function saveOfferDraft(slug: string) {
 export async function publishOfferChanges(slug: string) {
   await requireAdminSession(slug);
 
+  const validation = await dbQuery<{
+    id: string;
+    title: string | null;
+    summary: string | null;
+    description: string | null;
+    country: string | null;
+    region: string | null;
+    duration_days: number | null;
+    transport: string | null;
+    hero_image_url: string | null;
+    itinerary_count: number;
+    included_count: number;
+    excluded_count: number;
+    active_departures_count: number;
+    taxonomy_count: number;
+    visibility_count: number;
+  }>(
+    `
+      select
+        id,
+        nullif(title, '') as title,
+        nullif(summary, '') as summary,
+        nullif(description, '') as description,
+        country,
+        region,
+        duration_days,
+        transport::text,
+        hero_image_url,
+        (
+          select count(*)::int
+          from offer_itinerary_days day
+          where day.offer_id = offers.id
+        ) as itinerary_count,
+        (
+          select count(*)::int
+          from offer_services service
+          where service.offer_id = offers.id
+            and service.service_type = 'included'
+        ) as included_count,
+        (
+          select count(*)::int
+          from offer_services service
+          where service.offer_id = offers.id
+            and service.service_type = 'excluded'
+        ) as excluded_count,
+        (
+          select count(*)::int
+          from offer_dates date
+          where date.offer_id = offers.id
+            and date.availability <> 'sold_out'
+        ) as active_departures_count
+        ,
+        (
+          select count(*)::int
+          from offer_taxonomy_terms assigned
+          where assigned.offer_id = offers.id
+        ) as taxonomy_count,
+        (
+          select count(*)::int
+          from offer_visibility_rules rule
+          where rule.offer_id = offers.id
+            and rule.is_enabled = true
+            and rule.placement in ('offers_index', 'search', 'homepage', 'collection_page', 'promo_section', 'destination_page')
+        ) as visibility_count
+      from offers
+      where slug = $1
+      limit 1
+    `,
+    [slug]
+  );
+  const offer = validation.rows[0];
+
+  if (!offer) {
+    return { ok: false, status: "draft" as const, message: "Офертата не беше намерена." };
+  }
+
+  const missing = [
+    !offer.title ? "заглавие" : "",
+    !offer.summary ? "кратко описание" : "",
+    !offer.description ? "пълно описание" : "",
+    !offer.country ? "държава" : "",
+    !offer.region ? "регион / дестинация" : "",
+    !offer.duration_days ? "продължителност" : "",
+    !offer.transport ? "транспорт" : "",
+    !offer.hero_image_url ? "основна снимка" : "",
+    offer.itinerary_count === 0 ? "програма по дни" : "",
+    offer.included_count === 0 ? "включени услуги" : "",
+    offer.excluded_count === 0 ? "невключени услуги" : "",
+    offer.active_departures_count === 0 ? "поне едно активно отпътуване / ценови ред" : "",
+    offer.taxonomy_count === 0 ? "категоризация / taxonomy етикети" : "",
+    offer.visibility_count === 0 ? "правила за показване в сайта" : ""
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      status: "draft" as const,
+      message: `Преди публикуване липсва: ${missing.join(", ")}.`
+    };
+  }
+
   await dbQuery(
     `
       update offers
@@ -53,7 +154,7 @@ export async function publishOfferChanges(slug: string) {
   revalidatePath("/admin/offers");
   revalidatePath(`/offers/${slug}`);
 
-  return { ok: true, status: "published" as const };
+  return { ok: true, status: "published" as const, message: "Промените са публикувани и публичната оферта е обновена." };
 }
 
 export async function cancelNewOfferDraft(slug: string) {
@@ -133,6 +234,113 @@ export async function createOfferBadge(slug: string, label: string) {
   revalidatePath("/");
 
   return { ok: true, label: term.public_label || term.name, message: "Етикетът е добавен и записан." };
+}
+
+export type OfferPublishingSettingsInput = {
+  terms: Array<{ type: string; label: string }>;
+  visibilityRules: Array<{ placement: string; isEnabled: boolean; priority: number }>;
+};
+
+export async function updateOfferPublishing(slug: string, input: OfferPublishingSettingsInput) {
+  await requireAdminSession(slug);
+
+  const offerResult = await dbQuery<{ id: string }>("select id from offers where slug = $1 limit 1", [slug]);
+  const offerId = offerResult.rows[0]?.id;
+
+  if (!offerId) {
+    return { ok: false, message: "Офертата не беше намерена." };
+  }
+
+  const controlledTypes = ["badge", "collection", "audience", "mood", "theme", "category"];
+  const termInputs = input.terms
+    .map((term) => ({
+      type: taxonomyTermTypeValues.has(term.type) ? term.type : "",
+      label: term.label.trim()
+    }))
+    .filter((term, index, terms) => term.type && term.label && terms.findIndex((item) => item.type === term.type && item.label.toLowerCase() === term.label.toLowerCase()) === index);
+
+  await dbQuery(
+    `
+      delete from offer_taxonomy_terms assigned
+      using taxonomy_terms term
+      where assigned.term_id = term.id
+        and assigned.offer_id = $1
+        and term.type = any($2::taxonomy_term_type[])
+    `,
+    [offerId, controlledTypes]
+  );
+
+  for (const termInput of termInputs) {
+    const termSlug = slugifyLabel(termInput.label);
+    const termResult = await dbQuery<{ id: string }>(
+      `
+        insert into taxonomy_terms (type, slug, name, public_label, color, icon, sort_order)
+        values ($1::taxonomy_term_type, $2, $3, $3, '#b52b26', 'tag', 100)
+        on conflict (type, slug) do update
+        set name = excluded.name,
+            public_label = excluded.public_label,
+            updated_at = now()
+        returning id
+      `,
+      [termInput.type, termSlug, termInput.label]
+    );
+    const termId = termResult.rows[0]?.id;
+
+    if (termId) {
+      await dbQuery(
+        `
+          insert into offer_taxonomy_terms (offer_id, term_id, source, confidence)
+          values ($1, $2, 'manual', 100)
+          on conflict (offer_id, term_id) do update
+          set source = excluded.source,
+              confidence = excluded.confidence
+        `,
+        [offerId, termId]
+      );
+    }
+  }
+
+  const controlledPlacements = ["homepage", "offers_index", "collection_page", "destination_page", "search", "promo_section", "private_link", "hidden"];
+  const visibilityRules = input.visibilityRules
+    .map((rule) => ({
+      placement: visibilityPlacementValues.has(rule.placement) ? rule.placement : "",
+      isEnabled: Boolean(rule.isEnabled),
+      priority: Number.isFinite(Number(rule.priority)) ? Number(rule.priority) : 0
+    }))
+    .filter((rule, index, rules) => rule.placement && rules.findIndex((item) => item.placement === rule.placement) === index);
+
+  await dbQuery(
+    `
+      delete from offer_visibility_rules
+      where offer_id = $1
+        and placement = any($2::offer_visibility_placement[])
+    `,
+    [offerId, controlledPlacements]
+  );
+
+  for (const rule of visibilityRules) {
+    await dbQuery(
+      `
+        insert into offer_visibility_rules (offer_id, placement, is_enabled, priority)
+        values ($1, $2::offer_visibility_placement, $3, $4)
+        on conflict (offer_id, placement) do update
+        set is_enabled = excluded.is_enabled,
+            priority = excluded.priority,
+            updated_at = now()
+      `,
+      [offerId, rule.placement, rule.isEnabled, rule.priority]
+    );
+  }
+
+  await dbQuery("update offers set updated_at = now() where id = $1", [offerId]);
+
+  revalidatePath(`/admin/offers/${slug}`);
+  revalidatePath("/admin/offers");
+  revalidatePath("/offers");
+  revalidatePath(`/offers/${slug}`);
+  revalidatePath("/");
+
+  return { ok: true, message: "Публикуването, taxonomy етикетите и показването в сайта са записани." };
 }
 
 type OfferContentActionState = {
@@ -235,6 +443,9 @@ function readDestinations(formData: FormData): OfferDestinationInput[] {
 const productTypeValues = new Set(["excursion", "holiday", "hotel", "flight", "service", "package"]);
 const transportValues = new Set(["flight", "bus", "own_transport", "mixed"]);
 const availabilityValues = new Set(["available", "limited", "on_request", "sold_out"]);
+const priceStatusValues = new Set(["fixed", "option_until", "dynamic", "budgetary"]);
+const taxonomyTermTypeValues = new Set(["category", "theme", "audience", "mood", "badge", "collection", "transport", "service_type", "destination_style", "season"]);
+const visibilityPlacementValues = new Set(["homepage", "offers_index", "collection_page", "destination_page", "search", "promo_section", "private_link", "hidden"]);
 
 export async function updateOfferContent(_state: OfferContentActionState, formData: FormData): Promise<OfferContentActionState> {
   const offerIdInput = readString(formData, "offer_id");
@@ -242,7 +453,9 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
   await requireAdminSession(slug);
 
   const title = readString(formData, "title");
-  const shouldExitAfterSave = readString(formData, "after_save") === "admin_offers";
+  const afterSave = readString(formData, "after_save");
+  const shouldExitAfterSave = afterSave === "admin_offers";
+  const shouldContinueToDates = afterSave === "dates_prices";
 
   if (!slug) {
     return { ok: false, message: "Липсва оферта за запис." };
@@ -447,6 +660,10 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
     redirect("/admin/offers");
   }
 
+  if (shouldContinueToDates) {
+    redirect(`/admin/offers/${slug}?tab=dates-prices`);
+  }
+
   return { ok: true, message: heroImageUrl ? "Офертата е записана. Основната снимка е записана към офертата." : "Офертата е записана. Няма получена основна снимка в заявката." };
 }
 
@@ -532,14 +749,20 @@ export async function updateOfferDatesPrices(_state: OfferDatesPricesActionState
     return { ok: false, message: "Офертата не беше намерена." };
   }
 
+  const shouldContinueToPublishing = readString(formData, "after_save") === "publishing";
   const ids = readStringList(formData, "departure_id");
+  const labels = readStringList(formData, "departure_label");
   const starts = readStringList(formData, "departure_start");
   const ends = readStringList(formData, "departure_end");
   const departurePoints = readStringList(formData, "departure_points");
   const seatsTotals = readStringList(formData, "departure_seats_total");
+  const seatsConfirmed = readStringList(formData, "departure_seats_confirmed");
+  const seatsOption = readStringList(formData, "departure_seats_option");
   const seatsAvailable = readStringList(formData, "departure_seats_available");
   const prices = readStringList(formData, "departure_price_from");
   const currencies = readStringList(formData, "departure_currency");
+  const priceStatuses = readStringList(formData, "departure_price_status");
+  const optionUntilValues = readStringList(formData, "departure_option_until");
   const statuses = readStringList(formData, "departure_status");
   const deposits = readStringList(formData, "departure_deposit");
   const paymentDueDays = readStringList(formData, "departure_payment_due_days");
@@ -548,36 +771,64 @@ export async function updateOfferDatesPrices(_state: OfferDatesPricesActionState
   const rows = starts
     .map((startDate, index) => ({
       id: ids[index] || "",
+      label: labels[index] || "",
       startDate,
       endDate: ends[index] || "",
       departurePoints: departurePoints[index] || "",
       seatsTotal: readNonNegativeIntegerValue(seatsTotals[index] || ""),
+      seatsConfirmed: readNonNegativeIntegerValue(seatsConfirmed[index] || ""),
+      seatsOption: readNonNegativeIntegerValue(seatsOption[index] || ""),
       seatsAvailable: readNonNegativeIntegerValue(seatsAvailable[index] || ""),
       priceFrom: readMoneyValue(prices[index] || ""),
       currency: currencies[index] === "BGN" ? "BGN" : "EUR",
+      priceStatus: priceStatusValues.has(priceStatuses[index] || "") ? priceStatuses[index] : "budgetary",
+      optionUntil: optionUntilValues[index] || "",
       availability: availabilityValues.has(statuses[index] || "") ? statuses[index] : "on_request",
       depositAmount: readMoneyValue(deposits[index] || ""),
       paymentDueDays: readNonNegativeIntegerValue(paymentDueDays[index] || ""),
       notes: notes[index] || ""
     }))
-    .filter((row) => row.startDate || row.endDate || row.departurePoints || row.priceFrom !== null || row.seatsTotal !== null || row.seatsAvailable !== null);
+    .filter((row) => row.label || row.startDate || row.endDate || row.departurePoints || row.priceFrom !== null || row.seatsTotal !== null || row.seatsConfirmed !== null || row.seatsOption !== null || row.seatsAvailable !== null || row.depositAmount !== null || row.paymentDueDays !== null || row.notes);
 
   if (rows.some((row) => row.startDate && row.endDate && row.endDate < row.startDate)) {
     return { ok: false, message: "Има отпътуване, при което крайната дата е преди началната." };
   }
 
+  if (rows.some((row) => row.priceStatus === "option_until" && !row.optionUntil)) {
+    return { ok: false, message: "При price status OPTION UNTIL трябва да има дата и час за валидност." };
+  }
+
+  if (rows.some((row) => row.seatsTotal !== null && row.seatsAvailable !== null && row.seatsAvailable > row.seatsTotal)) {
+    return { ok: false, message: "Свободните места не могат да са повече от общия капацитет." };
+  }
+
+  if (rows.some((row) => {
+    if (row.seatsTotal === null) {
+      return false;
+    }
+
+    const committedSeats = (row.seatsConfirmed ?? 0) + (row.seatsOption ?? 0) + (row.seatsAvailable ?? 0);
+    return committedSeats > row.seatsTotal;
+  })) {
+    return { ok: false, message: "Потвърдените, опциите и свободните места не могат общо да надвишават капацитета." };
+  }
+
   for (const [index, row] of rows.entries()) {
     const params = [
       offerId,
-      row.startDate && row.endDate ? `${row.startDate} - ${row.endDate}` : row.startDate || row.endDate || null,
+      row.label || (row.startDate && row.endDate ? `${row.startDate} - ${row.endDate}` : row.startDate || row.endDate || null),
       row.startDate,
       row.endDate,
       row.departurePoints,
       row.availability,
       row.seatsTotal,
+      row.seatsConfirmed,
+      row.seatsOption,
       row.seatsAvailable,
       row.priceFrom,
       row.currency,
+      row.priceStatus,
+      row.optionUntil,
       row.depositAmount,
       row.paymentDueDays,
       row.notes,
@@ -594,15 +845,19 @@ export async function updateOfferDatesPrices(_state: OfferDatesPricesActionState
               departure_points = nullif($5, ''),
               availability = $6::availability_status,
               seats_total = $7,
-              seats_available = $8,
-              price_from = $9,
-              currency = $10,
-              deposit_amount = $11,
-              payment_due_days = $12,
-              notes = nullif($13, ''),
-              sort_order = $14,
+              seats_confirmed = $8,
+              seats_option = $9,
+              seats_available = $10,
+              price_from = $11,
+              currency = $12,
+              price_status = $13::price_status,
+              option_until = nullif($14, '')::timestamptz,
+              deposit_amount = $15,
+              payment_due_days = $16,
+              notes = nullif($17, ''),
+              sort_order = $18,
               updated_at = now()
-          where id = $15
+          where id = $19
             and offer_id = $1
         `,
         [...params, row.id]
@@ -618,9 +873,13 @@ export async function updateOfferDatesPrices(_state: OfferDatesPricesActionState
             departure_points,
             availability,
             seats_total,
+            seats_confirmed,
+            seats_option,
             seats_available,
             price_from,
             currency,
+            price_status,
+            option_until,
             deposit_amount,
             payment_due_days,
             notes,
@@ -640,8 +899,12 @@ export async function updateOfferDatesPrices(_state: OfferDatesPricesActionState
             $10,
             $11,
             $12,
-            nullif($13, ''),
-            $14,
+            $13::price_status,
+            nullif($14, '')::timestamptz,
+            $15,
+            $16,
+            nullif($17, ''),
+            $18,
             now()
           )
         `,
@@ -686,6 +949,10 @@ export async function updateOfferDatesPrices(_state: OfferDatesPricesActionState
   revalidatePath("/offers");
   revalidatePath(`/offers/${slug}`);
   revalidatePath("/");
+
+  if (shouldContinueToPublishing) {
+    redirect(`/admin/offers/${slug}?tab=publishing`);
+  }
 
   return { ok: true, message: rows.length ? "Датите и цените са записани." : "Няма въведени нови данни за дати и цени." };
 }
