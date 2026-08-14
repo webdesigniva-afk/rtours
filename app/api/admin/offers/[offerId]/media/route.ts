@@ -12,9 +12,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ off
   }
 
   const { offerId } = await context.params;
-  const result = await dbQuery<{ url: string; is_primary: boolean; sort_order: number }>(
+  const result = await dbQuery<{ url: string; alt: string | null; is_primary: boolean; sort_order: number }>(
     `
-      select url, is_primary, sort_order
+      select url, alt, is_primary, sort_order
       from offer_media
       where offer_id = $1
       order by is_primary desc, sort_order asc
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ off
 
   return NextResponse.json({
     heroImageUrl: result.rows.find((row) => row.is_primary)?.url ?? "",
-    galleryImageUrls: result.rows.filter((row) => !row.is_primary).map((row) => row.url)
+    galleryImageUrls: result.rows.filter((row) => !row.is_primary).map((row) => row.url),
+    imageAltTexts: Object.fromEntries(result.rows.map((row) => [row.url, row.alt || ""]))
   });
 }

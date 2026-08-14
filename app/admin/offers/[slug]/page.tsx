@@ -74,6 +74,7 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
     supplierEntities: offer.supplier_entities ?? [],
     heroImageUrl: offer.hero_image_url ?? "",
     galleryImageUrls: offer.gallery_image_urls ?? [],
+    imageAltTexts: offer.image_alt_texts ?? {},
     seoMetaTitle: offer.seo_meta_title ?? "",
     seoMetaDescription: offer.seo_meta_description ?? "",
     seoKeywords: offer.seo_keywords ?? [],

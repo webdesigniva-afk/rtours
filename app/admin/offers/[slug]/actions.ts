@@ -476,6 +476,7 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
   const itineraryTransports = readStringList(formData, "itinerary_transport");
   const heroImageUrl = readString(formData, "hero_image_url") || null;
   const galleryImageUrls = readStringList(formData, "gallery_image_urls").filter(Boolean).slice(0, 20);
+  const imageAltTexts = readStringList(formData, "image_alt_texts");
   const itineraryRows = itineraryTitles
     .map((dayTitle, index) => ({
       dayNumber: Number.parseInt(itineraryDayNumbers[index] || `${index + 1}`, 10),
@@ -584,7 +585,7 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
           insert into offer_media (offer_id, url, alt, source, is_primary, sort_order)
           values ($1, $2, $3, 'redtours', true, 0)
         `,
-        [offerId, heroImageUrl, title]
+        [offerId, heroImageUrl, imageAltTexts[0] || title]
       );
     }
 
@@ -596,7 +597,7 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
           insert into offer_media (offer_id, url, alt, source, is_primary, sort_order)
           values ($1, $2, $3, 'redtours', false, $4)
         `,
-        [offerId, url, `${title} - снимка ${index + 1}`, index + 1]
+        [offerId, url, imageAltTexts[index + 1] || `${title} - снимка ${index + 1}`, index + 1]
       );
     }
 

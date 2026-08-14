@@ -33,6 +33,7 @@ import {
   Search,
   Share2,
   Sparkles,
+  Star,
   Tag,
   Trash2,
   Underline,
@@ -109,6 +110,7 @@ export type AdminOfferEditorInitialOffer = {
   }>;
   heroImageUrl: string;
   galleryImageUrls: string[];
+  imageAltTexts: Record<string, string>;
   seoMetaTitle: string;
   seoMetaDescription: string;
   seoKeywords: string[];
@@ -1419,7 +1421,8 @@ function UploadBox({
   required = false,
   uploadedUrls = [],
   onFilesChange,
-  onUploaded
+  onUploaded,
+  onMakePrimary
 }: {
   title: string;
   hint: string;
@@ -1431,11 +1434,13 @@ function UploadBox({
   uploadedUrls?: string[];
   onFilesChange?: (files: File[]) => void;
   onUploaded?: (urls: string[]) => void;
+  onMakePrimary?: (url: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "done" | "error">(uploadedUrls.length ? "done" : "idle");
   const [uploadError, setUploadError] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const hasUploadedFiles = uploadedUrls.length > 0;
 
   const resetFileInput = () => {
@@ -1516,6 +1521,16 @@ function UploadBox({
     onUploaded?.(nextUrls);
   };
 
+  const makePrimary = (urlToPromote: string) => {
+    if (onMakePrimary) {
+      onMakePrimary(urlToPromote);
+    } else {
+      const nextUrls = [urlToPromote, ...uploadedUrls.filter((url) => url !== urlToPromote)];
+      onUploaded?.(nextUrls);
+    }
+    setPreviewUrl(null);
+  };
+
   return (
     <div className={hasUploadedFiles ? "offer-new-upload-manager has-files" : "offer-new-upload-manager"}>
       <label className="offer-new-upload">
@@ -1532,11 +1547,20 @@ function UploadBox({
           {uploadedUrls.map((url, index) => (
             <figure className="offer-new-upload-thumb" key={`${url}-${index}`}>
               <img src={url} alt={multiple ? `Снимка ${index + 1}` : "Основна снимка"} />
+              {index === 0 ? <span className="offer-new-upload-primary-badge">Основна</span> : null}
               <figcaption>
                 <strong>{multiple ? `Снимка ${index + 1}` : "Основна снимка"}</strong>
                 <span>{index === 0 && multiple ? "първа в галерията" : "качена"}</span>
               </figcaption>
               <div>
+                <button type="button" onClick={() => setPreviewUrl(url)} aria-label="Отвори снимката">
+                  <Eye size={15} aria-hidden="true" />
+                </button>
+                {multiple ? (
+                  <button type="button" onClick={() => makePrimary(url)} disabled={index === 0} aria-label="Направи снимката основна">
+                    <Star size={15} aria-hidden="true" />
+                  </button>
+                ) : null}
                 {multiple ? (
                   <>
                     <button type="button" onClick={() => moveUploadedUrl(url, -1)} disabled={index === 0} aria-label="Премести снимката наляво">
@@ -1556,6 +1580,27 @@ function UploadBox({
         </div>
       ) : null}
       {uploadError ? <em>{uploadError}</em> : null}
+      {previewUrl ? (
+        <div className="offer-image-lightbox" role="dialog" aria-modal="true" aria-label="Преглед на снимка" onClick={() => setPreviewUrl(null)}>
+          <div className="offer-image-lightbox-panel" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <strong>{multiple ? "Снимка от галерията" : "Основна снимка"}</strong>
+              <div>
+                {multiple ? (
+                  <button type="button" onClick={() => makePrimary(previewUrl)}>
+                    <Star size={16} aria-hidden="true" />
+                    Направи основна
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => setPreviewUrl(null)} aria-label="Затвори прегледа">
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </div>
+            </header>
+            <img src={previewUrl} alt="" />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1607,6 +1652,7 @@ function OfferContentWorkspace({
         transport: forceEmptyNewOffer ? "" : offer.transport,
         heroImageUrl: currentHeroImageUrl || offer.heroImageUrl,
         galleryImageUrls: forceEmptyNewOffer ? [] : offer.galleryImageUrls,
+        imageAltTexts: forceEmptyNewOffer ? {} : offer.imageAltTexts,
         isAuthorProgram: offer.isAuthorProgram,
         itinerary: offer.itinerary,
         highlights: forceEmptyNewOffer ? [] : offer.highlights,

@@ -10,6 +10,7 @@ import {
   CalendarDays,
   ChevronDown,
   Code2,
+  Eye,
   ExternalLink,
   Heading2,
   Heading3,
@@ -24,6 +25,7 @@ import {
   Plane,
   Plus,
   Quote,
+  Star,
   Trash2,
   Underline,
   Unlink,
@@ -47,6 +49,7 @@ export type OfferContentInitialData = {
   transport: string;
   heroImageUrl: string;
   galleryImageUrls?: string[];
+  imageAltTexts?: Record<string, string>;
   isAuthorProgram: boolean;
   itinerary: Array<{ day: number; title: string; description: string; accommodation?: string; meals?: string; transport?: string }>;
   highlights: string[];
@@ -198,9 +201,12 @@ function UploadBox({
   multiple = false,
   required = false,
   uploadedUrls = [],
+  altTexts = {},
   onFilesChange,
   onUploadStateChange,
-  onUploaded
+  onUploaded,
+  onMakePrimary,
+  onAltTextChange
 }: {
   title: string;
   hint: string;
@@ -210,14 +216,18 @@ function UploadBox({
   multiple?: boolean;
   required?: boolean;
   uploadedUrls?: string[];
+  altTexts?: Record<string, string>;
   onFilesChange?: (files: File[]) => void;
   onUploadStateChange?: (isUploading: boolean) => void;
   onUploaded?: (urls: string[]) => void;
+  onMakePrimary?: (url: string) => void;
+  onAltTextChange?: (url: string, value: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "done" | "error">(uploadedUrls.length ? "done" : "idle");
   const [uploadError, setUploadError] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const hasUploadedFiles = uploadedUrls.length > 0;
   const fileSummary = files.length > 0
     ? multiple
@@ -296,6 +306,15 @@ function UploadBox({
     onUploaded?.(nextUrls);
   };
 
+  const makePrimary = (urlToPromote: string) => {
+    if (onMakePrimary) {
+      onMakePrimary(urlToPromote);
+    } else {
+      onUploaded?.([urlToPromote, ...uploadedUrls.filter((url) => url !== urlToPromote)]);
+    }
+    setPreviewUrl(null);
+  };
+
   return (
     <div className={hasUploadedFiles ? "offer-new-upload-manager has-files" : "offer-new-upload-manager"}>
       <label className="offer-new-upload">
@@ -321,11 +340,20 @@ function UploadBox({
           {uploadedUrls.map((url, index) => (
             <figure className="offer-new-upload-thumb" key={`${url}-${index}`}>
               <img src={url} alt={multiple ? `Снимка ${index + 1}` : "Основна снимка"} />
+              {index === 0 ? <span className="offer-new-upload-primary-badge">Основна</span> : null}
               <figcaption>
-                <strong>{multiple ? `Снимка ${index + 1}` : "Основна снимка"}</strong>
+                <strong>{multiple ? (index === 0 ? "Основна снимка" : `Снимка ${index + 1}`) : "Основна снимка"}</strong>
                 <span>{index === 0 && multiple ? "първа в галерията" : "качена"}</span>
               </figcaption>
               <div>
+                <button type="button" onClick={() => setPreviewUrl(url)} aria-label="Отвори снимката">
+                  <Eye size={15} aria-hidden="true" />
+                </button>
+                {multiple ? (
+                  <button type="button" onClick={() => makePrimary(url)} disabled={index === 0} aria-label="Направи снимката основна">
+                    <Star size={15} aria-hidden="true" />
+                  </button>
+                ) : null}
                 {multiple ? (
                   <>
                     <button type="button" onClick={() => moveUploadedUrl(url, -1)} disabled={index === 0} aria-label="Премести снимката наляво">
@@ -340,11 +368,35 @@ function UploadBox({
                   <Trash2 size={15} aria-hidden="true" />
                 </button>
               </div>
+              <label className="offer-new-upload-alt">
+                <input name="image_alt_texts" value={altTexts[url] ?? ""} onChange={(event) => onAltTextChange?.(url, event.target.value)} placeholder="Alt текст" aria-label={`Alt текст за ${index === 0 ? "основната снимка" : `снимка ${index + 1}`}`} />
+              </label>
             </figure>
           ))}
         </div>
       ) : null}
       {uploadError ? <em>{uploadError}</em> : null}
+      {previewUrl ? (
+        <div className="offer-image-lightbox" role="dialog" aria-modal="true" aria-label="Преглед на снимка" onClick={() => setPreviewUrl(null)}>
+          <div className="offer-image-lightbox-panel" onClick={(event) => event.stopPropagation()}>
+            <header>
+              <strong>{multiple ? "Снимка от галерията" : "Основна снимка"}</strong>
+              <div>
+                {multiple ? (
+                  <button type="button" onClick={() => makePrimary(previewUrl)}>
+                    <Star size={16} aria-hidden="true" />
+                    Направи основна
+                  </button>
+                ) : null}
+                <button type="button" onClick={() => setPreviewUrl(null)} aria-label="Затвори прегледа">
+                  <X size={18} aria-hidden="true" />
+                </button>
+              </div>
+            </header>
+            <img src={previewUrl} alt="" />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -433,6 +485,7 @@ export function OfferContentForm({
   const [heroPreview, setHeroPreview] = useState(initial.heroImageUrl);
   const [heroImageUrl, setHeroImageUrl] = useState(initial.heroImageUrl);
   const [galleryImageUrls, setGalleryImageUrls] = useState<string[]>(initial.galleryImageUrls ?? []);
+  const [imageAltTexts, setImageAltTexts] = useState<Record<string, string>>(initial.imageAltTexts ?? {});
   const [isHeroUploading, setIsHeroUploading] = useState(false);
   const [isGalleryUploading, setIsGalleryUploading] = useState(false);
   const [uploadSaveWarning, setUploadSaveWarning] = useState("");
@@ -453,6 +506,7 @@ export function OfferContentForm({
   const derivedSummary = createSummaryFromDescription(description) || summary;
   const includedServices = splitServiceText(includedServicesText);
   const excludedServices = splitServiceText(excludedServicesText);
+  const allImageUrls = [heroImageUrl, ...galleryImageUrls].filter(Boolean).filter((url, index, list) => list.indexOf(url) === index);
   const [highlights, setHighlights] = useState<HighlightRow[]>(() =>
     initial.highlights.length
       ? initial.highlights.map((value) => ({ id: crypto.randomUUID(), value }))
@@ -489,6 +543,7 @@ export function OfferContentForm({
     setHeroImageUrl(initial.heroImageUrl);
     setHeroPreview(initial.heroImageUrl);
     setGalleryImageUrls(initial.galleryImageUrls ?? []);
+    setImageAltTexts(initial.imageAltTexts ?? {});
     latestHeroImageUrlRef.current = initial.heroImageUrl;
     latestGalleryImageUrlsRef.current = initial.galleryImageUrls ?? [];
   }, [initial.slug, normalizedInitialProductType, normalizedInitialTransport]);
@@ -553,7 +608,9 @@ export function OfferContentForm({
     formData?.set("hero_image_url", nextHeroImageUrl);
     formData?.delete("gallery_image_urls");
     nextGalleryImageUrls.forEach((url) => formData?.append("gallery_image_urls", url));
-  }, [getCurrentDescription, heroImageUrl, syncGalleryInputs]);
+    formData?.delete("image_alt_texts");
+    [nextHeroImageUrl, ...nextGalleryImageUrls].filter(Boolean).forEach((url) => formData?.append("image_alt_texts", imageAltTexts[url] || ""));
+  }, [getCurrentDescription, heroImageUrl, imageAltTexts, syncGalleryInputs]);
 
   useEffect(() => {
     syncGalleryInputs(galleryImageUrls);
@@ -565,7 +622,7 @@ export function OfferContentForm({
     let isMounted = true;
     fetch(`/api/admin/offers/${initial.id}/media`, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
-      .then((result: { galleryImageUrls?: string[]; heroImageUrl?: string } | null) => {
+      .then((result: { galleryImageUrls?: string[]; heroImageUrl?: string; imageAltTexts?: Record<string, string> } | null) => {
         if (!isMounted || !result) return;
 
         const nextGalleryUrls = result.galleryImageUrls ?? [];
@@ -573,6 +630,10 @@ export function OfferContentForm({
           latestGalleryImageUrlsRef.current = nextGalleryUrls;
           setGalleryImageUrls(nextGalleryUrls);
           syncGalleryInputs(nextGalleryUrls);
+        }
+
+        if (result.imageAltTexts) {
+          setImageAltTexts((current) => ({ ...result.imageAltTexts, ...current }));
         }
 
         if (!heroImageUrl && result.heroImageUrl) {
@@ -789,6 +850,27 @@ export function OfferContentForm({
     }
     setUploadSaveWarning("");
   };
+  const applyImageUrls = (urls: string[]) => {
+    const uniqueUrls = urls.filter(Boolean).filter((url, index, list) => list.indexOf(url) === index).slice(0, 21);
+    const nextHeroImageUrl = uniqueUrls[0] ?? "";
+    const nextGalleryImageUrls = uniqueUrls.slice(1, 21);
+
+    latestHeroImageUrlRef.current = nextHeroImageUrl;
+    latestGalleryImageUrlsRef.current = nextGalleryImageUrls;
+    setHeroImageUrl(nextHeroImageUrl);
+    setHeroPreview(nextHeroImageUrl);
+    setGalleryImageUrls(nextGalleryImageUrls);
+    syncGalleryInputs(nextGalleryImageUrls);
+    onHeroImageChange?.(nextHeroImageUrl);
+
+    if (heroImageInputRef.current) {
+      heroImageInputRef.current.value = nextHeroImageUrl;
+    }
+    setUploadSaveWarning("");
+  };
+  const makeImagePrimary = (url: string) => {
+    applyImageUrls([url, ...allImageUrls.filter((currentUrl) => currentUrl !== url)]);
+  };
   const isUploadingMedia = isHeroUploading || isGalleryUploading || editorImageUploadState === "uploading";
   useEffect(() => {
     onMediaUploadChange?.(isUploadingMedia);
@@ -885,8 +967,12 @@ export function OfferContentForm({
             <label><span>Продължителност <b>*</b></span><div className="offer-new-duration"><input name="duration_days" value={durationDays} onChange={(event) => setDurationDays(event.target.value)} inputMode="numeric" required /><span>дни</span><input name="duration_nights" value={durationNights} onChange={(event) => setDurationNights(event.target.value)} inputMode="numeric" /><span>нощувки</span></div></label>
             <label><span>Транспорт <b>*</b></span><select name="transport" value={transport} onChange={(event) => setTransport(event.target.value)} required><option value="" disabled>Избери</option><option value="flight">Самолет</option><option value="bus">Автобус</option><option value="own_transport">Собствен транспорт</option><option value="mixed">Комбинирано</option></select></label>
 
-            <div className="offer-new-field offer-new-hero-media"><span>Основна снимка <b>*</b></span><UploadBox title="Качи основна снимка" hint="PNG, JPG или WEBP, макс. 5MB" action="Избери файл" uploadSessionId={uploadSessionIdRef.current} role="hero" required={!heroImageUrl} uploadedUrls={heroImageUrl ? [heroImageUrl] : []} onFilesChange={handleHeroFilesChange} onUploadStateChange={setIsHeroUploading} onUploaded={applyHeroUploadedUrls} /><input ref={heroImageInputRef} type="hidden" name="hero_image_url" defaultValue={initial.heroImageUrl} /></div>
-            <div className="offer-new-field offer-new-gallery-media"><span>Галерия (до 20 снимки)</span><UploadBox title="Качи още снимки" hint="или плъзнете файловете тук" action="Избери файлове" uploadSessionId={uploadSessionIdRef.current} role="gallery" multiple uploadedUrls={galleryImageUrls} onUploadStateChange={setIsGalleryUploading} onUploaded={applyGalleryUploadedUrls} /><div ref={galleryInputsRef} hidden /></div>
+            <div className="offer-new-field offer-new-gallery-media offer-new-full-field">
+              <span>Снимки <b>*</b></span>
+              <UploadBox title="Качи снимки" hint="Първата снимка ще бъде основна. Може да добавиш до 20 снимки." action="Избери файлове" uploadSessionId={uploadSessionIdRef.current} role="gallery" multiple required={!heroImageUrl} uploadedUrls={allImageUrls} altTexts={imageAltTexts} onUploadStateChange={setIsGalleryUploading} onUploaded={applyImageUrls} onMakePrimary={makeImagePrimary} onAltTextChange={(url, value) => setImageAltTexts((current) => ({ ...current, [url]: value }))} />
+              <input ref={heroImageInputRef} type="hidden" name="hero_image_url" defaultValue={initial.heroImageUrl} />
+              <div ref={galleryInputsRef} hidden />
+            </div>
           </div>
 
           <input type="hidden" name="summary" value={derivedSummary} />

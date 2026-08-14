@@ -66,6 +66,7 @@ export type AdminOfferRecord = {
   status: string;
   hero_image_url: string | null;
   gallery_image_urls: string[] | null;
+  image_alt_texts: Record<string, string> | null;
   seo_meta_title: string | null;
   seo_meta_description: string | null;
   seo_keywords: string[] | null;
@@ -250,6 +251,15 @@ export async function getAdminOfferBySlug(slug: string) {
           ),
           '{}'::text[]
         ) as gallery_image_urls,
+        coalesce(
+          (
+            select jsonb_object_agg(media.url, media.alt)
+            from offer_media media
+            where media.offer_id = offers.id
+              and media.url is not null
+          ),
+          '{}'::jsonb
+        ) as image_alt_texts,
         seo_meta_title,
         seo_meta_description,
         seo_keywords,
