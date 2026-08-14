@@ -1,20 +1,34 @@
 import Link from "next/link";
-import { AlertTriangle, Building2, CalendarDays, DatabaseZap, Eye, FileText, ImageIcon, Pencil, Plus, RefreshCw } from "lucide-react";
+import { AlertTriangle, Building2, CalendarDays, CheckCircle2, Clock3, DatabaseZap, Eye, FileText, History, ImageIcon, Pencil, RefreshCw, Settings } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
-import { listAdminSupplierImports } from "@/lib/adminImportRepository";
-import { syncBohemiaSupplierImports } from "./actions";
+import {
+  getAdminSupplierImportSummary,
+  listAdminSupplierConnectors,
+  listAdminSupplierImportRuns,
+  listAdminSupplierImports
+} from "@/lib/adminImportRepository";
+import { SupplierImportLaunchPanel } from "./SupplierImportLaunchPanel";
 
 export const dynamic = "force-dynamic";
 
 type SupplierImportsSearchParams = {
   synced?: string;
+  checked?: string;
   new?: string;
   changed?: string;
   unchanged?: string;
+  total?: string;
+  excursions?: string;
+  holidays?: string;
+  processed?: string;
   syncError?: string;
+  genericProvider?: string;
+  startImport?: string;
+  page?: string;
 };
 
-function formatDate(value: string) {
+function formatDate(value: string | null) {
+  if (!value) return "няма данни";
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "няма данни";
 
@@ -40,8 +54,41 @@ function statusLabel(status: string | null) {
   return "Няма оферта";
 }
 
+function runStatusLabel(status: string) {
+  if (status === "success") return "Успешна";
+  if (status === "partial_success") return "Частична";
+  if (status === "failed") return "Неуспешна";
+  if (status === "running") return "В процес";
+  return status;
+}
+
+function runStatusClass(status: string) {
+  if (status === "success") return "is-success";
+  if (status === "partial_success") return "is-warning";
+  if (status === "failed") return "is-error";
+  return "is-running";
+}
+
+function connectorStatusLabel(status: string) {
+  if (status === "active") return "Активен";
+  if (status === "paused") return "Пауза";
+  if (status === "disabled") return "Спрян";
+  return status;
+}
+
 function readinessClass(value: number) {
   return value > 0 ? "is-ok" : "is-missing";
+}
+
+function parsePage(value: string | undefined) {
+  const page = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+}
+
+function supplierImportsPageHref(page: number) {
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  return `/admin/supplier-imports?${query.toString()}`;
 }
 
 export default async function AdminSupplierImportsPage({
@@ -50,166 +97,189 @@ export default async function AdminSupplierImportsPage({
   searchParams?: Promise<SupplierImportsSearchParams>;
 }) {
   const params = (await searchParams) ?? {};
-  const imports = await listAdminSupplierImports().catch(() => []);
-  const total = imports.length;
-  const withDates = imports.filter((item) => item.datesCount > 0).length;
-  const withMedia = imports.filter((item) => item.mediaCount > 0).length;
-  const withProgram = imports.filter((item) => item.itineraryCount > 0).length;
-  const withHotels = imports.filter((item) => item.hotelsCount > 0).length;
-  const withErrors = imports.filter((item) => item.detailError).length;
+  const requestedPage = parsePage(params.page);
+  const [importsPage, summary, runs, connectors] = await Promise.all([
+    listAdminSupplierImports({ page: requestedPage, pageSize: 20 }).catch(() => ({
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+      pageCount: 1
+    })),
+    getAdminSupplierImportSummary().catch(() => ({ total: 0, waitingReview: 0, changed: 0, missingData: 0 })),
+    listAdminSupplierImportRuns().catch(() => []),
+    listAdminSupplierConnectors().catch(() => [])
+  ]);
+  const imports = importsPage.items;
+  const total = summary.total;
+  const waitingReview = summary.waitingReview;
+  const changed = summary.changed;
+  const withMissingData = summary.missingData;
+  const activeConnectors = connectors.filter((connector) => connector.status === "active").length;
+  const firstImportNumber = importsPage.totalCount === 0 ? 0 : (importsPage.page - 1) * importsPage.pageSize + 1;
+  const lastImportNumber = Math.min(importsPage.page * importsPage.pageSize, importsPage.totalCount);
 
   return (
     <AdminWorkspace active="imports">
       <section className="supplier-imports-page">
-        <header className="supplier-imports-hero">
-          <div>
-            <span>Supplier feed</span>
-            <h1>Интегрирани оферти</h1>
-            <p>
-              Всички външни API оферти влизат тук като отделен доставчик feed. После човек ги преглежда,
-              чисти, подрежда и публикува със същия публичен RedTours шаблон.
-            </p>
-          </div>
-          <a href="#supplier-sync">
-            <RefreshCw size={17} aria-hidden="true" />
-            Синхронизирай доставчик
-          </a>
-        </header>
+        <SupplierImportLaunchPanel
+          connectors={connectors}
+          shouldOpenImport={params.startImport === "1"}
+          feedback={{
+            syncError: params.syncError,
+            checked: params.checked,
+            synced: params.synced,
+            new: params.new,
+            changed: params.changed,
+            unchanged: params.unchanged,
+            total: params.total,
+            processed: params.processed,
+            excursions: params.excursions,
+            holidays: params.holidays,
+            genericProvider: params.genericProvider
+          }}
+        />
 
-        <section className="supplier-import-sync-panel" id="supplier-sync" aria-labelledby="supplier-sync-title">
-          <div className="supplier-import-sync-copy">
-            <span>API доставчици</span>
-            <h2 id="supplier-sync-title">Синхронизация на оферти</h2>
-            <p>
-              Пуска се от админ панела. Съществуващите оферти се обновяват по доставчик и външен ID, а новите
-              влизат със статус „за преглед“, без автоматично публикуване.
-            </p>
-          </div>
-
-          {params.syncError ? (
-            <div className="supplier-import-sync-alert is-error" role="alert">
-              {params.syncError}
-            </div>
-          ) : null}
-
-          {params.synced ? (
-            <div className="supplier-import-sync-alert is-success" role="status">
-              Синхронизирани {params.synced} оферти: {params.new ?? "0"} нови, {params.changed ?? "0"} обновени,
-              {params.unchanged ?? "0"} без промяна.
-            </div>
-          ) : null}
-
-          <form action={syncBohemiaSupplierImports} className="supplier-import-sync-form">
-            <div className="supplier-import-provider-card is-active">
-              <div>
-                <span>Активен конектор</span>
-                <strong>Bohemia</strong>
-                <p>Екскурзии и почивки. Оферти, снимки, програма, услуги и допълнителни блокове.</p>
-              </div>
-              <mark>готов за sync</mark>
-            </div>
-
-            <div className="supplier-import-sync-grid">
-              <label>
-                Доставчик
-                <input name="provider_label" value="Bohemia" readOnly />
-              </label>
-              <label>
-                Среда
-                <select name="base_url" defaultValue="https://demo.internationaltravelgroup.net">
-                  <option value="https://demo.internationaltravelgroup.net">Тестов сървър</option>
-                  <option value="https://ims.internationaltravelgroup.net">Продукционен сървър</option>
-                </select>
-              </label>
-              <label>
-                Потребител
-                <input name="username" autoComplete="username" placeholder="bohemia_user" required />
-              </label>
-              <label>
-                Парола
-                <input name="password" type="password" autoComplete="current-password" placeholder="••••••••" required />
-              </label>
-              <label>
-                Лимит
-                <input name="limit" type="number" min="1" max="500" defaultValue="100" />
-              </label>
-              <label>
-                Детайли
-                <input name="details_limit" type="number" min="1" max="500" defaultValue="100" />
-              </label>
-            </div>
-
-            <fieldset className="supplier-import-sync-types">
-              <legend>Типове оферти</legend>
-              <label>
-                <input name="types" type="checkbox" value="excursion" defaultChecked />
-                Екскурзии
-              </label>
-              <label>
-                <input name="types" type="checkbox" value="holiday" defaultChecked />
-                Почивки
-              </label>
-            </fieldset>
-
-            <label className="supplier-import-sync-all">
-              <input name="import_all" type="checkbox" value="yes" />
-              <span>
-                <strong>Импортирай всички налични оферти</strong>
-                <small>Игнорира лимита и тегли всички резултати, които Bohemia връща за избраните типове.</small>
-              </span>
-            </label>
-
-            <div className="supplier-import-sync-footer">
-              <button type="submit">
-                <RefreshCw size={17} aria-hidden="true" />
-                Синхронизирай Bohemia
-              </button>
-              <p>Паролата се използва само за тази заявка и не се записва в базата. Пълният sync може да отнеме повече време.</p>
-            </div>
-          </form>
-
-          <div className="supplier-import-provider-card is-muted">
-            <div>
-              <span>Следващи конектори</span>
-              <strong>Onex и други доставчици</strong>
-              <p>Ще се добавят като отделни карти със същия процес: sync, преглед, редакция, публикация.</p>
-            </div>
-            <mark>подготовка</mark>
-          </div>
-        </section>
-
-        <section className="supplier-imports-stats" aria-label="Статус на интегрираните оферти">
+        <section className="supplier-dashboard-stats" aria-label="Обобщение на импортите">
           <article>
+            <DatabaseZap size={18} aria-hidden="true" />
             <strong>{total}</strong>
-            <span>външни оферти</span>
+            <span>импортирани оферти</span>
           </article>
           <article>
-            <strong>{withDates}</strong>
-            <span>с дати</span>
+            <CheckCircle2 size={18} aria-hidden="true" />
+            <strong>{waitingReview}</strong>
+            <span>чакат преглед</span>
           </article>
           <article>
-            <strong>{withMedia}</strong>
-            <span>със снимки</span>
+            <AlertTriangle size={18} aria-hidden="true" />
+            <strong>{changed}</strong>
+            <span>с важни промени</span>
           </article>
           <article>
-            <strong>{withProgram}</strong>
-            <span>с програма</span>
+            <FileText size={18} aria-hidden="true" />
+            <strong>{withMissingData}</strong>
+            <span>с липсващи данни</span>
           </article>
           <article>
-            <strong>{withHotels}</strong>
-            <span>с хотели</span>
-          </article>
-          <article className={withErrors ? "is-warning" : ""}>
-            <strong>{withErrors}</strong>
-            <span>detail грешки</span>
+            <Settings size={18} aria-hidden="true" />
+            <strong>{activeConnectors}</strong>
+            <span>активни доставчици</span>
           </article>
         </section>
 
-        <section className="supplier-imports-board">
+        <section className="supplier-section-panel" aria-labelledby="supplier-connectors-title">
           <header>
             <div>
-              <h2>Bohemia feed</h2>
-              <p>Тук следим какво е дошло от доставчика и какво липсва за красива публична страница.</p>
+              <span>Доставчици</span>
+              <h2 id="supplier-connectors-title">Настроени източници</h2>
+              <p>Всеки доставчик има собствен формат, но всички се мапват към единния модел на Red Tours.</p>
+            </div>
+            <Link href="/admin/supplier-imports?startImport=1" prefetch={false}>
+              <RefreshCw size={17} aria-hidden="true" />
+              Стартирай импорт
+            </Link>
+          </header>
+
+          <div className="supplier-provider-grid">
+            {connectors.map((connector) => (
+              <article className="supplier-provider-tile" key={connector.id}>
+                <div>
+                  <span>{connector.sourceType.toUpperCase()}</span>
+                  <strong>{connector.displayName}</strong>
+                  <p>{connector.defaultBaseUrl || "Ръчен payload или специфична API настройка"}</p>
+                </div>
+                <dl>
+                  <div>
+                    <dt>Статус</dt>
+                    <dd>{connectorStatusLabel(connector.status)}</dd>
+                  </div>
+                  <div>
+                    <dt>Последен импорт</dt>
+                    <dd>{connector.lastRunAt ? formatDate(connector.lastRunAt) : "няма"}</dd>
+                  </div>
+                  <div>
+                    <dt>Последен резултат</dt>
+                    <dd>{connector.lastRunStatus ? runStatusLabel(connector.lastRunStatus) : "няма"}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+
+            {connectors.length === 0 ? (
+              <div className="supplier-empty-panel">
+                <Settings size={22} aria-hidden="true" />
+                <strong>Още няма настроени доставчици</strong>
+                <span>Започни с импорт от JSON/XML payload или добави API доставчик с mapping.</span>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="supplier-section-panel" aria-labelledby="supplier-runs-title">
+          <header>
+            <div>
+              <span>История</span>
+              <h2 id="supplier-runs-title">Последни синхронизации</h2>
+              <p>Тук се вижда дали връзката е била успешна, колко оферти са обработени и дали има грешки.</p>
+            </div>
+            <History size={20} aria-hidden="true" />
+          </header>
+
+          <div className="supplier-run-list">
+            {runs.map((run) => (
+              <article className="supplier-run-row" key={run.id}>
+                <div>
+                  <strong>{run.displayName || run.provider}</strong>
+                  <span>{run.mode} · {formatDate(run.startedAt)}</span>
+                  {run.errorMessage ? <small>{run.errorMessage}</small> : null}
+                </div>
+                <mark className={runStatusClass(run.status)}>{runStatusLabel(run.status)}</mark>
+                <dl>
+                  <div>
+                    <dt>Намерени</dt>
+                    <dd>{run.totalFound ?? "-"}</dd>
+                  </div>
+                  <div>
+                    <dt>Обработени</dt>
+                    <dd>{run.totalProcessed}</dd>
+                  </div>
+                  <div>
+                    <dt>Нови</dt>
+                    <dd>{run.newCount}</dd>
+                  </div>
+                  <div>
+                    <dt>Променени</dt>
+                    <dd>{run.changedCount}</dd>
+                  </div>
+                  <div>
+                    <dt>Грешки</dt>
+                    <dd>{run.errorCount}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+
+            {runs.length === 0 ? (
+              <div className="supplier-empty-panel">
+                <Clock3 size={22} aria-hidden="true" />
+                <strong>Още няма импорт сесии</strong>
+                <span>След първата проверка или синхронизация историята ще се появи тук.</span>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="supplier-section-panel" aria-labelledby="supplier-review-title">
+          <header>
+            <div>
+              <span>Преглед</span>
+              <h2 id="supplier-review-title">Оферти от доставчици</h2>
+              <p>Новите и променените оферти първо се проверяват тук. Публикуването става само след човешко одобрение.</p>
+            </div>
+            <div className="supplier-import-page-count">
+              <strong>{firstImportNumber}-{lastImportNumber}</strong>
+              <span>от {importsPage.totalCount} импортирани оферти</span>
             </div>
           </header>
 
@@ -219,16 +289,22 @@ export default async function AdminSupplierImportsPage({
                 <div className="supplier-import-main">
                   <span>{item.provider}</span>
                   <h3>{item.title}</h3>
-                  <p>{item.destination || "Без разпозната дестинация"} · {item.externalId}</p>
+                  <p>{item.destination || "Без разпозната дестинация"} · външен ID {item.externalId}</p>
+                  {item.importantChanges.length > 0 ? (
+                    <mark className="supplier-import-change-badge">
+                      <AlertTriangle size={15} aria-hidden="true" />
+                      {item.importantChanges.length} важни промени
+                    </mark>
+                  ) : null}
                   {item.detailError ? (
                     <mark>
                       <AlertTriangle size={15} aria-hidden="true" />
-                      Detail endpoint: {item.detailError}
+                      Грешка в detail данните
                     </mark>
                   ) : null}
                 </div>
 
-                <div className="supplier-import-readiness" aria-label="Разпределени данни">
+                <div className="supplier-import-readiness" aria-label="Мапнати данни">
                   <span className={readinessClass(item.datesCount)}>
                     <CalendarDays size={15} aria-hidden="true" />
                     {item.datesCount} дати
@@ -271,25 +347,37 @@ export default async function AdminSupplierImportsPage({
                         </Link>
                       ) : null}
                     </>
-                  ) : (
-                    <button type="button" disabled>
-                      <Plus size={16} aria-hidden="true" />
-                      Създай оферта
-                    </button>
-                  )}
+                  ) : null}
                 </div>
               </article>
             ))}
 
             {imports.length === 0 ? (
-              <div className="supplier-import-empty">
+              <div className="supplier-empty-panel">
                 <DatabaseZap size={24} aria-hidden="true" />
-                <strong>Още няма интегрирани оферти</strong>
-                <span>Пусни първи Bohemia импорт, за да се появят тук.</span>
-                <a href="#supplier-sync">Отвори синхронизация</a>
+                <strong>Още няма импортирани оферти</strong>
+                <span>Стартирай импорт и офертите ще се появят тук като готови за преглед.</span>
+                <Link href="/admin/supplier-imports?startImport=1" prefetch={false}>Стартирай импорт</Link>
               </div>
             ) : null}
           </div>
+
+          {importsPage.pageCount > 1 ? (
+            <nav className="supplier-import-pagination" aria-label="Страници с импортирани оферти">
+              <em>Показани {firstImportNumber}-{lastImportNumber} от {importsPage.totalCount} импортирани оферти</em>
+              {importsPage.page > 1 ? (
+                <Link href={supplierImportsPageHref(importsPage.page - 1)} prefetch={false}>Назад</Link>
+              ) : (
+                <span aria-disabled="true">Назад</span>
+              )}
+              <strong>Страница {importsPage.page} от {importsPage.pageCount}</strong>
+              {importsPage.page < importsPage.pageCount ? (
+                <Link href={supplierImportsPageHref(importsPage.page + 1)} prefetch={false}>Напред</Link>
+              ) : (
+                <span aria-disabled="true">Напред</span>
+              )}
+            </nav>
+          ) : null}
         </section>
       </section>
     </AdminWorkspace>

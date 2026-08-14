@@ -41,8 +41,52 @@ function readinessClass(value: number) {
   return value > 0 ? "is-ok" : "is-missing";
 }
 
+function changeTypeLabel(type: string | undefined) {
+  if (type === "price") return "Цена";
+  if (type === "duration") return "Продължителност";
+  if (type === "transport") return "Транспорт";
+  if (type === "content") return "Съдържание";
+  if (type === "availability") return "Наличност";
+  if (type === "date") return "Дата";
+  if (type === "media") return "Снимки";
+  if (type === "itinerary") return "Програма";
+  if (type === "service") return "Услуги";
+  return "Промяна";
+}
+
+function changeFieldLabel(field: string | undefined) {
+  if (field === "priceFrom") return "Цена от";
+  if (field === "currency") return "Валута";
+  if (field === "durationDays") return "Дни";
+  if (field === "durationNights") return "Нощувки";
+  if (field === "transport") return "Транспорт";
+  if (field === "title") return "Заглавие";
+  if (field === "departureAdded") return "Добавена дата";
+  if (field === "departureRemoved") return "Премахната дата";
+  if (field === "startDate") return "Начална дата";
+  if (field === "endDate") return "Крайна дата";
+  if (field === "departurePrice") return "Цена за дата";
+  if (field === "availability") return "Статус";
+  if (field === "seatsAvailable") return "Свободни места";
+  if (field === "imageAdded") return "Добавена снимка";
+  if (field === "imageRemoved") return "Премахната снимка";
+  if (field === "itineraryDayAdded") return "Добавен ден";
+  if (field === "itineraryDayRemoved") return "Премахнат ден";
+  if (field === "itineraryTitle") return "Заглавие на ден";
+  if (field === "itineraryDescription") return "Описание на ден";
+  if (field === "includedServices") return "Включени услуги";
+  if (field === "excludedServices") return "Невключени услуги";
+  return field || "Поле";
+}
+
+function changeValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "липсва";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
 function rawPreview(payload: unknown) {
-  return JSON.stringify(payload, null, 2)?.slice(0, 9000) || "{}";
+  return JSON.stringify(payload, null, 2) || "{}";
 }
 
 function entityLabel(type: string) {
@@ -121,6 +165,18 @@ function numberValue(value: unknown) {
   return null;
 }
 
+function rawPayloadSize(payload: unknown) {
+  return rawPreview(payload).length;
+}
+
+function coverageState(value: number) {
+  return value > 0 ? "mapped" : "missing";
+}
+
+function coverageLabel(state: string) {
+  return state === "mapped" ? "Запазено" : "Липсва";
+}
+
 export default async function AdminSupplierImportDetailPage({ params }: AdminSupplierImportDetailPageProps) {
   const { importId } = await params;
   const item = await getAdminSupplierImportById(importId);
@@ -137,6 +193,17 @@ export default async function AdminSupplierImportDetailPage({ params }: AdminSup
   }, {});
   const visibleGroupOrder = ["image", "departure", "itinerary_day", "hotel", "service", "additional_service", "useful_info", "payment_policy", "cancel_policy", "insurance"].filter((type) => entityGroups[type]?.length);
   const technicalEntities = item.entities.filter((entity) => isTechnicalEntity(entity.type));
+  const supplierSectionCount = ["hotel", "additional_service", "useful_info", "payment_policy", "cancel_policy", "insurance"].reduce((count, type) => count + (entityGroups[type]?.length || 0), 0);
+  const technicalEntityCount = technicalEntities.length;
+  const coverageItems = [
+    { label: "Основни полета", count: item.title ? 1 : 0, detail: "заглавие, дестинация, цена, период" },
+    { label: "Дати и наличности", count: item.datesCount, detail: "заминавания, места, цена по дата" },
+    { label: "Снимки", count: item.mediaCount, detail: "галерия и основна снимка" },
+    { label: "Програма", count: item.itineraryCount, detail: "маршрут по дни" },
+    { label: "Услуги", count: item.servicesCount, detail: "включено и невключено" },
+    { label: "Supplier блокове", count: supplierSectionCount, detail: "хотели, плащане, анулации, застраховки" },
+    { label: "Raw payload", count: rawPayloadSize(item.rawPayload), detail: "пълният оригинален отговор е запазен" }
+  ];
 
   return (
     <AdminWorkspace active="imports">
@@ -171,6 +238,33 @@ export default async function AdminSupplierImportDetailPage({ params }: AdminSup
           </section>
         ) : null}
 
+        {item.importantChanges.length > 0 ? (
+          <section className="supplier-import-changes" aria-label="Важни промени от последния импорт">
+            <header>
+              <AlertTriangle size={18} aria-hidden="true" />
+              <div>
+                <h2>Важни промени за преглед</h2>
+                <p>Тези полета са различни спрямо предишния import snapshot. Провери ги преди публикация.</p>
+              </div>
+            </header>
+            <div>
+              {item.importantChanges.map((change, index) => (
+                <article key={`${change.field || "field"}-${index}`}>
+                  <span>{changeTypeLabel(change.type)}</span>
+                  <strong>
+                    {changeFieldLabel(change.field)}
+                    {change.label ? <small>{change.label}</small> : null}
+                  </strong>
+                  <p>
+                    <del>{changeValue(change.before)}</del>
+                    <ins>{changeValue(change.after)}</ins>
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         <section className="supplier-import-readiness-rail" aria-label="Готовност за публикация">
           <span className={readinessClass(item.datesCount)}>
             <CalendarDays size={18} aria-hidden="true" />
@@ -192,6 +286,34 @@ export default async function AdminSupplierImportDetailPage({ params }: AdminSup
             <Building2 size={18} aria-hidden="true" />
             Хотели <strong>{item.hotelsCount}</strong>
           </span>
+        </section>
+
+        <section className="supplier-import-coverage" aria-labelledby="supplier-import-coverage-title">
+          <header>
+            <div>
+              <span>Mapping audit</span>
+              <h2 id="supplier-import-coverage-title">Покритие на импорта</h2>
+              <p>Този панел показва какво е мапнато към общия Red Tours модел и какво е запазено като допълнителна информация от доставчика.</p>
+            </div>
+          </header>
+          <div>
+            {coverageItems.map((entry) => {
+              const state = coverageState(entry.count);
+
+              return (
+                <article className={`supplier-import-coverage-item is-${state}`} key={entry.label}>
+                  <span>{coverageLabel(state)}</span>
+                  <strong>{entry.label}</strong>
+                  <em>{entry.count} · {entry.detail}</em>
+                </article>
+              );
+            })}
+          </div>
+          {technicalEntityCount > 0 ? (
+            <p className="supplier-import-coverage-note">
+              Има {technicalEntityCount} технически supplier блока, които не се показват публично, но остават запазени за диагностика и mapping проверка.
+            </p>
+          ) : null}
         </section>
 
         <form className="supplier-review-form" action={saveAction}>
@@ -376,6 +498,25 @@ export default async function AdminSupplierImportDetailPage({ params }: AdminSup
             <button formAction={publishAction} className="is-primary" type="submit">Публикувай в сайта</button>
           </footer>
         </form>
+
+        {technicalEntities.length > 0 ? (
+          <details className="supplier-import-technical-card">
+            <summary>Технически supplier блокове</summary>
+            <header>
+              <h2>Запазени данни извън публичния шаблон</h2>
+              <p>Тези блокове не се публикуват директно, но остават видими за проверка на mapping-а и диагностика при следващ импорт.</p>
+            </header>
+            <div>
+              {technicalEntities.map((entity) => (
+                <article key={entity.id}>
+                  <strong>{entityLabel(entity.type)}</strong>
+                  <span>{entity.key || entity.title || "supplier technical block"}</span>
+                  <pre>{rawPreview(entity.rawData)}</pre>
+                </article>
+              ))}
+            </div>
+          </details>
+        ) : null}
 
         <details className="supplier-import-raw-card">
           <summary>Технически данни от Bohemia</summary>

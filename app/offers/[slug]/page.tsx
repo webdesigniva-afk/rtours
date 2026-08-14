@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PublicOfferDetail } from "@/components/PublicOfferDetail";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getPublishedPublicOfferBySlug, listPublishedPublicOffers } from "@/lib/offerRepository";
+import { OfferDetailView } from "./OfferDetailView";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +60,7 @@ export default async function OfferDetailPage({ params }: OfferPageProps) {
   return (
     <>
       <SiteHeader />
-      <PublicOfferDetail offer={offer} />
+      <OfferDetailView offer={offer} />
       <SiteFooter />
     </>
   );

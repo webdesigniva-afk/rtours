@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import { Archive, Check, Code2, Copy, DatabaseZap, Eye, FileJson, Filter, Keyboard, MoreVertical, Plus, RotateCcw, Search, Trash2, UploadCloud, X } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { Archive, Check, Copy, DatabaseZap, Eye, Filter, Keyboard, MoreVertical, Plus, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import type { AdminOfferListItem } from "@/lib/adminOfferRepository";
 import { archiveAdminOffer, bulkAdminOfferAction, deleteAdminOffer, duplicateAdminOffer, restoreAdminOffer } from "./actions";
@@ -15,6 +15,7 @@ type ConfirmAction = { offer: OfferRow; action: "archive" | "delete" } | null;
 type BulkAction = "archive" | "delete" | "publish";
 type BulkConfirmAction = { action: BulkAction; offers: OfferRow[] } | null;
 
+const offersPageSize = 20;
 const statusTabLabels: StatusTab[] = ["Всички", "Публикувани", "Чернови", "Импортирани", "За преглед", "Архивирани"];
 
 function statusClass(status: OfferRow["status"]) {
@@ -95,6 +96,7 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [bulkConfirmAction, setBulkConfirmAction] = useState<BulkConfirmAction>(null);
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isPending, startTransition] = useTransition();
   const offers = initialOffers;
 
@@ -131,11 +133,20 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
       );
     });
   }, [activeTab, collectionFilter, destinationFilter, offers, query, sourceFilter, statusFilter, typeFilter]);
-  const visibleSlugs = filteredOffers.map((offer) => offer.slug);
+  const pageCount = Math.max(Math.ceil(filteredOffers.length / offersPageSize), 1);
+  const safeCurrentPage = Math.min(currentPage, pageCount);
+  const firstVisibleOffer = filteredOffers.length === 0 ? 0 : (safeCurrentPage - 1) * offersPageSize + 1;
+  const lastVisibleOffer = Math.min(safeCurrentPage * offersPageSize, filteredOffers.length);
+  const paginatedOffers = filteredOffers.slice(firstVisibleOffer === 0 ? 0 : firstVisibleOffer - 1, lastVisibleOffer);
+  const visibleSlugs = paginatedOffers.map((offer) => offer.slug);
   const selectedOffers = offers.filter((offer) => selectedSlugs.includes(offer.slug));
   const selectedVisibleCount = visibleSlugs.filter((slug) => selectedSlugs.includes(slug)).length;
   const allVisibleSelected = visibleSlugs.length > 0 && selectedVisibleCount === visibleSlugs.length;
   const selectedCount = selectedOffers.length;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, collectionFilter, destinationFilter, query, sourceFilter, statusFilter, typeFilter]);
 
   function clearFilters() {
     setQuery("");
@@ -335,7 +346,7 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
               <span role="columnheader">Обновена</span>
               <span role="columnheader" />
             </div>
-            {filteredOffers.map((offer, index) => (
+            {paginatedOffers.map((offer, index) => (
               <article className={`offers-table-row ${selectedSlugs.includes(offer.slug) ? "is-selected" : ""}`} role="row" key={offer.slug}>
                 <label className="offers-select-cell" aria-label={`Маркирай ${offer.title || "Нова оферта"}`}>
                   <input type="checkbox" checked={selectedSlugs.includes(offer.slug)} onChange={() => toggleOfferSelection(offer.slug)} disabled={isPending} />
@@ -363,7 +374,7 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
                     <MoreVertical size={18} aria-hidden="true" />
                   </button>
                   {openActions === offer.slug ? (
-                    <div className={`offers-row-menu ${filteredOffers.length > 3 && index >= filteredOffers.length - 2 ? "is-anchored-up" : ""}`} role="menu">
+                    <div className={`offers-row-menu ${paginatedOffers.length > 3 && index >= paginatedOffers.length - 2 ? "is-anchored-up" : ""}`} role="menu">
                       {offer.status === "Архивирана" ? (
                         <>
                         <button type="button" role="menuitem" onClick={() => runOfferAction(offer, "restore")} disabled={isPending}>
@@ -411,7 +422,21 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
             ) : null}
           </div>
           <footer className="offers-table-footer">
-            <span>Показване на {filteredOffers.length} от {offers.length} оферти</span>
+            <span>
+              Показване на {firstVisibleOffer}-{lastVisibleOffer} от {filteredOffers.length} оферти
+              {filteredOffers.length !== offers.length ? ` · общо ${offers.length}` : ""}
+            </span>
+            {pageCount > 1 ? (
+              <nav className="offers-pagination" aria-label="Страници с оферти">
+                <button type="button" onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))} disabled={safeCurrentPage === 1}>
+                  Назад
+                </button>
+                <strong>Страница {safeCurrentPage} от {pageCount}</strong>
+                <button type="button" onClick={() => setCurrentPage((page) => Math.min(page + 1, pageCount))} disabled={safeCurrentPage === pageCount}>
+                  Напред
+                </button>
+              </nav>
+            ) : null}
           </footer>
         </section>
 
@@ -473,37 +498,16 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
                     </span>
                   </button>
                 </form>
-                <Link className="offers-source-option" href="/admin/offers/new?source=api" prefetch={false}>
+                <Link className="offers-source-option" href="/admin/supplier-imports?startImport=1" prefetch={false}>
                   <DatabaseZap size={20} aria-hidden="true" />
                   <span>
-                    <strong>API импорт</strong>
-                    <em>Синхронизация от доставчик чрез endpoint.</em>
-                  </span>
-                </Link>
-                <Link className="offers-source-option" href="/admin/offers/new?source=json" prefetch={false}>
-                  <FileJson size={20} aria-hidden="true" />
-                  <span>
-                    <strong>JSON файл / payload</strong>
-                    <em>Качване или paste на JSON за мапване към оферти.</em>
-                  </span>
-                </Link>
-                <Link className="offers-source-option" href="/admin/offers/new?source=xml" prefetch={false}>
-                  <Code2 size={20} aria-hidden="true" />
-                  <span>
-                    <strong>XML фийд</strong>
-                    <em>Импорт от XML адрес или качен файл.</em>
-                  </span>
-                </Link>
-                <Link className="offers-source-option" href="/admin/offers/new?source=csv" prefetch={false}>
-                  <UploadCloud size={20} aria-hidden="true" />
-                  <span>
-                    <strong>CSV / Excel</strong>
-                    <em>Табличен импорт от списък с оферти.</em>
+                    <strong>Импортиране</strong>
+                    <em>Избираш доставчик, проверяваш връзката и синхронизираш оферти за преглед.</em>
                   </span>
                 </Link>
               </div>
               <footer>
-                <Link href="/admin/offers/new" prefetch={false}>Виж всички варианти</Link>
+                <span>Импортът никога не публикува автоматично. Всичко влиза в списъка “за преглед”.</span>
               </footer>
             </section>
           </div>

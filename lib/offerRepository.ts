@@ -121,6 +121,7 @@ const fallbackHeroImage = "https://images.unsplash.com/photo-1544735716-392fe248
 
 function textFromHtml(value: unknown) {
   if (typeof value !== "string") return "";
+  if (/^\s*(?:\[object Object\]\s*,?\s*)+\s*$/.test(value)) return "";
 
   return value
     .replace(/<\s*br\s*\/?>/gi, "\n")
@@ -152,27 +153,51 @@ function objectValue(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function arrayValue(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+function textList(value: unknown) {
+  return arrayValue(value)
+    .map((item) => {
+      if (typeof item === "string") return textFromHtml(item);
+      const row = objectValue(item);
+      return firstText(row.name, row.title, row.label, row.note, row.Desc, row.Text, row["#text"]);
+    })
+    .filter(Boolean);
+}
+
 function hotelRoomsText(raw: Record<string, unknown>, editorial: Record<string, unknown>) {
   const edited = firstText(editorial.rooms);
   if (edited) return edited;
 
-  const rooms = Array.isArray(raw.rooms) ? raw.rooms : [];
-  return rooms
-    .map((room) => {
-      const row = objectValue(room);
-      return firstText(row.name, row.note);
-    })
-    .filter(Boolean)
-    .join("\n");
+  return textList(raw.rooms).join("\n");
+}
+
+function hotelTitle(entityTitle: unknown, raw: Record<string, unknown>, fallback: string) {
+  return firstText(
+    entityTitle,
+    raw.title,
+    raw.hotelName,
+    raw.HotelName,
+    raw.name,
+    raw.Name,
+    raw.Accommodation,
+    raw.category,
+    raw.Category,
+    textList(raw.hotels)[0]
+  ) || fallback;
 }
 
 function mapSupplierSections(row: PublicOfferRow): Offer["supplierSections"] {
   const sections: OfferSupplierSection[] = [];
 
-  for (const entity of row.supplier_sections ?? []) {
+  for (const [index, entity] of (row.supplier_sections ?? []).entries()) {
     const raw = objectValue(entity.rawData);
     const editorial = objectValue(entity.editorialData);
-    const title = firstText(entity.title, raw.title, raw.label, raw.Desc, raw.Text, raw["#text"]);
+    const title = entity.type === "hotel"
+      ? hotelTitle(entity.title, raw, `Хотел ${index + 1}`)
+      : firstText(editorial.title, editorial.text, entity.title, raw.title, raw.label, raw.Desc, raw.Text, raw["#text"]);
 
     if (!title) continue;
 
@@ -189,8 +214,8 @@ function mapSupplierSections(row: PublicOfferRow): Offer["supplierSections"] {
     sections.push({
       type: entity.type,
       title,
-      body: firstText(raw.Desc, raw.Text, raw["#text"]),
-      meta: firstText(raw["@_Type"], raw.Type)
+      body: firstText(editorial.description, editorial.text, raw.Desc, raw.Text, raw["#text"]),
+      meta: firstText(editorial.category, raw["@_Type"], raw.Type)
     });
   }
 

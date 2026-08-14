@@ -334,6 +334,7 @@ export async function saveSupplierImportReview(importId: string, formData: FormD
             seo_meta_title = nullif($5, ''),
             seo_meta_description = nullif($6, ''),
             review_notes = 'Supplier review layer saved. Публикувай само след човешки преглед.',
+            reviewed_at = coalesce(reviewed_at, now()),
             updated_at = now()
         where id = $1
       `,
@@ -344,7 +345,11 @@ export async function saveSupplierImportReview(importId: string, formData: FormD
       const descriptionMode = readString(formData, `entity_description_mode_${entityId}`) === "html" ? "html" : "text";
       const descriptionInput = readString(formData, `entity_description_${entityId}`);
       const serviceType = readString(formData, `entity_service_type_${entityId}`) === "excluded" ? "excluded" : "included";
+      const entityTitle = textFromHtml(readString(formData, `entity_title_${entityId}`));
       const editorialData = {
+        title: entityTitle,
+        text: entityTitle,
+        url: readString(formData, `entity_url_${entityId}`),
         dayNumber: readInteger(formData, `entity_day_number_${entityId}`, index + 1),
         description: textFromHtml(descriptionInput),
         descriptionHtml: descriptionMode === "html" ? descriptionInput : "",
@@ -374,7 +379,10 @@ export async function saveSupplierImportReview(importId: string, formData: FormD
               editorial_url = nullif($5, ''),
               sort_order = $6,
               editorial_data = case
-                when entity_type in ('itinerary_day', 'service', 'departure', 'hotel') then $7::jsonb
+                when entity_type in (
+                  'itinerary_day', 'service', 'departure', 'hotel',
+                  'additional_service', 'useful_info', 'payment_policy', 'cancel_policy', 'insurance'
+                ) then $7::jsonb
                 else editorial_data
               end,
               updated_at = now()
@@ -385,7 +393,7 @@ export async function saveSupplierImportReview(importId: string, formData: FormD
           entityId,
           importId,
           enabledEntityIds.has(entityId),
-          textFromHtml(readString(formData, `entity_title_${entityId}`)),
+          entityTitle,
           readString(formData, `entity_url_${entityId}`),
           index,
           JSON.stringify(editorialData)

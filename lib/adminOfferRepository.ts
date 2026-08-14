@@ -420,7 +420,6 @@ export async function listAdminOfferItems() {
         updated_at::text
       from offers
       order by updated_at desc
-      limit 100
     `
   );
 

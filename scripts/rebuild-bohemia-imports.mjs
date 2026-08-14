@@ -36,7 +36,7 @@ try {
         summary.skipped += 1;
         continue;
       }
-      await upsertBohemiaOffer(client, offer);
+      await upsertBohemiaOffer(client, offer, { force: true });
       summary.rebuilt += 1;
     } catch (error) {
       summary.failed += 1;

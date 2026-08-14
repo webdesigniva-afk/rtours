@@ -8,6 +8,7 @@ function dataObject(value: unknown) {
 
 function textFromHtml(value: unknown) {
   if (typeof value !== "string") return "";
+  if (/^\s*(?:\[object Object\]\s*,?\s*)+\s*$/.test(value)) return "";
 
   return value
     .replace(/<\s*br\s*\/?>/gi, "\n")
@@ -46,6 +47,34 @@ function roomText(raw: Record<string, unknown>) {
     .join("\n");
 }
 
+function textList(value: unknown) {
+  return Array.isArray(value)
+    ? value
+        .map((item) => {
+          if (typeof item === "string") return textFromHtml(item);
+          const row = dataObject(item);
+          return firstText(row.name, row.title, row.label, row.note, row.Desc, row.Text, row["#text"]);
+        })
+        .filter(Boolean)
+    : [];
+}
+
+function hotelTitle(entity: SupplierEntity, raw: Record<string, unknown>, index: number) {
+  return firstText(
+    entity.editorialTitle,
+    entity.title,
+    raw.title,
+    raw.hotelName,
+    raw.HotelName,
+    raw.name,
+    raw.Name,
+    raw.Accommodation,
+    raw.category,
+    raw.Category,
+    textList(raw.hotels)[0]
+  ) || `Хотел ${index + 1}`;
+}
+
 function entityPreview(raw: unknown) {
   const text = JSON.stringify(raw, null, 2) || "{}";
   return text.length > 1600 ? `${text.slice(0, 1600)}...` : text;
@@ -57,7 +86,7 @@ export function SupplierHotelsReviewList({ entities }: { entities: SupplierEntit
       {entities.map((entity, index) => {
         const raw = dataObject(entity.rawData);
         const editorial = dataObject(entity.editorialData);
-        const title = firstText(entity.editorialTitle, entity.title, raw.title, raw.Name, raw.HotelName) || `Хотел ${index + 1}`;
+        const title = hotelTitle(entity, raw, index);
         const category = firstText(editorial.category, raw.category, raw.Category);
         const rooms = firstText(editorial.rooms) || roomText(raw);
 

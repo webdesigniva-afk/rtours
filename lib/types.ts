@@ -1,6 +1,6 @@
 export type OfferStatus = "draft" | "review" | "published" | "archived" | "needs_changes";
 
-export type OfferSource = "manual" | "xml" | "api" | "labeling" | "erp";
+export type OfferSource = "manual" | "xml" | "api" | "json" | "csv" | "file" | "labeling" | "erp";
 
 export type OfferProductType = "excursion" | "holiday" | "hotel" | "flight" | "service" | "package";
 

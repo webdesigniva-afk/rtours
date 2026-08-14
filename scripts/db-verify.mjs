@@ -23,6 +23,8 @@ const expectedTables = [
   "offer_themes",
   "offer_collections",
   "offer_imports",
+  "supplier_connectors",
+  "supplier_import_runs",
   "supplier_import_entities",
   "taxonomy_terms",
   "offer_taxonomy_terms",
