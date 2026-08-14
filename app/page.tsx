@@ -100,18 +100,6 @@ export default async function Home() {
                   </Link>
                 </div>
               </div>
-              <aside className="hero-panel" aria-label="Акценти">
-                <span className="hero-panel-kicker">Опит</span>
-                <strong>20+</strong>
-                <span>години в маршрути с мярка, стил и човешко внимание.</span>
-              </aside>
-            </div>
-            <div className="hero-footer" aria-label="Начин на откриване">
-              <span>Екскурзии</span>
-              <span>Почивки</span>
-              <span>Корпоративни пътувания</span>
-              <span>Хотели</span>
-              <span>Самолетни билети</span>
             </div>
           </div>
         </section>

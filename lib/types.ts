@@ -156,6 +156,13 @@ export interface ItineraryDay {
   transport?: string;
 }
 
+export interface OfferSupplierSection {
+  type: "hotel" | "additional_service" | "useful_info" | "payment_policy" | "cancel_policy" | "insurance";
+  title: string;
+  body?: string;
+  meta?: string;
+}
+
 export interface Offer {
   slug: string;
   productType?: OfferProductType;
@@ -197,6 +204,7 @@ export interface Offer {
   included: string[];
   excluded: string[];
   itinerary: ItineraryDay[];
+  supplierSections?: OfferSupplierSection[];
   seo: SeoFields;
   externalSync?: ExternalOfferSync;
   review?: OfferReviewState;

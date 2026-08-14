@@ -41,6 +41,10 @@ function tabMatchesOffer(activeTab: StatusTab, offer: OfferRow) {
   return offer.status === "Архивирана";
 }
 
+function adminOfferHref(offer: OfferRow) {
+  return offer.importId ? `/admin/supplier-imports/${offer.importId}` : `/admin/offers/${offer.id}`;
+}
+
 function uniqueOptions(offers: OfferRow[], key: keyof Pick<OfferRow, "destination" | "type" | "source" | "status" | "collection">) {
   return Array.from(new Set(offers.map((offer) => offer[key]).filter(Boolean))).sort((first, second) => String(first).localeCompare(String(second), "bg"));
 }
@@ -145,6 +149,8 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
 
   function runOfferAction(offer: OfferRow, action: "archive" | "duplicate" | "delete" | "restore") {
     setOpenActions(null);
+
+    if (action === "duplicate" && offer.importId) return;
 
     if (action === "archive" || action === "delete") {
       setConfirmAction({ offer, action });
@@ -334,7 +340,7 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
                 <label className="offers-select-cell" aria-label={`Маркирай ${offer.title || "Нова оферта"}`}>
                   <input type="checkbox" checked={selectedSlugs.includes(offer.slug)} onChange={() => toggleOfferSelection(offer.slug)} disabled={isPending} />
                 </label>
-                <Link className="offers-title-cell" href={`/admin/offers/${offer.id}`} role="cell" prefetch={false}>
+                <Link className="offers-title-cell" href={adminOfferHref(offer)} role="cell" prefetch={false}>
                   {offer.image ? <img src={offer.image} alt="" /> : <span className="offers-image-placeholder" aria-hidden="true"><img src="/brand/logo.png" alt="" /></span>}
                   <span>
                     <strong>{offer.title || "Нова оферта"}</strong>
@@ -364,21 +370,23 @@ export function AdminOffersClient({ initialOffers }: { initialOffers: AdminOffer
                           <RotateCcw size={16} aria-hidden="true" />
                           Разархивирай
                         </button>
-                          <Link href={`/admin/offers/${offer.id}`} role="menuitem" prefetch={false}>
+                          <Link href={adminOfferHref(offer)} role="menuitem" prefetch={false}>
                             <Eye size={16} aria-hidden="true" />
                             Отвори
                           </Link>
                         </>
                       ) : (
                         <>
-                          <Link href={`/admin/offers/${offer.id}`} role="menuitem" prefetch={false}>
+                          <Link href={adminOfferHref(offer)} role="menuitem" prefetch={false}>
                             <Eye size={16} aria-hidden="true" />
                             Отвори
                           </Link>
-                          <button type="button" role="menuitem" onClick={() => runOfferAction(offer, "duplicate")} disabled={isPending}>
-                            <Copy size={16} aria-hidden="true" />
-                            Дублирай
-                          </button>
+                          {!offer.importId ? (
+                            <button type="button" role="menuitem" onClick={() => runOfferAction(offer, "duplicate")} disabled={isPending}>
+                              <Copy size={16} aria-hidden="true" />
+                              Дублирай
+                            </button>
+                          ) : null}
                           <button type="button" role="menuitem" onClick={() => runOfferAction(offer, "archive")} disabled={isPending}>
                             <Archive size={16} aria-hidden="true" />
                             Архивирай

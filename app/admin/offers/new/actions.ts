@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminSessionCookieName, verifyAdminSessionToken } from "@/lib/adminSession";
-import { dbQuery } from "@/lib/db";
+import { dbQuery, getDbPool } from "@/lib/db";
 import { createSlug } from "@/lib/slug";
 
 type OfferProductType = "excursion" | "holiday" | "hotel" | "flight" | "service" | "package";
@@ -659,15 +659,78 @@ export async function importJsonOffers(formData: FormData) {
     redirectWithImportError("json", "Постави JSON payload, за да се създадат оферти.");
   }
 
+  let importedCount = 0;
+
   try {
     const payload = JSON.parse(rawPayload);
-    const importedCount = await importPayloadIntoSystem(payload, provider, "labeling");
-
-    redirect(`/admin/offers?imported=${importedCount}`);
+    importedCount = await importPayloadIntoSystem(payload, provider, "labeling");
   } catch (error) {
     const message = error instanceof Error ? error.message : "JSON импортът не беше успешен.";
     redirectWithImportError("json", message);
   }
+
+  redirect(`/admin/offers?imported=${importedCount}`);
+}
+
+export async function importBohemiaOffers(formData: FormData) {
+  await requireAdminSession();
+
+  const baseUrl = readString(formData, "base_url") || "https://demo.internationaltravelgroup.net";
+  const username = readString(formData, "username");
+  const password = readString(formData, "password");
+  const limit = Math.min(readInteger(formData, "limit") || 5, 50);
+  const detailsLimit = Math.min(readInteger(formData, "details_limit") || limit, limit);
+  const selectedTypes = formData
+    .getAll("types")
+    .map((value) => (typeof value === "string" ? value : ""))
+    .filter((value) => value === "excursion" || value === "holiday");
+  const types = selectedTypes.length > 0 ? selectedTypes : ["excursion", "holiday"];
+
+  if (!username || !password) {
+    redirectWithImportError("api", "Въведи Bohemia потребител и парола за този импорт.");
+  }
+
+  let importedCount = 0;
+
+  try {
+    const { fetchBohemiaOffers, upsertBohemiaOffer } = await import("@/lib/bohemiaImport.mjs");
+    const offers = await fetchBohemiaOffers({
+      baseUrl,
+      username,
+      password,
+      limit,
+      detailsLimit,
+      types
+    });
+
+    if (offers.length === 0) {
+      throw new Error("Bohemia API върна 0 оферти за избраните настройки.");
+    }
+
+    const pool = getDbPool() as unknown as {
+      connect: () => Promise<{
+        query: (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>;
+        release: () => void;
+      }>;
+    };
+    const client = await pool.connect();
+
+    try {
+      for (const offer of offers) {
+        await upsertBohemiaOffer(client, offer);
+      }
+    } finally {
+      client.release();
+    }
+
+    revalidatePath("/admin/offers");
+    importedCount = offers.length;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Bohemia импортът не беше успешен.";
+    redirectWithImportError("api", message);
+  }
+
+  redirect(`/admin/offers?imported=${importedCount}`);
 }
 
 export async function createAdminOffer(formData: FormData) {

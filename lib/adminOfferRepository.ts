@@ -40,6 +40,7 @@ export type AdminOfferRecord = {
     city: string | null;
   }> | null;
   source: string;
+  import_id: string | null;
   import_provider: string | null;
   import_source: string | null;
   import_change_state: "new" | "changed" | "expired" | "unavailable" | "unchanged" | null;
@@ -145,6 +146,13 @@ export async function getAdminOfferBySlug(slug: string) {
           '[]'::jsonb
         ) as destinations,
         source::text,
+        (
+          select import.id::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_id,
         status::text,
         hero_image_url,
         coalesce(
@@ -259,6 +267,7 @@ export type AdminOfferListItem = {
   destination: string;
   type: "Екскурзия" | "Почивка" | "Круиз";
   source: string;
+  importId: string | null;
   departures: number;
   price: string;
   status: "Чернова" | "За преглед" | "Публикувана" | "⚠ Променена" | "Изтекла" | "Архивирана" | "⚠ Грешка";
@@ -363,6 +372,13 @@ export async function listAdminOfferItems() {
         ) as future_dates_count,
         source::text,
         (
+          select import.id::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_id,
+        (
           select import.provider
           from offer_imports import
           where import.offer_id = offers.id
@@ -415,6 +431,7 @@ export async function listAdminOfferItems() {
     destination: [offer.country, offer.region].filter(Boolean).join(", ") || "Без дестинация",
     type: mapProductType(offer.product_type, offer.product_type_label),
     source: mapSource(offer.source, offer.import_provider, offer.import_source, offer.import_last_synced_at),
+    importId: offer.import_id,
     departures: offer.dates_count ?? 0,
     price: offer.price_from ? `${Number(offer.price_from).toLocaleString("bg-BG")} ${offer.currency}` : "не е въведена",
     status: mapStatus(offer),

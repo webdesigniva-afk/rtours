@@ -76,7 +76,7 @@ const groups: Array<{ label: string; items: AdminNavItem[] }> = [
     label: "Съдържание",
     items: [
       { href: "/admin/offers", label: "Оферти", icon: ClipboardList, id: "offers" },
-      { href: "/admin/offers", label: "Импорти", icon: Import, id: "imports", dot: true }
+      { href: "/admin/supplier-imports", label: "Импорти", icon: Import, id: "imports", dot: true }
     ]
   },
   {

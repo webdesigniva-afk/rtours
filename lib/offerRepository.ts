@@ -1,6 +1,6 @@
 import { getPublishedOfferBySlug, getPublishedOffers, offers } from "./data";
 import { dbQuery } from "./db";
-import type { Offer, OfferStatus, TaxonomyTermType } from "./types";
+import type { Offer, OfferStatus, OfferSupplierSection, TaxonomyTermType } from "./types";
 
 export type OfferStatusSummary = {
   status: OfferStatus;
@@ -95,6 +95,12 @@ type PublicOfferRow = {
   highlights: string[] | null;
   included_services: string[] | null;
   excluded_services: string[] | null;
+  supplier_sections: Array<{
+    type: "hotel" | "additional_service" | "useful_info" | "payment_policy" | "cancel_policy" | "insurance";
+    title: string | null;
+    rawData: Record<string, unknown> | null;
+    editorialData: Record<string, unknown> | null;
+  }> | null;
   taxonomy_terms: Array<{
     type: string;
     slug: string;
@@ -112,6 +118,84 @@ type PublicOfferRow = {
 };
 
 const fallbackHeroImage = "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1600&q=84";
+
+function textFromHtml(value: unknown) {
+  if (typeof value !== "string") return "";
+
+  return value
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/\s*(p|div|li|tr|h[1-6])\s*>/gi, "\n")
+    .replace(/<\s*li[^>]*>/gi, "- ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function firstText(...values: unknown[]) {
+  for (const value of values) {
+    const text = textFromHtml(value);
+    if (text) return text;
+  }
+
+  return "";
+}
+
+function objectValue(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function hotelRoomsText(raw: Record<string, unknown>, editorial: Record<string, unknown>) {
+  const edited = firstText(editorial.rooms);
+  if (edited) return edited;
+
+  const rooms = Array.isArray(raw.rooms) ? raw.rooms : [];
+  return rooms
+    .map((room) => {
+      const row = objectValue(room);
+      return firstText(row.name, row.note);
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+function mapSupplierSections(row: PublicOfferRow): Offer["supplierSections"] {
+  const sections: OfferSupplierSection[] = [];
+
+  for (const entity of row.supplier_sections ?? []) {
+    const raw = objectValue(entity.rawData);
+    const editorial = objectValue(entity.editorialData);
+    const title = firstText(entity.title, raw.title, raw.label, raw.Desc, raw.Text, raw["#text"]);
+
+    if (!title) continue;
+
+    if (entity.type === "hotel") {
+      sections.push({
+        type: entity.type,
+        title,
+        body: hotelRoomsText(raw, editorial),
+        meta: firstText(editorial.category, raw.category, raw.Category)
+      });
+      continue;
+    }
+
+    sections.push({
+      type: entity.type,
+      title,
+      body: firstText(raw.Desc, raw.Text, raw["#text"]),
+      meta: firstText(raw["@_Type"], raw.Type)
+    });
+  }
+
+  return sections;
+}
 
 function mapPublicOffer(row: PublicOfferRow): Offer {
   const title = row.title || "Оферта";
@@ -201,6 +285,7 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     included: row.included_services ?? [],
     excluded: row.excluded_services ?? [],
     itinerary,
+    supplierSections: mapSupplierSections(row),
     seo: {
       metaTitle: row.seo_meta_title || title,
       metaDescription: row.seo_meta_description || summary,
@@ -333,6 +418,24 @@ export async function listPublishedPublicOffers() {
           ),
           '{}'::text[]
         ) as excluded_services,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'type', entity.entity_type,
+                'title', coalesce(nullif(entity.editorial_title, ''), entity.title),
+                'rawData', entity.raw_data,
+                'editorialData', entity.editorial_data
+              )
+              order by entity.entity_type, entity.sort_order, entity.created_at
+            )
+            from supplier_import_entities entity
+            where entity.offer_id = offers.id
+              and entity.is_enabled = true
+              and entity.entity_type in ('hotel', 'additional_service', 'useful_info', 'payment_policy', 'cancel_policy', 'insurance')
+          ),
+          '[]'::jsonb
+        ) as supplier_sections,
         coalesce(
           (
             select jsonb_agg(
@@ -498,6 +601,24 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
           ),
           '{}'::text[]
         ) as excluded_services,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'type', entity.entity_type,
+                'title', coalesce(nullif(entity.editorial_title, ''), entity.title),
+                'rawData', entity.raw_data,
+                'editorialData', entity.editorial_data
+              )
+              order by entity.entity_type, entity.sort_order, entity.created_at
+            )
+            from supplier_import_entities entity
+            where entity.offer_id = offers.id
+              and entity.is_enabled = true
+              and entity.entity_type in ('hotel', 'additional_service', 'useful_info', 'payment_policy', 'cancel_policy', 'insurance')
+          ),
+          '[]'::jsonb
+        ) as supplier_sections,
         coalesce(
           (
             select jsonb_agg(

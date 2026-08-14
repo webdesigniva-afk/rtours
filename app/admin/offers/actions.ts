@@ -126,9 +126,17 @@ export async function bulkAdminOfferAction(slugs: string[], action: "archive" | 
               archived_at = case when $2::offer_status = 'archived' then now() else null end,
               updated_at = now()
           where slug = any($1::text[])
+            and (
+              $3::text <> 'publish'
+              or not exists (
+                select 1
+                from offer_imports import
+                where import.offer_id = offers.id
+              )
+            )
           returning slug
         `,
-    action === "delete" ? [uniqueSlugs] : [uniqueSlugs, action === "archive" ? "archived" : "published"]
+    action === "delete" ? [uniqueSlugs] : [uniqueSlugs, action === "archive" ? "archived" : "published", action]
   );
 
   const changedSlugs = result.rows.map((row) => row.slug);
@@ -146,8 +154,28 @@ export async function bulkAdminOfferAction(slugs: string[], action: "archive" | 
 export async function duplicateAdminOffer(slug: string) {
   await requireAdminSession();
 
-  const offerResult = await dbQuery<{ id: string; title: string }>("select id, title from offers where slug = $1 limit 1", [slug]);
+  const offerResult = await dbQuery<{ id: string; title: string; import_id: string | null }>(
+    `
+      select
+        offers.id,
+        offers.title,
+        (
+          select import.id::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          limit 1
+        ) as import_id
+      from offers
+      where slug = $1
+      limit 1
+    `,
+    [slug]
+  );
   const original = offerResult.rows[0];
+
+  if (original?.import_id) {
+    return { ok: false, message: "Импортните оферти се редактират и публикуват през Supplier Review." };
+  }
 
   if (!original) {
     return { ok: false, message: "Офертата не беше намерена." };

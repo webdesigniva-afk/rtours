@@ -41,6 +41,7 @@ export type PublicOfferDetailData = {
   priceFrom: number;
   currency: "EUR" | "BGN";
   priceNote: string;
+  source?: string;
   transport?: string;
   isAuthorProgram?: boolean;
   heroImage: string;
@@ -67,6 +68,12 @@ export type PublicOfferDetailData = {
   highlights?: string[];
   included: string[];
   excluded: string[];
+  supplierSections?: Array<{
+    type: "hotel" | "additional_service" | "useful_info" | "payment_policy" | "cancel_policy" | "insurance";
+    title: string;
+    body?: string;
+    meta?: string;
+  }>;
 };
 
 const productTypeLabels: Record<string, string> = {
@@ -163,6 +170,27 @@ function formatDatePrice(date: PublicOfferDetailData["dates"][number], fallbackC
   return "Цена при запитване";
 }
 
+type PublicSupplierSection = NonNullable<PublicOfferDetailData["supplierSections"]>[number];
+
+function supplierSectionLabel(type: PublicSupplierSection["type"]) {
+  if (type === "hotel") return "Хотели";
+  if (type === "additional_service") return "Допълнителни услуги";
+  if (type === "useful_info") return "Полезна информация";
+  if (type === "payment_policy") return "Плащане";
+  if (type === "cancel_policy") return "Анулации";
+  return "Застраховки";
+}
+
+function splitPriceLabel(value: string) {
+  const match = value.match(/\s[-–—]\s*((?:от\s*)?\d+(?:[.,]\d+)?\s*(?:EUR|€|лв\.?|BGN).*)$/i);
+  if (!match?.index) return { label: value, price: "" };
+
+  return {
+    label: value.slice(0, match.index).trim(),
+    price: match[1].trim()
+  };
+}
+
 export function PublicOfferDetail({ offer, showInquiry = true }: { offer: PublicOfferDetailData; showInquiry?: boolean }) {
   const [activeImageIndex, setActiveImageIndex] = useState<number | null>(null);
   const destinationLabel = offer.destinations?.length
@@ -184,6 +212,17 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
   const routeCities = offer.destinations?.length
     ? offer.destinations.map((destination) => destination.city).filter(Boolean).slice(0, 5).join(" → ")
     : offer.region;
+
+  const normalizedRouteCities = routeCities || offer.region || offer.country;
+  const isImportedOffer = offer.source && offer.source !== "manual";
+  const proofLabel = isImportedOffer ? "Препотвърждение от екипа" : offer.isAuthorProgram ? "Авторска селекция" : "Подбрана програма";
+  const supplierSectionGroups = useMemo(() => {
+    const groups = new Map<PublicSupplierSection["type"], PublicSupplierSection[]>();
+    for (const section of offer.supplierSections ?? []) {
+      groups.set(section.type, [...(groups.get(section.type) ?? []), section]);
+    }
+    return groups;
+  }, [offer.supplierSections]);
 
   function openImage(image: string) {
     const index = lightboxImages.indexOf(image);
@@ -223,7 +262,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
   }, [activeImageIndex, lightboxImages.length]);
 
   return (
-    <main className="offer-detail-page">
+    <main className={`offer-detail-page ${isImportedOffer ? "is-imported-offer" : ""}`}>
       <section className="offer-detail-hero">
         <div className="container offer-detail-hero-inner">
           <div className="offer-detail-copy">
@@ -242,11 +281,13 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
                 Виж програмата
               </a>
             </div>
-            <div className="offer-hero-proof" aria-label="Ключови предимства">
-              <span><ShieldCheck size={17} aria-hidden="true" />Проверена програма</span>
-              <span><Compass size={17} aria-hidden="true" />Подбран маршрут</span>
-              <span><Sparkles size={17} aria-hidden="true" />RedTours селекция</span>
-            </div>
+            {!isImportedOffer ? (
+              <div className="offer-hero-proof" aria-label="Ключови предимства">
+                <span><ShieldCheck size={17} aria-hidden="true" />{proofLabel}</span>
+                <span><Compass size={17} aria-hidden="true" />Подбран маршрут</span>
+                <span><Sparkles size={17} aria-hidden="true" />RedTours селекция</span>
+              </div>
+            ) : null}
           </div>
 
           <div className="offer-hero-visual">
@@ -284,14 +325,23 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
 
       <section className="container offer-visual-stage">
         <div className="offer-quick-facts">
-          <span><MapPin size={15} aria-hidden="true" />{routeCities}</span>
+          <span><MapPin size={15} aria-hidden="true" />{normalizedRouteCities}</span>
           {offer.isAuthorProgram ? <span><Sparkles size={15} aria-hidden="true" />Авторска програма</span> : null}
           {offer.transport ? <span><Plane size={15} aria-hidden="true" />{transportLabels[offer.transport] ?? offer.transport}</span> : null}
           {offer.dates[0] ? <span><CalendarDays size={15} aria-hidden="true" />{offer.dates[0].label}</span> : null}
         </div>
       </section>
 
-      {galleryImages.length > 1 ? (
+      <nav className="container offer-section-nav" aria-label="Секции в офертата">
+        <a href="#offer-description">Описание</a>
+        <a href="#offer-dates">Дати и цени</a>
+        <a href="#offer-program">Програма</a>
+        <a href="#offer-services">Включено</a>
+        {offer.supplierSections?.length ? <a href="#offer-supplier-info">Детайли</a> : null}
+        <a href="#offer-inquiry">Запитване</a>
+      </nav>
+
+      {!isImportedOffer && galleryImages.length > 1 ? (
         <section className="container offer-gallery-strip" aria-label="Галерия">
           {galleryImages.slice(1, 5).map((image, index) => (
             <button className="offer-image-open" type="button" onClick={() => openImage(image)} aria-label={`Отвори кадър ${index + 1}`} key={`${image}-strip-${index}`}>
@@ -318,7 +368,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
                 <h2>Кадри от маршрута</h2>
               </div>
               <div className="offer-public-gallery">
-                {galleryImages.slice(4).map((image, index) => (
+                {(isImportedOffer ? galleryImages.slice(1, 7) : galleryImages.slice(4)).map((image, index) => (
                   <button className="offer-image-open" type="button" onClick={() => openImage(image)} aria-label={`Отвори снимка ${index + 1}`} key={`${image}-${index}`}>
                     <img src={image} alt={`${offer.title} - снимка ${index + 1}`} />
                   </button>
@@ -327,7 +377,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
             </section>
           ) : null}
 
-          {offer.highlights?.length ? (
+          {!isImportedOffer && offer.highlights?.length ? (
             <section className="offer-content-section offer-public-highlights">
               <div className="offer-section-title">
                 <span className="eyebrow">Акценти</span>
@@ -439,7 +489,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
             )}
           </section>
 
-          <section className="offer-service-boards">
+          <section className="offer-service-boards" id="offer-services">
             <div className="offer-service-board is-included">
               <div className="offer-section-title">
                 <span className="eyebrow">В цената</span>
@@ -472,14 +522,52 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
               )}
             </div>
           </section>
+
+          {offer.supplierSections?.length ? (
+            <section className="offer-content-section offer-supplier-sections" id="offer-supplier-info">
+              <div className="offer-section-title">
+                <span className="eyebrow">Детайли</span>
+                <h2>Практична информация</h2>
+              </div>
+              {(["hotel", "additional_service", "useful_info", "payment_policy", "cancel_policy", "insurance"] as const).map((type) => {
+                const sections = supplierSectionGroups.get(type);
+                if (!sections?.length) return null;
+
+                return (
+                  <details className={`offer-supplier-group is-${type}`} open={type === "additional_service"} key={type}>
+                    <summary>
+                      <span>{supplierSectionLabel(type)}</span>
+                      <em>{sections.length}</em>
+                    </summary>
+                    <div className="offer-supplier-list">
+                      {sections.map((section, index) => (
+                        <article className={`offer-supplier-item ${type === "additional_service" ? "is-priced" : ""}`} key={`${type}-${section.title}-${index}`}>
+                          {section.meta ? <span>{section.meta}</span> : null}
+                          {type === "additional_service" ? (
+                            <strong>
+                              <span>{splitPriceLabel(section.title).label}</span>
+                              {splitPriceLabel(section.title).price ? <em>{splitPriceLabel(section.title).price}</em> : null}
+                            </strong>
+                          ) : (
+                            <strong>{section.title}</strong>
+                          )}
+                          {section.body && section.body !== section.title ? <p>{section.body}</p> : null}
+                        </article>
+                      ))}
+                    </div>
+                  </details>
+                );
+              })}
+            </section>
+          ) : null}
         </article>
 
         {showInquiry ? (
           <aside className="offer-detail-sidebar" id="offer-inquiry">
             <div className="offer-side-card">
               <span className="eyebrow">Запитване</span>
-              <h2>Резервирай интерес</h2>
-              <p>Изпратете запитване и екипът ще върне потвърждение, свободни места и финални условия.</p>
+              <h2>Изпратете запитване</h2>
+              <p>Ще върнем потвърждение за места, цена и условия.</p>
               <InquiryForm offerTitle={offer.title} offerSlug={offer.slug} destination={destinationLabel} dates={offer.dates.map((date) => ({ label: date.label, startDate: date.startDate }))} />
             </div>
             <div className="offer-trust-card">

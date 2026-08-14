@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowLeft, Code2, DatabaseZap, FileJson, Keyboard, UploadCloud } from "lucide-react";
+import { ArrowLeft, Code2, DatabaseZap, FileJson, Keyboard, UploadCloud, X } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
-import { importJsonOffers, startBlankAdminOffer } from "./actions";
+import { importBohemiaOffers, importJsonOffers, startBlankAdminOffer } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -80,16 +80,69 @@ export default async function NewOfferPage({ searchParams }: NewOfferPageProps) 
         </section>
 
         {selectedSourceLabel ? (
-          <section className="offer-import-setup-panel">
+          <div className="offers-modal-backdrop offer-import-modal-backdrop">
+          <section className="offer-import-setup-panel" role="dialog" aria-modal="true" aria-labelledby="offer-import-title">
             <header>
-              <span>Настройка</span>
-              <h2>{selectedSourceLabel}</h2>
+              <div>
+                <span>Настройка</span>
+                <h2 id="offer-import-title">{selectedSourceLabel}</h2>
+              </div>
+              <Link className="offer-import-close" href="/admin/offers/new" aria-label="Затвори" prefetch={false}>
+                <X size={18} aria-hidden="true" />
+              </Link>
             </header>
             {error ? <strong className="offer-import-error">{error}</strong> : null}
             <p>
               Импортът създава оферти вътре в системната база със статус „за преглед“, за да не се публикуват автоматично в сайта.
             </p>
-            {selectedSource === "json" ? (
+            {selectedSource === "api" ? (
+              <form action={importBohemiaOffers}>
+                <div className="offer-import-bohemia-grid">
+                  <label>
+                    <span>Доставчик</span>
+                    <input name="provider" value="Бохемия" readOnly />
+                  </label>
+                  <label>
+                    <span>Среда</span>
+                    <select name="base_url" defaultValue="https://demo.internationaltravelgroup.net">
+                      <option value="https://demo.internationaltravelgroup.net">Тестов сървър</option>
+                      <option value="https://ims.internationaltravelgroup.net">Production сървър</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Потребител</span>
+                    <input name="username" autoComplete="username" required />
+                  </label>
+                  <label>
+                    <span>Парола</span>
+                    <input name="password" type="password" autoComplete="current-password" required />
+                  </label>
+                  <label>
+                    <span>Лимит</span>
+                    <input name="limit" type="number" min="1" max="50" defaultValue="5" />
+                  </label>
+                  <label>
+                    <span>Детайли</span>
+                    <input name="details_limit" type="number" min="1" max="50" defaultValue="5" />
+                  </label>
+                </div>
+                <fieldset className="offer-import-type-toggle">
+                  <legend>Типове оферти</legend>
+                  <label>
+                    <input name="types" type="checkbox" value="excursion" defaultChecked />
+                    <span>Екскурзии</span>
+                  </label>
+                  <label>
+                    <input name="types" type="checkbox" value="holiday" defaultChecked />
+                    <span>Почивки</span>
+                  </label>
+                </fieldset>
+                <footer>
+                  <button type="submit">Импортирай от Бохемия</button>
+                  <span>Паролата се използва само за тази заявка и не се записва в базата.</span>
+                </footer>
+              </form>
+            ) : selectedSource === "json" ? (
               <form action={importJsonOffers}>
                 <div>
                   <label>
@@ -125,6 +178,7 @@ export default async function NewOfferPage({ searchParams }: NewOfferPageProps) 
               </>
             )}
           </section>
+          </div>
         ) : null}
       </section>
     </AdminWorkspace>

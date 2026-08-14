@@ -1,6 +1,6 @@
 import { AdminOfferEditorClient, type AdminOfferEditorInitialOffer } from "./AdminOfferEditorClient";
 import { getAdminOfferBySlug } from "@/lib/adminOfferRepository";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,6 +21,10 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
   const offer = await getAdminOfferBySlug(slug);
   if (!offer) {
     notFound();
+  }
+
+  if (offer.import_id) {
+    redirect(`/admin/supplier-imports/${offer.import_id}`);
   }
 
   const canCancelCreation = Boolean(offer && offer.status === "draft" && newMode === "1");
