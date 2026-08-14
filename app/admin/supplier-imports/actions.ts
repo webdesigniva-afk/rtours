@@ -53,6 +53,85 @@ function redirectWithSyncError(message: string) {
   redirect(`/admin/supplier-imports?syncError=${encodeURIComponent(message)}`);
 }
 
+function isNextRedirectError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const value = error as { digest?: unknown; message?: unknown };
+  return String(value.digest || value.message || "").includes("NEXT_REDIRECT");
+}
+
+function buildAbaxUrl(baseUrl: string, apiKey: string, apiCode: string, method: string) {
+  const url = new URL(baseUrl || "https://api.abax.bg/index.php");
+  url.searchParams.set("key", apiKey);
+  url.searchParams.set("code", apiCode);
+  return `${url.toString()}&${method}`;
+}
+
+async function countAbaxProgramsDirect(options: { baseUrl: string; apiKey: string; apiCode: string }) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    const response = await fetch(buildAbaxUrl(options.baseUrl, options.apiKey, options.apiCode, "get-programs-list"), {
+      cache: "no-store",
+      signal: controller.signal
+    });
+    const text = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`Abax API returned HTTP ${response.status}.`);
+    }
+
+    const payload = JSON.parse(text) as unknown;
+    if (Array.isArray(payload)) return payload.length;
+    if (!payload || typeof payload !== "object") return 0;
+
+    const programs = Object.values(payload).filter((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+      const record = item as Record<string, unknown>;
+      return Boolean(record.ID || record.id || record.ProgramName || record.programName || record.Name || record.name);
+    });
+
+    if (programs.length > 0) return programs.length;
+
+    const errorMessage = (payload as Record<string, unknown>).error || (payload as Record<string, unknown>).Error;
+    if (errorMessage) throw new Error(String(errorMessage));
+
+    return Object.keys(payload).length;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function updateSupplierImportRunProgress(
+  client: { query: (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> },
+  runId: string | null,
+  summary: Record<string, number>
+) {
+  if (!runId) return;
+
+  await client.query(
+    `
+      update supplier_import_runs
+      set total_processed = $2,
+          new_count = $3,
+          changed_count = $4,
+          unchanged_count = $5,
+          error_count = $6,
+          summary = $7::jsonb
+      where id = $1
+    `,
+    [
+      runId,
+      summary.processed || 0,
+      summary.new || 0,
+      summary.changed || 0,
+      summary.unchanged || 0,
+      summary.error || 0,
+      JSON.stringify(summary)
+    ]
+  );
+}
+
 export async function saveGenericSupplierConnector(formData: FormData) {
   await requireAdminSession();
 
@@ -86,6 +165,7 @@ export async function saveGenericSupplierConnector(formData: FormData) {
     revalidatePath("/admin/supplier-imports");
     redirect(`/admin/supplier-imports?connectorSaved=${encodeURIComponent(provider)}`);
   } catch (error) {
+    if (isNextRedirectError(error)) throw error;
     const message = error instanceof Error ? error.message : "Connector settings could not be saved.";
     redirectWithSyncError(message);
   }
@@ -216,6 +296,7 @@ export async function syncGenericSupplierConnector(formData: FormData) {
 
     redirect(`/admin/supplier-imports?${params.toString()}`);
   } catch (error) {
+    if (isNextRedirectError(error)) throw error;
     const message = error instanceof Error ? error.message : "Generic supplier sync failed.";
     redirectWithSyncError(message);
   }
@@ -258,6 +339,90 @@ async function countBohemiaOffersFallback(
 
   counts.total = counts.excursion + counts.holiday;
   return counts;
+}
+
+export async function checkSupplierConnection(formData: FormData): Promise<{
+  ok: boolean;
+  provider: string;
+  total?: number;
+  excursions?: number;
+  holidays?: number;
+  message: string;
+}> {
+  await requireAdminSession();
+
+  const provider = readString(formData, "provider_label") === "abax" ? "abax" : "bohemia";
+
+  try {
+    if (provider === "abax") {
+      const baseUrl = readString(formData, "base_url") || "https://api.abax.bg/index.php";
+      const apiKey = readString(formData, "api_key");
+      const apiCode = readString(formData, "api_code");
+
+      if (!apiKey || !apiCode) {
+        return { ok: false, provider, message: "Въведи API UUID и API Key за Abax." };
+      }
+
+      const total = await countAbaxProgramsDirect({
+        baseUrl,
+        apiKey,
+        apiCode
+      });
+
+      return {
+        ok: true,
+        provider,
+        total,
+        message: `Abax: връзката е успешна. Открити са ${total} активни програми.`
+      };
+    }
+
+    const baseUrl = readString(formData, "base_url") || "https://demo.internationaltravelgroup.net";
+    const username = readString(formData, "username");
+    const password = readString(formData, "password");
+    const selectedTypes = formData
+      .getAll("types")
+      .map((value) => (typeof value === "string" ? value : ""))
+      .filter((value) => value === "excursion" || value === "holiday");
+    const types = selectedTypes.length > 0 ? selectedTypes : ["excursion", "holiday"];
+
+    if (!username || !password) {
+      return { ok: false, provider, message: "Въведи потребител и парола за Bohemia." };
+    }
+
+    const bohemiaImport = await import("@/lib/bohemiaImport.mjs");
+    const counts =
+      typeof bohemiaImport.fetchBohemiaOfferCounts === "function"
+        ? await bohemiaImport.fetchBohemiaOfferCounts({
+            baseUrl,
+            username,
+            password,
+            timeoutMs: 10000,
+            types
+          })
+        : await countBohemiaOffersFallback(bohemiaImport, {
+            baseUrl,
+            username,
+            password,
+            timeoutMs: 10000,
+            types
+          });
+
+    return {
+      ok: true,
+      provider,
+      total: counts.total || 0,
+      excursions: counts.excursion || 0,
+      holidays: counts.holiday || 0,
+      message: `Bohemia: връзката е успешна. Открити са ${counts.total || 0} оферти.`
+    };
+  } catch (error) {
+    if (isNextRedirectError(error)) throw error;
+    const message = error instanceof Error && error.name === "AbortError"
+      ? "Доставчикът отговори твърде бавно. Опитай отново след малко."
+      : error instanceof Error ? error.message : "Проверката не беше успешна.";
+    return { ok: false, provider, message };
+  }
 }
 
 export async function syncBohemiaSupplierImports(formData: FormData) {
@@ -397,6 +562,7 @@ export async function syncBohemiaSupplierImports(formData: FormData) {
 
     redirect(`/admin/supplier-imports?${params.toString()}`);
   } catch (error) {
+    if (isNextRedirectError(error)) throw error;
     const message = error instanceof Error ? error.message : "Bohemia sync не беше успешен.";
     redirectWithSyncError(message);
   }
@@ -412,7 +578,7 @@ export async function syncAbaxSupplierImports(formData: FormData) {
   const importAll = readString(formData, "import_all") === "yes";
   const offset = Math.max(readInteger(formData, "offset") || 0, 0);
   const batchSize = Math.min(Math.max(readInteger(formData, "batch_size") || 20, 1), 50);
-  const limit = importAll ? batchSize : Math.min(Math.max(readInteger(formData, "limit") || 100, 1), 500);
+  const limit = importAll ? 500 : Math.min(Math.max(readInteger(formData, "limit") || 100, 1), 500);
 
   if (!apiKey || !apiCode) {
     redirectWithSyncError("Въведи API UUID и API Key за Abax sync.");
@@ -423,15 +589,14 @@ export async function syncAbaxSupplierImports(formData: FormData) {
     const supplierImport = await import("@/lib/supplierImport.mjs");
 
     if (mode === "count") {
-      const counts = await abaxImport.fetchAbaxOfferCounts({
+      const total = await countAbaxProgramsDirect({
         baseUrl,
-        key: apiKey,
-        code: apiCode,
-        timeoutMs: 15000
+        apiKey,
+        apiCode
       });
       const params = new URLSearchParams({
         checked: "1",
-        total: String(counts.total || 0),
+        total: String(total),
         genericProvider: "abax"
       });
 
@@ -444,7 +609,8 @@ export async function syncAbaxSupplierImports(formData: FormData) {
       code: apiCode,
       limit,
       offset: importAll ? offset : 0,
-      timeoutMs: 15000
+      timeoutMs: 60000,
+      includePrices: !importAll
     });
     const meta = (offers as {
       meta?: { hasMore?: boolean; nextOffset?: number; totalAvailable?: number; processedAvailable?: number };
@@ -476,11 +642,12 @@ export async function syncAbaxSupplierImports(formData: FormData) {
           baseUrl,
           limit,
           offset: importAll ? offset : 0,
-          importAll
+          importAll,
+          includePrices: !importAll
         }
       });
 
-      for (const offer of offers) {
+      for (const [index, offer] of offers.entries()) {
         const result = await supplierImport.upsertSupplierOffer(client, offer, {
           provider: "abax",
           displayName: "Abax",
@@ -489,8 +656,13 @@ export async function syncAbaxSupplierImports(formData: FormData) {
         });
         summary[result.changeState] = (summary[result.changeState] || 0) + 1;
         summary.processed += 1;
+
+        if ((index + 1) % 10 === 0) {
+          await updateSupplierImportRunProgress(client, importRunId, summary);
+        }
       }
 
+      await updateSupplierImportRunProgress(client, importRunId, summary);
       await supplierImport.finishSupplierImportRun(client, importRunId, summary);
     } catch (error) {
       summary.error += 1;
@@ -523,7 +695,147 @@ export async function syncAbaxSupplierImports(formData: FormData) {
 
     redirect(`/admin/supplier-imports?${params.toString()}`);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Abax sync не беше успешен.";
+    if (isNextRedirectError(error)) throw error;
+    const message = error instanceof Error && error.name === "AbortError"
+      ? "Abax API отговори твърде бавно. Опитай отново или намали лимита за синхронизация."
+      : error instanceof Error ? error.message : "Abax sync не беше успешен.";
     redirectWithSyncError(message);
+  }
+}
+
+export async function processAbaxCatalogBatch(formData: FormData): Promise<{
+  ok: boolean;
+  runId?: string | null;
+  totalFound?: number;
+  totalProcessed?: number;
+  nextOffset?: number;
+  done?: boolean;
+  new?: number;
+  changed?: number;
+  unchanged?: number;
+  error?: number;
+  message: string;
+}> {
+  await requireAdminSession();
+
+  const baseUrl = readString(formData, "base_url") || "https://api.abax.bg/index.php";
+  const apiKey = readString(formData, "api_key");
+  const apiCode = readString(formData, "api_code");
+  const runIdFromForm = readString(formData, "run_id") || null;
+  const offset = Math.max(readInteger(formData, "offset") || 0, 0);
+  const limit = Math.min(Math.max(readInteger(formData, "limit") || 20, 1), 50);
+
+  if (!apiKey || !apiCode) {
+    return { ok: false, message: "Въведи API UUID и API Key за Abax." };
+  }
+
+  const pool = getDbPool() as unknown as {
+    connect: () => Promise<{
+      query: (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>;
+      release: () => void;
+    }>;
+  };
+  const client = await pool.connect();
+  let importRunId = runIdFromForm;
+
+  try {
+    const abaxImport = await import("@/lib/abaxImport.mjs");
+    const supplierImport = await import("@/lib/supplierImport.mjs");
+    let summary: Record<string, number> = { new: 0, changed: 0, unchanged: 0, processed: 0, error: 0 };
+
+    if (importRunId) {
+      const runResult = await client.query(
+        "select summary, total_processed from supplier_import_runs where id = $1 and provider = 'abax' limit 1",
+        [importRunId]
+      );
+      const existing = runResult.rows[0];
+      if (!existing) return { ok: false, message: "Abax import run не беше намерен. Стартирай нов импорт." };
+      summary = {
+        ...summary,
+        ...(existing.summary && typeof existing.summary === "object" ? existing.summary : {}),
+        processed: Number(existing.total_processed || 0)
+      };
+    }
+
+    const offers = await abaxImport.fetchAbaxOffers({
+      baseUrl,
+      key: apiKey,
+      code: apiCode,
+      limit,
+      offset,
+      timeoutMs: 60000,
+      includePrices: false
+    });
+    const meta = (offers as {
+      meta?: { hasMore?: boolean; nextOffset?: number; totalAvailable?: number; processedAvailable?: number };
+    }).meta;
+    const totalFound = meta?.totalAvailable ?? offers.length;
+
+    if (!importRunId) {
+      importRunId = await supplierImport.startSupplierImportRun(client, {
+        provider: "abax",
+        displayName: "Abax",
+        source: "api",
+        mode: "manual",
+        totalFound,
+        defaultBaseUrl: baseUrl,
+        configSnapshot: {
+          baseUrl,
+          phase: "catalog",
+          batchSize: limit
+        }
+      });
+    }
+
+    for (const offer of offers) {
+      try {
+        const result = await supplierImport.upsertSupplierOffer(client, offer, {
+          provider: "abax",
+          displayName: "Abax",
+          source: "api",
+          importRunId
+        });
+        summary[result.changeState] = (summary[result.changeState] || 0) + 1;
+        summary.processed += 1;
+      } catch {
+        summary.error += 1;
+      }
+    }
+
+    await updateSupplierImportRunProgress(client, importRunId, summary);
+    const nextOffset = meta?.nextOffset ?? offset + offers.length;
+    const done = !meta?.hasMore || nextOffset >= totalFound;
+
+    if (done) {
+      await supplierImport.finishSupplierImportRun(client, importRunId, summary, summary.error > 0 ? new Error("Some Abax programs failed during catalog import.") : null);
+    }
+
+    revalidatePath("/admin/supplier-imports");
+    revalidatePath("/admin/offers");
+
+    return {
+      ok: true,
+      runId: importRunId,
+      totalFound,
+      totalProcessed: summary.processed || 0,
+      nextOffset,
+      done,
+      new: summary.new || 0,
+      changed: summary.changed || 0,
+      unchanged: summary.unchanged || 0,
+      error: summary.error || 0,
+      message: done
+        ? `Abax каталогът е готов: ${summary.processed || 0}/${totalFound} обработени.`
+        : `Обработени са ${summary.processed || 0}/${totalFound}. Можеш да продължиш със следващата партида.`
+    };
+  } catch (error) {
+    if (isNextRedirectError(error)) throw error;
+    return {
+      ok: false,
+      runId: importRunId,
+      message: error instanceof Error ? error.message : "Abax batch import не беше успешен."
+    };
+  } finally {
+    client.release();
   }
 }

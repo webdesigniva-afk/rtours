@@ -45,6 +45,24 @@ export type AdminOfferRecord = {
   import_source: string | null;
   import_change_state: "new" | "changed" | "expired" | "unavailable" | "unchanged" | null;
   import_last_synced_at: string | null;
+  import_raw_payload: unknown;
+  supplier_entities: Array<{
+    id: string;
+    type: string;
+    key: string | null;
+    title: string | null;
+    url: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    price: string | null;
+    currency: "EUR" | "BGN" | null;
+    sortOrder: number;
+    isEnabled: boolean;
+    editorialTitle: string | null;
+    editorialUrl: string | null;
+    editorialData: Record<string, unknown> | null;
+    rawData: unknown;
+  }> | null;
   status: string;
   hero_image_url: string | null;
   gallery_image_urls: string[] | null;
@@ -153,6 +171,74 @@ export async function getAdminOfferBySlug(slug: string) {
           order by import.last_synced_at desc, import.created_at desc
           limit 1
         ) as import_id,
+        (
+          select import.provider
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_provider,
+        (
+          select import.source::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_source,
+        (
+          select import.change_state::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_change_state,
+        (
+          select import.last_synced_at::text
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_last_synced_at,
+        (
+          select import.raw_payload
+          from offer_imports import
+          where import.offer_id = offers.id
+          order by import.last_synced_at desc, import.created_at desc
+          limit 1
+        ) as import_raw_payload,
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'id', entity.id,
+                'type', entity.entity_type,
+                'key', entity.entity_key,
+                'title', entity.title,
+                'url', entity.url,
+                'startDate', entity.start_date::text,
+                'endDate', entity.end_date::text,
+                'price', entity.price::text,
+                'currency', entity.currency,
+                'sortOrder', entity.sort_order,
+                'isEnabled', entity.is_enabled,
+                'editorialTitle', entity.editorial_title,
+                'editorialUrl', entity.editorial_url,
+                'editorialData', entity.editorial_data,
+                'rawData', entity.raw_data
+              )
+              order by entity.entity_type, entity.sort_order, entity.created_at
+            )
+            from supplier_import_entities entity
+            where entity.import_id = (
+              select import.id
+              from offer_imports import
+              where import.offer_id = offers.id
+              order by import.last_synced_at desc, import.created_at desc
+              limit 1
+            )
+          ),
+          '[]'::jsonb
+        ) as supplier_entities,
         status::text,
         hero_image_url,
         coalesce(

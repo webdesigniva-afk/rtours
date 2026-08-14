@@ -220,6 +220,12 @@ export default async function AdminSupplierImportDetailPage({ params }: AdminSup
           </div>
           <div className="supplier-import-detail-actions">
             {item.slug ? (
+              <Link href={`/admin/offers/${item.slug}`} prefetch={false}>
+                <FileText size={16} aria-hidden="true" />
+                Edit public offer
+              </Link>
+            ) : null}
+            {item.slug ? (
               <Link href={`/offers/${item.slug}`} prefetch={false}>
                 <Eye size={16} aria-hidden="true" />
                 Публична страница

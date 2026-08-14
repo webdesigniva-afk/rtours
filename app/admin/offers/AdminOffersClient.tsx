@@ -43,7 +43,7 @@ function tabMatchesOffer(activeTab: StatusTab, offer: OfferRow) {
 }
 
 function adminOfferHref(offer: OfferRow) {
-  return offer.importId ? `/admin/supplier-imports/${offer.importId}` : `/admin/offers/${offer.id}`;
+  return `/admin/offers/${offer.slug || offer.id}`;
 }
 
 function uniqueOptions(offers: OfferRow[], key: keyof Pick<OfferRow, "destination" | "type" | "source" | "status" | "collection">) {

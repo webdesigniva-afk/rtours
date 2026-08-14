@@ -16,6 +16,8 @@ declare module "@/lib/abaxImport.mjs" {
     limit?: number;
     offset?: number;
     timeoutMs?: number;
+    includePrices?: boolean;
+    concurrency?: number;
   }): Promise<Array<Record<string, unknown>> & {
     meta?: {
       totalAvailable?: number;
@@ -26,4 +28,6 @@ declare module "@/lib/abaxImport.mjs" {
       limit?: number;
     };
   }>;
+
+  export function mapStoredAbaxRaw(rawPayload: Record<string, unknown>): Record<string, unknown> | null;
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { ArrowLeft, CheckCircle2, DatabaseZap, FileJson, Keyboard, Link2, Loader2, RefreshCw, ShieldCheck, UploadCloud, X } from "lucide-react";
 import { startBlankAdminOffer } from "@/app/admin/offers/new/actions";
-import { syncAbaxSupplierImports, syncBohemiaSupplierImports, syncGenericSupplierConnector } from "./actions";
+import { checkSupplierConnection, syncAbaxSupplierImports, syncBohemiaSupplierImports, syncGenericSupplierConnector } from "./actions";
 
 type SupplierConnectorSummary = {
   id: string;
@@ -36,6 +36,7 @@ type SupplierImportLaunchPanelProps = {
 };
 
 type WizardStep = "choose" | "configured" | "login" | "paste";
+type ConnectionCheckResult = Awaited<ReturnType<typeof checkSupplierConnection>>;
 
 const defaultMapping = {
   itemsPath: "offers",
@@ -65,17 +66,37 @@ function hasFeedback(feedback: SupplierImportLaunchPanelProps["feedback"]) {
   return Boolean(feedback.syncError || feedback.checked || feedback.synced);
 }
 
+function feedbackProviderLabel(provider?: string) {
+  if (provider === "abax") return "Abax";
+  if (provider === "bohemia") return "Bohemia";
+  return provider || "Доставчик";
+}
+
 export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false, feedback }: SupplierImportLaunchPanelProps) {
   const preferredConnector = connectors.find((connector) => connector.provider !== "bohemia") || connectors[0];
   const [isWizardOpen, setIsWizardOpen] = useState(shouldOpenImport);
   const [step, setStep] = useState<WizardStep>("choose");
   const [loginProvider, setLoginProvider] = useState("bohemia");
   const [selectedProvider, setSelectedProvider] = useState(feedback.genericProvider || preferredConnector?.provider || "test-supplier");
+  const [connectionCheck, setConnectionCheck] = useState<ConnectionCheckResult | null>(null);
+  const [isCheckingConnection, startConnectionCheck] = useTransition();
+  const loginFormRef = useRef<HTMLFormElement>(null);
   const selectedConnector = connectors.find((connector) => connector.provider === selectedProvider);
 
   useEffect(() => {
     if (shouldOpenImport) setIsWizardOpen(true);
   }, [shouldOpenImport]);
+
+  function handleConnectionCheck() {
+    if (!loginFormRef.current || isCheckingConnection) return;
+
+    const formData = new FormData(loginFormRef.current);
+    setConnectionCheck(null);
+    startConnectionCheck(async () => {
+      const result = await checkSupplierConnection(formData);
+      setConnectionCheck(result);
+    });
+  }
 
   return (
     <>
@@ -115,7 +136,7 @@ export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false
               <>
                 <CheckCircle2 size={18} aria-hidden="true" />
                 <span>
-                  Връзката е успешна. Открити са {feedback.total || "0"} оферти
+                  {feedbackProviderLabel(feedback.genericProvider)}: връзката е успешна. Открити са {feedback.total || "0"} оферти
                   {feedback.excursions || feedback.holidays ? `: ${feedback.excursions || "0"} екскурзии и ${feedback.holidays || "0"} почивки.` : "."}
                 </span>
               </>
@@ -137,19 +158,18 @@ export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false
             <header>
               <div>
                 <span>Импорт</span>
-                <h2 id="supplier-wizard-title">Как ще импортираме?</h2>
+                <h2 id="supplier-wizard-title">{step === "choose" ? "Как ще импортираме?" : "Импорт от доставчик"}</h2>
               </div>
+              {step !== "choose" ? (
+                <button className="supplier-wizard-back" type="button" onClick={() => setStep("choose")}>
+                  <ArrowLeft size={16} aria-hidden="true" />
+                  Назад
+                </button>
+              ) : null}
               <button type="button" aria-label="Затвори" onClick={() => setIsWizardOpen(false)}>
                 <X size={18} aria-hidden="true" />
               </button>
             </header>
-
-            <nav className="supplier-wizard-steps" aria-label="Стъпки">
-              <span className={step === "choose" ? "is-active" : ""}>1. Източник</span>
-              <span className={step !== "choose" ? "is-active" : ""}>2. Данни</span>
-              <span>3. Проверка</span>
-              <span>4. За преглед</span>
-            </nav>
 
             {step === "choose" ? (
               <div className="supplier-wizard-choice-grid">
@@ -178,24 +198,20 @@ export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false
             ) : null}
 
             {step === "login" ? (
-              <form action={loginProvider === "abax" ? syncAbaxSupplierImports : syncBohemiaSupplierImports} className="supplier-wizard-form">
-                <button className="supplier-wizard-back" type="button" onClick={() => setStep("choose")}>
-                  <ArrowLeft size={16} aria-hidden="true" />
-                  Назад
-                </button>
-                <div className="supplier-wizard-card">
-                  <ShieldCheck size={20} aria-hidden="true" />
-                  <div>
-                    <strong>Проверка преди синхронизация</strong>
-                    <p>Първо провери връзката и броя открити оферти. След това синхронизирай. Офертите ще влязат като “за преглед”.</p>
-                  </div>
-                </div>
+              <form ref={loginFormRef} action={loginProvider === "abax" ? syncAbaxSupplierImports : syncBohemiaSupplierImports} className="supplier-wizard-form">
                 <input name="offset" type="hidden" value="0" />
                 <input name="batch_size" type="hidden" value="10" />
                 <div className="supplier-wizard-grid">
                   <label>
                     Доставчик
-                    <select name="provider_label" value={loginProvider} onChange={(event) => setLoginProvider(event.target.value)}>
+                    <select
+                      name="provider_label"
+                      value={loginProvider}
+                      onChange={(event) => {
+                        setLoginProvider(event.target.value);
+                        setConnectionCheck(null);
+                      }}
+                    >
                       <option value="bohemia">Bohemia</option>
                       <option value="abax">Abax</option>
                     </select>
@@ -254,12 +270,24 @@ export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false
                 ) : null}
                 <label className="supplier-wizard-inline">
                   <input name="import_all" type="checkbox" value="yes" />
-                  <span>Импортирай всички налични оферти на безопасни партиди.</span>
+                  <span>{loginProvider === "abax" ? "Импортирай всички открити Abax програми." : "Импортирай всички налични оферти на безопасни партиди."}</span>
                 </label>
+                {loginProvider === "abax" ? (
+                  <p className="supplier-wizard-note">Всичко влиза за преглед. Пълен Abax импорт използва основния списък, а детайлните цени се обогатяват с по-малък лимит.</p>
+                ) : null}
+                {isCheckingConnection || connectionCheck ? (
+                  <div className={connectionCheck?.ok ? "supplier-wizard-check-result is-success" : connectionCheck ? "supplier-wizard-check-result is-error" : "supplier-wizard-check-result is-loading"} role="status" aria-live="polite">
+                    {isCheckingConnection ? <Loader2 className="is-spinning" size={18} aria-hidden="true" /> : connectionCheck?.ok ? <CheckCircle2 size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}
+                    <span>{isCheckingConnection ? "Проверяваме връзката и броя оферти..." : connectionCheck?.message}</span>
+                    {!isCheckingConnection && connectionCheck?.ok ? (
+                      <strong>{connectionCheck.total ?? 0} открити</strong>
+                    ) : null}
+                  </div>
+                ) : null}
                 <footer>
-                  <button type="submit" name="mode" value="count" className="is-secondary">
-                    <Loader2 size={17} aria-hidden="true" />
-                    Провери връзката
+                  <button type="button" className="is-secondary" onClick={handleConnectionCheck} disabled={isCheckingConnection}>
+                    <Loader2 className={isCheckingConnection ? "is-spinning" : ""} size={17} aria-hidden="true" />
+                    {isCheckingConnection ? "Проверява..." : "Провери връзката"}
                   </button>
                   <button type="submit" name="mode" value="sync">
                     <RefreshCw size={17} aria-hidden="true" />
@@ -271,10 +299,6 @@ export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false
 
             {step === "configured" || step === "paste" ? (
               <form action={syncGenericSupplierConnector} className="supplier-wizard-form">
-                <button className="supplier-wizard-back" type="button" onClick={() => setStep("choose")}>
-                  <ArrowLeft size={16} aria-hidden="true" />
-                  Назад
-                </button>
                 <div className="supplier-wizard-card">
                   <ShieldCheck size={20} aria-hidden="true" />
                   <div>

@@ -956,3 +956,90 @@ export async function updateOfferDatesPrices(_state: OfferDatesPricesActionState
 
   return { ok: true, message: rows.length ? "Датите и цените са записани." : "Няма въведени нови данни за дати и цени." };
 }
+
+export async function updateOfferSupplierApiReview(_state: { ok: boolean; message: string }, formData: FormData): Promise<{ ok: boolean; message: string }> {
+  const slug = readString(formData, "slug");
+  const importId = readString(formData, "import_id");
+  await requireAdminSession(slug);
+
+  if (!importId) {
+    return { ok: false, message: "Няма свързан импорт към тази оферта." };
+  }
+
+  const offerResult = await dbQuery<{ id: string }>(
+    `
+      select offer.id
+      from offers offer
+      join offer_imports import on import.offer_id = offer.id
+      where offer.slug = $1
+        and import.id = $2
+      limit 1
+    `,
+    [slug, importId]
+  );
+  const offerId = offerResult.rows[0]?.id;
+
+  if (!offerId) {
+    return { ok: false, message: "Офертата или импортът не бяха намерени." };
+  }
+
+  const enabledEntityIds = new Set(readStringList(formData, "enabled_entity_ids"));
+  const entityIds = readStringList(formData, "entity_ids");
+
+  for (const [index, entityId] of entityIds.entries()) {
+    const title = readString(formData, `entity_title_${entityId}`);
+    const text = readString(formData, `entity_text_${entityId}`);
+    const url = readString(formData, `entity_url_${entityId}`);
+    const publicSection = readString(formData, `entity_public_section_${entityId}`);
+    const notes = readString(formData, `entity_notes_${entityId}`);
+    const editorialData = {
+      title,
+      text,
+      description: text,
+      url,
+      publicSection,
+      notes
+    };
+
+    await dbQuery(
+      `
+        update supplier_import_entities
+        set is_enabled = $4,
+            editorial_title = nullif($5, ''),
+            editorial_url = nullif($6, ''),
+            sort_order = $7,
+            editorial_data = $8::jsonb,
+            updated_at = now()
+        where id = $1
+          and import_id = $2
+          and offer_id = $3
+      `,
+      [
+        entityId,
+        importId,
+        offerId,
+        enabledEntityIds.has(entityId),
+        title,
+        url,
+        index,
+        JSON.stringify(editorialData)
+      ]
+    );
+  }
+
+  await dbQuery(
+    `
+      update offers
+      set review_notes = 'Supplier API review layer saved. Public offer remains under manual control.',
+          updated_at = now()
+      where id = $1
+    `,
+    [offerId]
+  );
+
+  revalidatePath(`/admin/offers/${slug}`);
+  revalidatePath("/admin/offers");
+  revalidatePath(`/admin/supplier-imports/${importId}`);
+
+  return { ok: true, message: "Данните от API са запазени за редакционен преглед. Публикуване не е направено автоматично." };
+}

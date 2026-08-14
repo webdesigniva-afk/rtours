@@ -1,6 +1,6 @@
 import { AdminOfferEditorClient, type AdminOfferEditorInitialOffer } from "./AdminOfferEditorClient";
 import { getAdminOfferBySlug } from "@/lib/adminOfferRepository";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,10 +21,6 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
   const offer = await getAdminOfferBySlug(slug);
   if (!offer) {
     notFound();
-  }
-
-  if (offer.import_id) {
-    redirect(`/admin/supplier-imports/${offer.import_id}`);
   }
 
   const canCancelCreation = Boolean(offer && offer.status === "draft" && newMode === "1");
@@ -69,6 +65,13 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
     transport: shouldHideDefaultTransport ? "" : offer.transport,
     dates: offer.dates ?? [],
     status: offer.status ?? "draft",
+    importId: offer.import_id,
+    importProvider: offer.import_provider,
+    importSource: offer.import_source,
+    importChangeState: offer.import_change_state,
+    importLastSyncedAt: offer.import_last_synced_at,
+    importRawPayload: offer.import_raw_payload,
+    supplierEntities: offer.supplier_entities ?? [],
     heroImageUrl: offer.hero_image_url ?? "",
     galleryImageUrls: offer.gallery_image_urls ?? [],
     seoMetaTitle: offer.seo_meta_title ?? "",
