@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { adminSessionCookieName, verifyAdminSessionToken } from "@/lib/adminSession";
 import { dbQuery, getDbPool } from "@/lib/db";
+import { decryptJsonSecret, encryptJsonSecret } from "@/lib/secretBox";
 
 async function requireAdminSession() {
   const cookieStore = await cookies();
@@ -35,6 +36,27 @@ function readJsonObject(value: string, fallback: Record<string, unknown> = {}) {
   return parsed as Record<string, unknown>;
 }
 
+function configString(config: Record<string, unknown> | null | undefined, keys: string[]) {
+  for (const key of keys) {
+    const value = config?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function encryptedConfig(config: Record<string, unknown> | null | undefined) {
+  try {
+    return decryptJsonSecret(config?.encryptedCredentials);
+  } catch {
+    return {};
+  }
+}
+
+function usableBaseUrl(value: string | null | undefined, fallback: string) {
+  const text = String(value || "").trim();
+  return /^https?:\/\//i.test(text) ? text : fallback;
+}
+
 function normalizeProviderSlug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "supplier";
 }
@@ -53,6 +75,23 @@ function redirectWithSyncError(message: string) {
   redirect(`/admin/supplier-imports?syncError=${encodeURIComponent(message)}`);
 }
 
+function redirectWithSupplierError(message: string) {
+  redirect(`/admin/suppliers?credentialError=${encodeURIComponent(message)}`);
+}
+
+function redirectWithSupplierSaved(provider: string) {
+  redirect(`/admin/suppliers?credentialsSaved=${encodeURIComponent(provider)}`);
+}
+
+function redirectToSupplierLogin(provider: "abax" | "bohemia", message: string) {
+  const params = new URLSearchParams({
+    startImport: "1",
+    importProvider: provider,
+    syncError: message
+  });
+  redirect(`/admin/supplier-imports?${params.toString()}`);
+}
+
 function isNextRedirectError(error: unknown) {
   if (!error || typeof error !== "object") return false;
   const value = error as { digest?: unknown; message?: unknown };
@@ -64,6 +103,94 @@ function buildAbaxUrl(baseUrl: string, apiKey: string, apiCode: string, method: 
   url.searchParams.set("key", apiKey);
   url.searchParams.set("code", apiCode);
   return `${url.toString()}&${method}`;
+}
+
+export async function saveSupplierConnectorCredentials(formData: FormData) {
+  await requireAdminSession();
+
+  const connectorId = readString(formData, "connector_id");
+  const provider = readString(formData, "provider");
+  const baseUrl = readString(formData, "base_url");
+
+  try {
+    if (!connectorId) throw new Error("Доставчикът не беше намерен.");
+
+    const connectorResult = await dbQuery<{
+      id: string;
+      provider: string;
+      display_name: string;
+      default_base_url: string | null;
+      config_schema: Record<string, unknown> | null;
+    }>(
+      `
+        select id, provider, display_name, default_base_url, config_schema
+        from supplier_connectors
+        where id = $1
+        limit 1
+      `,
+      [connectorId]
+    );
+    const connector = connectorResult.rows[0];
+
+    if (!connector || connector.provider !== provider) {
+      throw new Error("Доставчикът не беше намерен.");
+    }
+
+    let credentials: Record<string, unknown> = {};
+
+    if (provider === "abax") {
+      const apiKey = readString(formData, "api_key");
+      const apiCode = readString(formData, "api_code");
+
+      if (!apiKey || !apiCode) {
+        throw new Error("Въведи API UUID и API Key за Abax.");
+      }
+
+      credentials = { apiKey, apiCode };
+    } else if (provider === "bohemia") {
+      const username = readString(formData, "username");
+      const password = readString(formData, "password");
+
+      if (!username || !password) {
+        throw new Error("Въведи потребител и парола за Bohemia.");
+      }
+
+      credentials = { username, password };
+    } else {
+      throw new Error("Този тип доставчик още няма форма за сигурни credentials.");
+    }
+
+    const config = connector.config_schema || {};
+
+    await dbQuery(
+      `
+        update supplier_connectors
+        set default_base_url = coalesce(nullif($2, ''), default_base_url),
+            auth_type = 'stored_credentials',
+            config_schema = coalesce(config_schema, '{}'::jsonb) || $3::jsonb,
+            updated_at = now()
+        where id = $1
+      `,
+      [
+        connectorId,
+        baseUrl,
+        JSON.stringify({
+          ...config,
+          encryptedCredentials: encryptJsonSecret(credentials),
+          credentialsStored: true,
+          credentialsUpdatedAt: new Date().toISOString()
+        })
+      ]
+    );
+
+    revalidatePath("/admin/suppliers");
+    revalidatePath("/admin/supplier-imports");
+    redirectWithSupplierSaved(provider);
+  } catch (error) {
+    if (isNextRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : "Достъпът до доставчика не беше записан.";
+    redirectWithSupplierError(message);
+  }
 }
 
 async function countAbaxProgramsDirect(options: { baseUrl: string; apiKey: string; apiCode: string }) {
@@ -130,6 +257,32 @@ async function updateSupplierImportRunProgress(
       JSON.stringify(summary)
     ]
   );
+}
+
+async function countSupplierImportsNotSeenInRun(
+  client: { query: (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> },
+  provider: string,
+  runId: string | null
+) {
+  if (!provider || !runId) return 0;
+
+  const result = await client.query(
+    `
+      select count(*)::int as count
+      from offer_imports import
+      where import.provider = $1
+        and import.source in ('api', 'xml', 'json', 'csv', 'file')
+        and import.import_run_id is distinct from $2
+    `,
+    [provider, runId]
+  );
+
+  return Number(result.rows[0]?.count || 0);
+}
+
+function missingSupplierMessage(provider: string, count: number) {
+  if (count <= 0) return "";
+  return `${provider}: ${count} вече внесени оферти не бяха открити в този пълен sync. Не са скрити автоматично, маркирай ги след проверка.`;
 }
 
 export async function saveGenericSupplierConnector(formData: FormData) {
@@ -298,6 +451,124 @@ export async function syncGenericSupplierConnector(formData: FormData) {
   } catch (error) {
     if (isNextRedirectError(error)) throw error;
     const message = error instanceof Error ? error.message : "Generic supplier sync failed.";
+    redirectWithSyncError(message);
+  }
+}
+
+export async function syncConfiguredSupplierConnector(formData: FormData) {
+  await requireAdminSession();
+
+  const connectorId = readString(formData, "connector_id");
+
+  try {
+    const result = await dbQuery<{
+      id: string;
+      provider: string;
+      display_name: string;
+      source_type: string;
+      default_base_url: string | null;
+      config_schema: Record<string, unknown> | null;
+    }>(
+      `
+        select id, provider, display_name, source_type, default_base_url, config_schema
+        from supplier_connectors
+        where id = $1
+        limit 1
+      `,
+      [connectorId]
+    );
+    const connector = result.rows[0];
+
+    if (!connector) {
+      throw new Error("Доставчикът не беше намерен.");
+    }
+
+    const config = connector.config_schema || {};
+    const storedCredentials = encryptedConfig(config);
+
+    if (connector.provider === "abax") {
+      const syncForm = new FormData();
+      const baseUrl = usableBaseUrl(connector.default_base_url, "https://api.abax.bg/index.php");
+      const apiKey =
+        configString(config, ["apiKey", "api_key", "key", "apiUuid", "apiUUID", "uuid"]) ||
+        configString(storedCredentials, ["apiKey", "api_key", "key", "apiUuid", "apiUUID", "uuid"]) ||
+        process.env.ABAX_API_KEY ||
+        process.env.ABAX_API_UUID ||
+        "";
+      const apiCode =
+        configString(config, ["apiCode", "api_code", "code", "apiSecret", "api_key_code"]) ||
+        configString(storedCredentials, ["apiCode", "api_code", "code", "apiSecret", "api_key_code"]) ||
+        process.env.ABAX_API_CODE ||
+        process.env.ABAX_API_SECRET ||
+        "";
+
+      if (!apiKey || !apiCode) {
+        redirectToSupplierLogin(
+          "abax",
+          "Abax няма сигурно запазени API данни. Въведи API UUID и API Key тук, после синхронизирай."
+        );
+      }
+
+      syncForm.set("base_url", baseUrl);
+      syncForm.set("api_key", apiKey);
+      syncForm.set("api_code", apiCode);
+      syncForm.set("mode", "sync");
+      syncForm.set("import_all", "yes");
+      syncForm.set("offset", "0");
+      syncForm.set("batch_size", "50");
+      syncForm.set("limit", "500");
+      return syncAbaxSupplierImports(syncForm);
+    }
+
+    if (connector.provider === "bohemia") {
+      const syncForm = new FormData();
+      const baseUrl = usableBaseUrl(connector.default_base_url, "https://demo.internationaltravelgroup.net");
+      const username =
+        configString(config, ["username", "user", "apiUsername"]) ||
+        configString(storedCredentials, ["username", "user", "apiUsername"]) ||
+        process.env.BOHEMIA_API_USERNAME ||
+        "";
+      const password =
+        configString(config, ["password", "apiPassword"]) ||
+        configString(storedCredentials, ["password", "apiPassword"]) ||
+        process.env.BOHEMIA_API_PASSWORD ||
+        "";
+      const offerTypes = Array.isArray(config.offerTypes)
+        ? config.offerTypes.filter((type): type is string => type === "excursion" || type === "holiday")
+        : ["excursion", "holiday"];
+
+      if (!username || !password) {
+        redirectToSupplierLogin(
+          "bohemia",
+          "Bohemia няма сигурно запазени login данни. Въведи потребител и парола тук, после синхронизирай."
+        );
+      }
+
+      syncForm.set("base_url", baseUrl);
+      syncForm.set("username", username);
+      syncForm.set("password", password);
+      syncForm.set("mode", "sync");
+      syncForm.set("import_all", "yes");
+      syncForm.set("offset", "0");
+      syncForm.set("batch_size", "25");
+      syncForm.set("limit", "500");
+      syncForm.set("details_limit", "500");
+      for (const type of offerTypes.length ? offerTypes : ["excursion", "holiday"]) {
+        syncForm.append("types", type);
+      }
+      return syncBohemiaSupplierImports(syncForm);
+    }
+
+    const genericForm = new FormData();
+    genericForm.set("provider", connector.provider);
+    genericForm.set("source_format", connector.source_type === "xml" ? "xml" : "json");
+    genericForm.set("generic_limit", "500");
+    genericForm.set("payload_url", connector.default_base_url || "");
+    genericForm.set("mapping_override", JSON.stringify(config));
+    return syncGenericSupplierConnector(genericForm);
+  } catch (error) {
+    if (isNextRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : "Синхронизацията не беше успешна.";
     redirectWithSyncError(message);
   }
 }
@@ -713,6 +984,7 @@ export async function processAbaxCatalogBatch(formData: FormData): Promise<{
   new?: number;
   changed?: number;
   unchanged?: number;
+  unavailable?: number;
   error?: number;
   message: string;
 }> {
@@ -807,6 +1079,8 @@ export async function processAbaxCatalogBatch(formData: FormData): Promise<{
     const done = !meta?.hasMore || nextOffset >= totalFound;
 
     if (done) {
+      summary.unavailable = await countSupplierImportsNotSeenInRun(client, "abax", importRunId);
+      await updateSupplierImportRunProgress(client, importRunId, summary);
       await supplierImport.finishSupplierImportRun(client, importRunId, summary, summary.error > 0 ? new Error("Some Abax programs failed during catalog import.") : null);
     }
 
@@ -823,9 +1097,10 @@ export async function processAbaxCatalogBatch(formData: FormData): Promise<{
       new: summary.new || 0,
       changed: summary.changed || 0,
       unchanged: summary.unchanged || 0,
+      unavailable: summary.unavailable || 0,
       error: summary.error || 0,
       message: done
-        ? `Abax каталогът е готов: ${summary.processed || 0}/${totalFound} обработени.`
+        ? [`Abax каталогът е готов: ${summary.processed || 0}/${totalFound} обработени.`, missingSupplierMessage("Abax", summary.unavailable || 0)].filter(Boolean).join(" ")
         : `Обработени са ${summary.processed || 0}/${totalFound}. Можеш да продължиш със следващата партида.`
     };
   } catch (error) {
@@ -837,5 +1112,216 @@ export async function processAbaxCatalogBatch(formData: FormData): Promise<{
     };
   } finally {
     client.release();
+  }
+}
+
+export async function processConfiguredSupplierBatch(formData: FormData): Promise<{
+  ok: boolean;
+  provider?: string;
+  runId?: string | null;
+  totalFound?: number;
+  totalProcessed?: number;
+  nextOffset?: number;
+  done?: boolean;
+  new?: number;
+  changed?: number;
+  unchanged?: number;
+  unavailable?: number;
+  error?: number;
+  message: string;
+}> {
+  await requireAdminSession();
+
+  const connectorId = readString(formData, "connector_id");
+  const runId = readString(formData, "run_id");
+  const offset = Math.max(readInteger(formData, "offset") || 0, 0);
+  const limit = Math.min(Math.max(readInteger(formData, "limit") || 25, 1), 50);
+
+  try {
+    const result = await dbQuery<{
+      id: string;
+      provider: string;
+      display_name: string;
+      default_base_url: string | null;
+      config_schema: Record<string, unknown> | null;
+    }>(
+      `
+        select id, provider, display_name, default_base_url, config_schema
+        from supplier_connectors
+        where id = $1
+        limit 1
+      `,
+      [connectorId]
+    );
+    const connector = result.rows[0];
+
+    if (!connector) {
+      return { ok: false, message: "Доставчикът не беше намерен." };
+    }
+
+    const config = connector.config_schema || {};
+    const storedCredentials = encryptedConfig(config);
+
+    if (connector.provider === "abax") {
+      const apiKey =
+        configString(config, ["apiKey", "api_key", "key", "apiUuid", "apiUUID", "uuid"]) ||
+        configString(storedCredentials, ["apiKey", "api_key", "key", "apiUuid", "apiUUID", "uuid"]) ||
+        process.env.ABAX_API_KEY ||
+        process.env.ABAX_API_UUID ||
+        "";
+      const apiCode =
+        configString(config, ["apiCode", "api_code", "code", "apiSecret", "api_key_code"]) ||
+        configString(storedCredentials, ["apiCode", "api_code", "code", "apiSecret", "api_key_code"]) ||
+        process.env.ABAX_API_CODE ||
+        process.env.ABAX_API_SECRET ||
+        "";
+
+      if (!apiKey || !apiCode) {
+        return { ok: false, provider: "abax", message: "Abax няма настроен достъп. Отвори “Настрой достъп” и запази API данните." };
+      }
+
+      const batchForm = new FormData();
+      batchForm.set("base_url", usableBaseUrl(connector.default_base_url, "https://api.abax.bg/index.php"));
+      batchForm.set("api_key", apiKey);
+      batchForm.set("api_code", apiCode);
+      batchForm.set("offset", String(offset));
+      batchForm.set("limit", String(limit));
+      if (runId) batchForm.set("run_id", runId);
+      const batch = await processAbaxCatalogBatch(batchForm);
+      return { ...batch, provider: "abax" };
+    }
+
+    if (connector.provider !== "bohemia") {
+      return { ok: false, provider: connector.provider, message: "Поетапният sync още не е активиран за този тип доставчик." };
+    }
+
+    const username =
+      configString(config, ["username", "user", "apiUsername"]) ||
+      configString(storedCredentials, ["username", "user", "apiUsername"]) ||
+      process.env.BOHEMIA_API_USERNAME ||
+      "";
+    const password =
+      configString(config, ["password", "apiPassword"]) ||
+      configString(storedCredentials, ["password", "apiPassword"]) ||
+      process.env.BOHEMIA_API_PASSWORD ||
+      "";
+
+    if (!username || !password) {
+      return { ok: false, provider: "bohemia", message: "Bohemia няма настроен достъп. Отвори “Настрой достъп” и запази login данните." };
+    }
+
+    const selectedTypes = Array.isArray(config.offerTypes)
+      ? config.offerTypes.filter((type): type is string => type === "excursion" || type === "holiday")
+      : ["excursion", "holiday"];
+    const types = selectedTypes.length ? selectedTypes : ["excursion", "holiday"];
+    const pool = getDbPool() as unknown as {
+      connect: () => Promise<{
+        query: (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>;
+        release: () => void;
+      }>;
+    };
+    const client = await pool.connect();
+    let importRunId = runId || null;
+
+    try {
+      const bohemiaImport = await import("@/lib/bohemiaImport.mjs");
+      const supplierImport = await import("@/lib/supplierImport.mjs");
+      let summary: Record<string, number> = { new: 0, changed: 0, unchanged: 0, processed: 0, error: 0 };
+
+      if (importRunId) {
+        const runResult = await client.query(
+          "select summary, total_processed from supplier_import_runs where id = $1 and provider = 'bohemia' limit 1",
+          [importRunId]
+        );
+        const existing = runResult.rows[0];
+        if (!existing) return { ok: false, provider: "bohemia", message: "Bohemia import run не беше намерен. Стартирай нов sync." };
+        summary = {
+          ...summary,
+          ...(existing.summary && typeof existing.summary === "object" ? existing.summary : {}),
+          processed: Number(existing.total_processed || 0)
+        };
+      }
+
+      const offers = await bohemiaImport.fetchBohemiaOffers({
+        baseUrl: usableBaseUrl(connector.default_base_url, "https://demo.internationaltravelgroup.net"),
+        username,
+        password,
+        limit,
+        detailsLimit: limit,
+        offset,
+        timeoutMs: 10000,
+        types
+      });
+      const meta = (offers as {
+        meta?: { hasMore?: boolean; nextOffset?: number; totalAvailable?: number; processedAvailable?: number };
+      }).meta;
+      const totalFound = meta?.totalAvailable ?? offers.length;
+
+      if (!importRunId) {
+        importRunId = await supplierImport.startSupplierImportRun(client, {
+          provider: "bohemia",
+          displayName: "Bohemia",
+          source: "api",
+          mode: "manual",
+          totalFound,
+          defaultBaseUrl: usableBaseUrl(connector.default_base_url, "https://demo.internationaltravelgroup.net"),
+          configSnapshot: {
+            phase: "catalog",
+            batchSize: limit,
+            types
+          }
+        });
+      }
+
+      for (const offer of offers) {
+        try {
+          const result = await bohemiaImport.upsertBohemiaOffer(client, offer, { importRunId });
+          summary[result.changeState] = (summary[result.changeState] || 0) + 1;
+          summary.processed += 1;
+        } catch {
+          summary.error += 1;
+        }
+      }
+
+      await updateSupplierImportRunProgress(client, importRunId, summary);
+      const nextOffset = meta?.nextOffset ?? offset + offers.length;
+      const done = !meta?.hasMore || nextOffset >= totalFound;
+
+      if (done) {
+        summary.unavailable = await countSupplierImportsNotSeenInRun(client, "bohemia", importRunId);
+        await updateSupplierImportRunProgress(client, importRunId, summary);
+        await supplierImport.finishSupplierImportRun(client, importRunId, summary, summary.error > 0 ? new Error("Some Bohemia offers failed during catalog import.") : null);
+      }
+
+      revalidatePath("/admin/suppliers");
+      revalidatePath("/admin/supplier-imports");
+      revalidatePath("/admin/offers");
+
+      return {
+        ok: true,
+        provider: "bohemia",
+        runId: importRunId,
+        totalFound,
+        totalProcessed: summary.processed || 0,
+        nextOffset,
+        done,
+        new: summary.new || 0,
+        changed: summary.changed || 0,
+        unchanged: summary.unchanged || 0,
+        unavailable: summary.unavailable || 0,
+        error: summary.error || 0,
+        message: done
+          ? [`Bohemia sync е готов: ${summary.processed || 0}/${totalFound} обработени.`, missingSupplierMessage("Bohemia", summary.unavailable || 0)].filter(Boolean).join(" ")
+          : `Обработени са ${summary.processed || 0}/${totalFound}. Продължаваме със следващата партида.`
+      };
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    if (isNextRedirectError(error)) throw error;
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Синхронизацията не беше успешна."
+    };
   }
 }

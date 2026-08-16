@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { AlertTriangle, Building2, CalendarDays, CheckCircle2, Clock3, DatabaseZap, Eye, FileText, History, ImageIcon, Pencil, RefreshCw, Settings } from "lucide-react";
+import { AlertTriangle, Building2, CalendarDays, CheckCircle2, DatabaseZap, Eye, FileText, ImageIcon, Pencil, Settings } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import {
   getAdminSupplierImportSummary,
   listAdminSupplierConnectors,
-  listAdminSupplierImportRuns,
   listAdminSupplierImports
 } from "@/lib/adminImportRepository";
 import { SupplierImportLaunchPanel } from "./SupplierImportLaunchPanel";
@@ -24,6 +23,7 @@ type SupplierImportsSearchParams = {
   syncError?: string;
   genericProvider?: string;
   startImport?: string;
+  importProvider?: string;
   page?: string;
 };
 
@@ -54,28 +54,6 @@ function statusLabel(status: string | null) {
   return "Няма оферта";
 }
 
-function runStatusLabel(status: string) {
-  if (status === "success") return "Успешна";
-  if (status === "partial_success") return "Частична";
-  if (status === "failed") return "Неуспешна";
-  if (status === "running") return "В процес";
-  return status;
-}
-
-function runStatusClass(status: string) {
-  if (status === "success") return "is-success";
-  if (status === "partial_success") return "is-warning";
-  if (status === "failed") return "is-error";
-  return "is-running";
-}
-
-function connectorStatusLabel(status: string) {
-  if (status === "active") return "Активен";
-  if (status === "paused") return "Пауза";
-  if (status === "disabled") return "Спрян";
-  return status;
-}
-
 function readinessClass(value: number) {
   return value > 0 ? "is-ok" : "is-missing";
 }
@@ -98,7 +76,7 @@ export default async function AdminSupplierImportsPage({
 }) {
   const params = (await searchParams) ?? {};
   const requestedPage = parsePage(params.page);
-  const [importsPage, summary, runs, connectors] = await Promise.all([
+  const [importsPage, summary, connectors] = await Promise.all([
     listAdminSupplierImports({ page: requestedPage, pageSize: 20 }).catch(() => ({
       items: [],
       totalCount: 0,
@@ -107,7 +85,6 @@ export default async function AdminSupplierImportsPage({
       pageCount: 1
     })),
     getAdminSupplierImportSummary().catch(() => ({ total: 0, waitingReview: 0, changed: 0, missingData: 0 })),
-    listAdminSupplierImportRuns().catch(() => []),
     listAdminSupplierConnectors().catch(() => [])
   ]);
   const imports = importsPage.items;
@@ -125,6 +102,7 @@ export default async function AdminSupplierImportsPage({
         <SupplierImportLaunchPanel
           connectors={connectors}
           shouldOpenImport={params.startImport === "1"}
+          initialLoginProvider={params.importProvider === "abax" ? "abax" : params.importProvider === "bohemia" ? "bohemia" : undefined}
           feedback={{
             syncError: params.syncError,
             checked: params.checked,
@@ -166,108 +144,6 @@ export default async function AdminSupplierImportsPage({
             <strong>{activeConnectors}</strong>
             <span>активни доставчици</span>
           </article>
-        </section>
-
-        <section className="supplier-section-panel" aria-labelledby="supplier-connectors-title">
-          <header>
-            <div>
-              <span>Доставчици</span>
-              <h2 id="supplier-connectors-title">Настроени източници</h2>
-              <p>Всеки доставчик има собствен формат, но всички се мапват към единния модел на Red Tours.</p>
-            </div>
-            <Link href="/admin/supplier-imports?startImport=1" prefetch={false}>
-              <RefreshCw size={17} aria-hidden="true" />
-              Стартирай импорт
-            </Link>
-          </header>
-
-          <div className="supplier-provider-grid">
-            {connectors.map((connector) => (
-              <article className="supplier-provider-tile" key={connector.id}>
-                <div>
-                  <span>{connector.sourceType.toUpperCase()}</span>
-                  <strong>{connector.displayName}</strong>
-                  <p>{connector.defaultBaseUrl || "Ръчен payload или специфична API настройка"}</p>
-                </div>
-                <dl>
-                  <div>
-                    <dt>Статус</dt>
-                    <dd>{connectorStatusLabel(connector.status)}</dd>
-                  </div>
-                  <div>
-                    <dt>Последен импорт</dt>
-                    <dd>{connector.lastRunAt ? formatDate(connector.lastRunAt) : "няма"}</dd>
-                  </div>
-                  <div>
-                    <dt>Последен резултат</dt>
-                    <dd>{connector.lastRunStatus ? runStatusLabel(connector.lastRunStatus) : "няма"}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
-
-            {connectors.length === 0 ? (
-              <div className="supplier-empty-panel">
-                <Settings size={22} aria-hidden="true" />
-                <strong>Още няма настроени доставчици</strong>
-                <span>Започни с импорт от JSON/XML payload или добави API доставчик с mapping.</span>
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        <section className="supplier-section-panel" aria-labelledby="supplier-runs-title">
-          <header>
-            <div>
-              <span>История</span>
-              <h2 id="supplier-runs-title">Последни синхронизации</h2>
-              <p>Тук се вижда дали връзката е била успешна, колко оферти са обработени и дали има грешки.</p>
-            </div>
-            <History size={20} aria-hidden="true" />
-          </header>
-
-          <div className="supplier-run-list">
-            {runs.map((run) => (
-              <article className="supplier-run-row" key={run.id}>
-                <div>
-                  <strong>{run.displayName || run.provider}</strong>
-                  <span>{run.mode} · {formatDate(run.startedAt)}</span>
-                  {run.errorMessage ? <small>{run.errorMessage}</small> : null}
-                </div>
-                <mark className={runStatusClass(run.status)}>{runStatusLabel(run.status)}</mark>
-                <dl>
-                  <div>
-                    <dt>Намерени</dt>
-                    <dd>{run.totalFound ?? "-"}</dd>
-                  </div>
-                  <div>
-                    <dt>Обработени</dt>
-                    <dd>{run.totalProcessed}</dd>
-                  </div>
-                  <div>
-                    <dt>Нови</dt>
-                    <dd>{run.newCount}</dd>
-                  </div>
-                  <div>
-                    <dt>Променени</dt>
-                    <dd>{run.changedCount}</dd>
-                  </div>
-                  <div>
-                    <dt>Грешки</dt>
-                    <dd>{run.errorCount}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
-
-            {runs.length === 0 ? (
-              <div className="supplier-empty-panel">
-                <Clock3 size={22} aria-hidden="true" />
-                <strong>Още няма импорт сесии</strong>
-                <span>След първата проверка или синхронизация историята ще се появи тук.</span>
-              </div>
-            ) : null}
-          </div>
         </section>
 
         <section className="supplier-section-panel" aria-labelledby="supplier-review-title">
@@ -356,8 +232,8 @@ export default async function AdminSupplierImportsPage({
               <div className="supplier-empty-panel">
                 <DatabaseZap size={24} aria-hidden="true" />
                 <strong>Още няма импортирани оферти</strong>
-                <span>Стартирай импорт и офертите ще се появят тук като готови за преглед.</span>
-                <Link href="/admin/supplier-imports?startImport=1" prefetch={false}>Стартирай импорт</Link>
+                <span>Синхронизирай доставчик от страницата “Доставчици” или използвай “Импортиране” за тестов JSON/XML payload.</span>
+                <Link href="/admin/suppliers" prefetch={false}>Отвори доставчици</Link>
               </div>
             ) : null}
           </div>

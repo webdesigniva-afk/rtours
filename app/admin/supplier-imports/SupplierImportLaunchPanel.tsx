@@ -20,6 +20,7 @@ type SupplierConnectorSummary = {
 type SupplierImportLaunchPanelProps = {
   connectors: SupplierConnectorSummary[];
   shouldOpenImport?: boolean;
+  initialLoginProvider?: "abax" | "bohemia";
   feedback: {
     syncError?: string;
     checked?: string;
@@ -72,11 +73,11 @@ function feedbackProviderLabel(provider?: string) {
   return provider || "Доставчик";
 }
 
-export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false, feedback }: SupplierImportLaunchPanelProps) {
+export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false, initialLoginProvider, feedback }: SupplierImportLaunchPanelProps) {
   const preferredConnector = connectors.find((connector) => connector.provider !== "bohemia") || connectors[0];
   const [isWizardOpen, setIsWizardOpen] = useState(shouldOpenImport);
-  const [step, setStep] = useState<WizardStep>("choose");
-  const [loginProvider, setLoginProvider] = useState("bohemia");
+  const [step, setStep] = useState<WizardStep>(initialLoginProvider ? "login" : "choose");
+  const [loginProvider, setLoginProvider] = useState(initialLoginProvider || "bohemia");
   const [selectedProvider, setSelectedProvider] = useState(feedback.genericProvider || preferredConnector?.provider || "test-supplier");
   const [connectionCheck, setConnectionCheck] = useState<ConnectionCheckResult | null>(null);
   const [isCheckingConnection, startConnectionCheck] = useTransition();
@@ -84,8 +85,13 @@ export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false
   const selectedConnector = connectors.find((connector) => connector.provider === selectedProvider);
 
   useEffect(() => {
-    if (shouldOpenImport) setIsWizardOpen(true);
-  }, [shouldOpenImport]);
+    if (!shouldOpenImport) return;
+    setIsWizardOpen(true);
+    if (initialLoginProvider) {
+      setLoginProvider(initialLoginProvider);
+      setStep("login");
+    }
+  }, [initialLoginProvider, shouldOpenImport]);
 
   function handleConnectionCheck() {
     if (!loginFormRef.current || isCheckingConnection) return;
@@ -208,7 +214,7 @@ export function SupplierImportLaunchPanel({ connectors, shouldOpenImport = false
                       name="provider_label"
                       value={loginProvider}
                       onChange={(event) => {
-                        setLoginProvider(event.target.value);
+                        setLoginProvider(event.target.value === "abax" ? "abax" : "bohemia");
                         setConnectionCheck(null);
                       }}
                     >

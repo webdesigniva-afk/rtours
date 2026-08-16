@@ -65,6 +65,8 @@ export type AdminSupplierImportRun = {
   errorMessage: string | null;
 };
 
+export type AdminSupplierImportRunRange = "today" | "week" | "month" | "six_months" | "year" | "all";
+
 export type AdminSupplierConnector = {
   id: string;
   provider: string;
@@ -78,7 +80,23 @@ export type AdminSupplierConnector = {
   lastRunStatus: string | null;
   lastRunAt: string | null;
   lastProcessed: number | null;
+  importedCount: number;
+  waitingReviewCount: number;
+  changedCount: number;
+  missingDataCount: number;
+  runningRunId: string | null;
+  runningTotalFound: number | null;
+  runningTotalProcessed: number | null;
 };
+
+function supplierImportRunRangeClause(range: AdminSupplierImportRunRange) {
+  if (range === "today") return "where run.started_at >= current_date";
+  if (range === "week") return "where run.started_at >= date_trunc('week', now())";
+  if (range === "month") return "where run.started_at >= date_trunc('month', now())";
+  if (range === "six_months") return "where run.started_at >= now() - interval '6 months'";
+  if (range === "year") return "where run.started_at >= date_trunc('year', now())";
+  return "";
+}
 
 export async function listAdminSupplierConnectors() {
   const result = await dbQuery<AdminSupplierConnector>(
@@ -95,7 +113,14 @@ export async function listAdminSupplierConnectors() {
         connector.notes,
         latest.status as "lastRunStatus",
         latest.started_at::text as "lastRunAt",
-        latest.total_processed as "lastProcessed"
+        latest.total_processed as "lastProcessed",
+        coalesce(stats.imported_count, 0)::int as "importedCount",
+        coalesce(stats.waiting_review_count, 0)::int as "waitingReviewCount",
+        coalesce(stats.changed_count, 0)::int as "changedCount",
+        coalesce(stats.missing_data_count, 0)::int as "missingDataCount",
+        running.id as "runningRunId",
+        running.total_found as "runningTotalFound",
+        running.total_processed as "runningTotalProcessed"
       from supplier_connectors connector
       left join lateral (
         select run.status, run.started_at, run.total_processed
@@ -104,6 +129,35 @@ export async function listAdminSupplierConnectors() {
         order by run.started_at desc
         limit 1
       ) latest on true
+      left join lateral (
+        select run.id, run.total_found, run.total_processed
+        from supplier_import_runs run
+        where run.connector_id = connector.id
+          and run.status = 'running'
+        order by run.started_at desc
+        limit 1
+      ) running on true
+      left join lateral (
+        select
+          count(*)::int as imported_count,
+          count(*) filter (
+            where offer.status = 'review'
+              or import.change_state in ('new', 'changed')
+          )::int as waiting_review_count,
+          count(*) filter (
+            where import.change_state = 'changed'
+              or jsonb_array_length(coalesce(import.important_changes, '[]'::jsonb)) > 0
+          )::int as changed_count,
+          count(*) filter (
+            where coalesce((select count(*)::int from offer_dates date where date.offer_id = offer.id), 0) = 0
+              or coalesce((select count(*)::int from offer_media media where media.offer_id = offer.id), 0) = 0
+              or coalesce((select count(*)::int from offer_itinerary_days day where day.offer_id = offer.id), 0) = 0
+          )::int as missing_data_count
+        from offer_imports import
+        left join offers offer on offer.id = import.offer_id
+        where import.provider = connector.provider
+          and import.source in ('api', 'xml', 'json', 'csv', 'file')
+      ) stats on true
       order by
         case connector.status when 'active' then 0 when 'paused' then 1 else 2 end,
         connector.display_name
@@ -113,7 +167,12 @@ export async function listAdminSupplierConnectors() {
   return result.rows;
 }
 
-export async function listAdminSupplierImportRuns() {
+export async function listAdminSupplierImportRuns(
+  options: { range?: AdminSupplierImportRunRange; limit?: number } = {}
+) {
+  const range = options.range ?? "month";
+  const limit = Math.min(Math.max(Math.trunc(options.limit ?? 40), 1), 100);
+  const rangeClause = supplierImportRunRangeClause(range);
   const result = await dbQuery<AdminSupplierImportRun>(
     `
       select
@@ -135,9 +194,11 @@ export async function listAdminSupplierImportRuns() {
         run.error_message as "errorMessage"
       from supplier_import_runs run
       left join supplier_connectors connector on connector.id = run.connector_id
+      ${rangeClause}
       order by run.started_at desc
-      limit 8
-    `
+      limit $1
+    `,
+    [limit]
   );
 
   return result.rows;
