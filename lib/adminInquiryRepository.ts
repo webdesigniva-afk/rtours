@@ -1,4 +1,5 @@
 import { dbQuery } from "./db";
+import { normalizeDateLabel } from "./dateFormat";
 
 export type AdminInquiryListItem = {
   id: string;
@@ -124,7 +125,12 @@ export async function listAdminInquiries(): Promise<AdminInquiryListItem[]> {
     offerSlug: row.offer_slug,
     offerTitle: row.offer_title || "Общо запитване",
     destination: row.destination || "Непосочена дестинация",
-    departure: row.departure && !row.departure.includes("?") ? row.departure : row.first_offer_departure || "Не е посочено отпътуване",
+    departure: normalizeDateLabel(
+      row.departure && !row.departure.includes("?") ? row.departure : row.first_offer_departure,
+      undefined,
+      undefined,
+      "Не е посочено отпътуване"
+    ),
     adults: row.adults,
     children: row.children,
     roomType: row.room_type,

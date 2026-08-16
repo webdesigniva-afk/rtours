@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCircle2, Clock, MapPin, Plane, ShieldCheck, Sparkles } from "lucide-react";
 import { InquiryForm } from "@/components/InquiryForm";
+import { normalizeDateLabel } from "@/lib/dateFormat";
 import type { Offer } from "@/lib/types";
 import styles from "./OfferDetailView.module.css";
 
@@ -61,7 +62,7 @@ function priceLabel(offer: Offer) {
 function mainDateLabel(offer: Offer) {
   const date = offer.dates[0];
   if (!date) return "Дати по запитване";
-  return repairText(date.label || date.startDate || "Дати по запитване");
+  return repairText(normalizeDateLabel(date.label, date.startDate, date.endDate, "Дати по запитване"));
 }
 
 function imageList(offer: Offer) {
@@ -204,7 +205,7 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
             <span className={styles.kicker}>Запитване</span>
             <h2>Изпратете запитване</h2>
             <p>Ще върнем потвърждение за места, цена и условия.</p>
-            <InquiryForm offerTitle={title} offerSlug={offer.slug} destination={route} dates={offer.dates.map((date) => ({ label: repairText(date.label), startDate: date.startDate }))} />
+            <InquiryForm offerTitle={title} offerSlug={offer.slug} destination={route} dates={offer.dates.map((date) => ({ label: repairText(normalizeDateLabel(date.label, date.startDate, date.endDate, "Дати по запитване")), startDate: date.startDate }))} />
           </div>
         </aside>
       </section>

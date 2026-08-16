@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminSessionCookieName, verifyAdminSessionToken } from "@/lib/adminSession";
+import { formatDisplayDate, normalizeDateLabel } from "@/lib/dateFormat";
 import { dbQuery, getDbPool } from "@/lib/db";
 import { createSlug } from "@/lib/slug";
 
@@ -105,6 +106,11 @@ function readInteger(formData: FormData, key: string) {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+function readNonNegativeInteger(formData: FormData, key: string) {
+  const value = Number.parseInt(readString(formData, key), 10);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
 function readStringList(formData: FormData, key: string) {
   return formData.getAll(key).map((value) => (typeof value === "string" ? value.trim() : ""));
 }
@@ -192,6 +198,12 @@ function toInteger(value: unknown) {
 
   const parsed = Number.parseInt(value.replace(/[^\d-]/g, ""), 10);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function inferDurationNights(days: number | null, nights: number | null) {
+  if (nights !== null && nights >= 0) return nights;
+  if (days !== null && days > 0) return Math.max(days - 1, 0);
+  return null;
 }
 
 function toMoney(value: unknown) {
@@ -299,7 +311,7 @@ function normalizeImportedOffer(value: unknown, index: number): ImportedOfferInp
           const date = toDateString(dateValue);
 
           return {
-            label: date || `Дата ${dateIndex + 1}`,
+            label: formatDisplayDate(date) || `Дата ${dateIndex + 1}`,
             startDate: date,
             endDate: null,
             departurePoints: null,
@@ -311,7 +323,12 @@ function normalizeImportedOffer(value: unknown, index: number): ImportedOfferInp
         }
 
         return {
-          label: firstString(dateRecord, ["label", "name"]) || null,
+          label: normalizeDateLabel(
+            firstString(dateRecord, ["label", "name"]),
+            toDateString(firstRecordValue(dateRecord, ["start_date", "startDate", "from", "date", "departure_date"])),
+            toDateString(firstRecordValue(dateRecord, ["end_date", "endDate", "to", "return_date"])),
+            ""
+          ) || null,
           startDate: toDateString(firstRecordValue(dateRecord, ["start_date", "startDate", "from", "date", "departure_date"])),
           endDate: toDateString(firstRecordValue(dateRecord, ["end_date", "endDate", "to", "return_date"])),
           departurePoints: firstString(dateRecord, ["departure_points", "departurePoints", "departure_city", "departure"]) || null,
@@ -340,6 +357,8 @@ function normalizeImportedOffer(value: unknown, index: number): ImportedOfferInp
         })
         .filter((day): day is OfferItineraryInput => Boolean(day))
     : [];
+  const durationDays = toInteger(firstRecordValue(record, ["duration_days", "durationDays", "days", "Days", "duration", "Duration", "DaysCount"]));
+  const durationNights = toInteger(firstRecordValue(record, ["duration_nights", "durationNights", "nights", "Nights", "overnights", "Overnights", "NightsCount"]));
 
   return {
     raw: record,
@@ -350,8 +369,8 @@ function normalizeImportedOffer(value: unknown, index: number): ImportedOfferInp
     country: firstString(record, ["country", "destination_country"]) || null,
     region: firstString(record, ["region", "destination", "destination_name"]) || null,
     city: firstString(record, ["city", "town", "resort"]) || null,
-    durationDays: toInteger(firstRecordValue(record, ["duration_days", "durationDays", "days", "duration"])),
-    durationNights: toInteger(firstRecordValue(record, ["duration_nights", "durationNights", "nights"])),
+    durationDays,
+    durationNights: inferDurationNights(durationDays, durationNights),
     transport: normalizeTransport(transportText),
     productType: normalizeProductType(productTypeText),
     productTypeLabel: productTypeText || null,
@@ -748,7 +767,7 @@ export async function createAdminOffer(formData: FormData) {
   const country = primaryDestination?.country || readString(formData, "country");
   const region = primaryDestination?.region || primaryDestination?.city || readString(formData, "region");
   const durationDays = readInteger(formData, "duration_days");
-  const durationNights = readInteger(formData, "duration_nights");
+  const durationNights = inferDurationNights(durationDays, readNonNegativeInteger(formData, "duration_nights"));
   const productType = productTypeMap[readString(formData, "product_type")] ?? "package";
   const productTypeLabel = readString(formData, "product_type_label") || null;
   const source = sourceMap[readString(formData, "source")] ?? "manual";

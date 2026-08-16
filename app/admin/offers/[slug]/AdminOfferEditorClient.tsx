@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import { PublicOfferDetail, type PublicOfferDetailData } from "@/components/PublicOfferDetail";
+import { formatDisplayDate, formatDisplayDateRange, normalizeDateLabel } from "@/lib/dateFormat";
 import { OfferContentForm, type OfferContentDraftSummary } from "../OfferContentForm";
 import { cancelNewOfferDraft, createOfferBadge, publishOfferChanges, updateOfferContent, updateOfferDatesPrices, updateOfferPublishing, updateOfferSeo, updateOfferSupplierApiReview } from "./actions";
 
@@ -571,10 +572,9 @@ function tabFromKey(tabKey?: string) {
 }
 
 function formatDepartureLabel(date: AdminOfferEditorInitialOffer["dates"][number]) {
-  if (date.label?.trim()) return date.label;
-  if (date.startDate && date.endDate) return `${date.startDate} - ${date.endDate}`;
-  if (date.startDate) return date.startDate;
-  if (date.endDate) return `до ${date.endDate}`;
+  if (date.label?.trim()) return normalizeDateLabel(date.label, date.startDate, date.endDate);
+  const range = formatDisplayDateRange(date.startDate, date.endDate);
+  if (range) return range;
   return "Дати по заявка";
 }
 
@@ -2451,7 +2451,7 @@ function SupplierApiDataWorkspace({ offer }: { offer: AdminOfferEditorInitialOff
                         <div>
                           <strong>{supplierEntityMainText(entity)}</strong>
                           <span>
-                            {[entity.key, entity.startDate, entity.price ? `${Number(entity.price).toLocaleString("bg-BG")} ${entity.currency || offer.currency}` : ""].filter(Boolean).join(" · ") || "без допълнителен етикет"}
+                            {[entity.key, formatDisplayDate(entity.startDate), entity.price ? `${Number(entity.price).toLocaleString("bg-BG")} ${entity.currency || offer.currency}` : ""].filter(Boolean).join(" · ") || "без допълнителен етикет"}
                           </span>
                         </div>
                       </div>
@@ -2605,7 +2605,7 @@ function DatesPricesWorkspace({
       ? offer.dates.map((date) => ({
           key: date.id,
           id: date.id,
-          label: date.label || "",
+          label: normalizeDateLabel(date.label, date.startDate, date.endDate, ""),
           startDate: date.startDate || "",
           endDate: date.endDate || "",
           departurePoints: date.departurePoints || "",
@@ -2661,17 +2661,11 @@ function DatesPricesWorkspace({
     dynamic: "Динамична цена",
     budgetary: "Ориентировъчна цена"
   };
-  const formatImportedDate = (value: string) => {
-    if (!value) return "Без дата";
-    const parsed = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(parsed.getTime())) return value;
-    return parsed.toLocaleDateString("bg-BG", { day: "2-digit", month: "2-digit", year: "numeric" });
-  };
+  const formatImportedDate = (value: string) => formatDisplayDate(value) || "Без дата";
   const getDepartureLabel = (departure: DepartureDraft) => {
-    if (departure.label.trim()) return departure.label.trim();
-    if (departure.startDate && departure.endDate) return `${departure.startDate} - ${departure.endDate}`;
-    if (departure.startDate) return departure.startDate;
-    if (departure.endDate) return `до ${departure.endDate}`;
+    if (departure.label.trim()) return normalizeDateLabel(departure.label.trim(), departure.startDate, departure.endDate);
+    const range = formatDisplayDateRange(departure.startDate, departure.endDate);
+    if (range) return range;
     return "Дати по заявка";
   };
 

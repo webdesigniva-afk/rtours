@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, Building2, CalendarDays, DatabaseZap, Eye, Fi
 import { notFound } from "next/navigation";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import { getAdminSupplierImportById } from "@/lib/adminImportRepository";
+import { formatDisplayDate } from "@/lib/dateFormat";
 import { publishSupplierImport, saveSupplierImportReview } from "./actions";
 import { SupplierAdditionalServicesReviewList } from "./SupplierAdditionalServicesReviewList";
 import { SupplierDeparturesReviewList } from "./SupplierDeparturesReviewList";
@@ -467,7 +468,11 @@ export default async function AdminSupplierImportDetailPage({ params }: AdminSup
                       <div className="supplier-review-entity-body">
                         <strong>{entity.editorialTitle || entity.title || entity.key || entityLabel(type)}</strong>
                         <small>
-                          {[entity.startDate, entity.endDate, entity.price ? formatPrice(entity.price, entity.currency) : ""].filter(Boolean).join(" · ") || entity.key || "supplier block"}
+                          {[
+                            formatDisplayDate(entity.startDate),
+                            formatDisplayDate(entity.endDate),
+                            entity.price ? formatPrice(entity.price, entity.currency) : ""
+                          ].filter(Boolean).join(" · ") || entity.key || "supplier block"}
                         </small>
                         {entity.url && type !== "image" ? <a href={entity.url} target="_blank" rel="noreferrer">{entity.url}</a> : null}
                         <div className="supplier-review-entity-fields">

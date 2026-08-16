@@ -115,7 +115,7 @@ const defaultProductTypeOptions: ProductTypeOption[] = [
 
 function splitServiceText(value: string) {
   return value
-    .split(/[\n,]+/)
+    .split(/\n+/)
     .map((item) => item.replace(/^\s*[-*•\d.)]+/, "").trim())
     .filter(Boolean);
 }
@@ -1068,7 +1068,7 @@ export function OfferContentForm({
             <header>
               <div>
                 <h3>Услуги и условия в цената</h3>
-                <p>Пишете със запетаи или на отделни редове. В сайта ще се покажат като подредени точки.</p>
+                <p>Всяка услуга е на отделен ред. Запетаите вътре в изречението се запазват и не правят нова точка.</p>
               </div>
             </header>
             <div className="offer-services-columns">

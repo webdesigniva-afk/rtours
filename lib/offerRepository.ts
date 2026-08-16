@@ -1,5 +1,6 @@
 import { getPublishedOfferBySlug, getPublishedOffers, offers } from "./data";
 import { dbQuery } from "./db";
+import { normalizeDateLabel } from "./dateFormat";
 import type { Offer, OfferStatus, OfferSupplierSection, TaxonomyTermType } from "./types";
 
 export type OfferStatusSummary = {
@@ -275,7 +276,7 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     gallery: row.gallery_image_urls?.length ? row.gallery_image_urls : row.hero_image_url ? [row.hero_image_url] : [],
     dates: row.dates?.length
       ? row.dates.map((date) => ({
-          label: date.label || date.startDate || "Дата по заявка",
+          label: normalizeDateLabel(date.label, date.startDate, date.endDate, "Дата по заявка"),
           startDate: date.startDate || "",
           endDate: date.endDate || "",
           departurePoints: date.departurePoints || undefined,

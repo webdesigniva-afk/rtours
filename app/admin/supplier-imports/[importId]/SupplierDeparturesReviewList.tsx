@@ -1,4 +1,5 @@
 import type { AdminSupplierImportDetail } from "@/lib/adminImportRepository";
+import { normalizeDateLabel } from "@/lib/dateFormat";
 
 type SupplierEntity = AdminSupplierImportDetail["entities"][number];
 
@@ -47,6 +48,9 @@ export function SupplierDeparturesReviewList({ entities }: { entities: SupplierE
         const raw = dataObject(entity.rawData);
         const editorial = dataObject(entity.editorialData);
         const availability = availabilityValue(editorial.availability || raw.availability);
+        const startDate = dateText(editorial.startDate) || dateText(entity.startDate);
+        const endDate = dateText(editorial.endDate) || dateText(entity.endDate);
+        const title = normalizeDateLabel(textValue(entity.editorialTitle) || textValue(entity.title), startDate, endDate, `Отпътуване ${index + 1}`);
 
         return (
           <article className={entity.isEnabled ? "supplier-review-departure-item is-enabled" : "supplier-review-departure-item"} key={entity.id}>
@@ -61,15 +65,15 @@ export function SupplierDeparturesReviewList({ entities }: { entities: SupplierE
             <div className="supplier-review-departure-body">
               <label className="is-wide">
                 <span>Етикет в сайта</span>
-                <input name={`entity_title_${entity.id}`} defaultValue={textValue(entity.editorialTitle) || textValue(entity.title) || `Отпътуване ${index + 1}`} />
+                <input name={`entity_title_${entity.id}`} defaultValue={title} />
               </label>
               <label>
                 <span>От</span>
-                <input name={`entity_start_date_${entity.id}`} type="date" defaultValue={dateText(editorial.startDate) || dateText(entity.startDate)} />
+                <input name={`entity_start_date_${entity.id}`} type="date" defaultValue={startDate} />
               </label>
               <label>
                 <span>До</span>
-                <input name={`entity_end_date_${entity.id}`} type="date" defaultValue={dateText(editorial.endDate) || dateText(entity.endDate)} />
+                <input name={`entity_end_date_${entity.id}`} type="date" defaultValue={endDate} />
               </label>
               <label>
                 <span>Цена от</span>

@@ -15,6 +15,12 @@ function toNumber(value: string | null | undefined, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function inferDurationNights(days: number | null | undefined, nights: number | null | undefined) {
+  if (typeof nights === "number" && Number.isFinite(nights) && nights >= 0) return nights;
+  if (typeof days === "number" && Number.isFinite(days) && days > 0) return Math.max(days - 1, 0);
+  return "";
+}
+
 export default async function AdminOfferEditorPage({ params, searchParams }: AdminOfferEditorPageProps) {
   const { slug } = await params;
   const { tab, new: newMode } = (await searchParams) ?? {};
@@ -59,7 +65,7 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
         }))
       : [],
     durationDays: offer.duration_days ?? "",
-    durationNights: offer.duration_nights ?? "",
+    durationNights: inferDurationNights(offer.duration_days, offer.duration_nights),
     priceFrom: toNumber(offer.price_from, 0),
     currency: offer.currency ?? "EUR",
     transport: shouldHideDefaultTransport ? "" : offer.transport,

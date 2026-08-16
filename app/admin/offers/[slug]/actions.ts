@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { adminSessionCookieName, verifyAdminSessionToken } from "@/lib/adminSession";
+import { formatDisplayDateRange } from "@/lib/dateFormat";
 import { dbQuery } from "@/lib/db";
 
 async function requireAdminSession(slug: string) {
@@ -400,6 +401,12 @@ function readPositiveInteger(formData: FormData, key: string) {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+function inferDurationNights(days: number | null, nights: number | null) {
+  if (nights !== null) return nights;
+  if (days !== null) return Math.max(days - 1, 0);
+  return null;
+}
+
 function readNonNegativeIntegerValue(value: string) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
@@ -467,7 +474,7 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
   const destinations = readDestinations(formData);
   const primaryDestination = destinations[0];
   const durationDays = readPositiveInteger(formData, "duration_days");
-  const durationNights = readPositiveInteger(formData, "duration_nights");
+  const durationNights = inferDurationNights(durationDays, readNonNegativeIntegerValue(readString(formData, "duration_nights")));
   const itineraryDayNumbers = readStringList(formData, "itinerary_day_number");
   const itineraryTitles = readStringList(formData, "itinerary_title");
   const itineraryDescriptions = readStringList(formData, "itinerary_description");
@@ -817,7 +824,7 @@ export async function updateOfferDatesPrices(_state: OfferDatesPricesActionState
   for (const [index, row] of rows.entries()) {
     const params = [
       offerId,
-      row.label || (row.startDate && row.endDate ? `${row.startDate} - ${row.endDate}` : row.startDate || row.endDate || null),
+      row.label || formatDisplayDateRange(row.startDate, row.endDate) || null,
       row.startDate,
       row.endDate,
       row.departurePoints,

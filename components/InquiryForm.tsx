@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Send } from "lucide-react";
 import { submitInquiry } from "@/app/inquiries/actions";
+import { formatDisplayDate } from "@/lib/dateFormat";
 
 type InquiryFormProps = {
   offerTitle?: string;
@@ -13,7 +14,11 @@ type InquiryFormProps = {
 
 export function InquiryForm({ offerTitle, offerSlug, destination, dates = [] }: InquiryFormProps) {
   const [state, action, isPending] = useActionState(submitInquiry, { ok: false, message: "" });
-  const defaultDeparture = dates[0]?.label || dates[0]?.startDate || "";
+  const displayDates = dates.map((date) => ({
+    value: date.label || formatDisplayDate(date.startDate),
+    label: date.label || formatDisplayDate(date.startDate)
+  })).filter((date) => date.value || date.label);
+  const defaultDeparture = displayDates[0]?.value || "";
 
   return (
     <form className="inquiry-form" action={action}>
@@ -39,11 +44,11 @@ export function InquiryForm({ offerTitle, offerSlug, destination, dates = [] }: 
 
         <label className="inquiry-field is-wide">
           <span>Отпътуване</span>
-          {dates.length > 0 ? (
+          {displayDates.length > 0 ? (
             <select name="departure" defaultValue={defaultDeparture}>
-              {dates.map((date) => (
-                <option value={date.label || date.startDate || ""} key={date.label || date.startDate}>
-                  {date.label || date.startDate}
+              {displayDates.map((date) => (
+                <option value={date.value} key={date.value}>
+                  {date.label}
                 </option>
               ))}
             </select>

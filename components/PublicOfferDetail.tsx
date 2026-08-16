@@ -20,6 +20,7 @@ import {
   XCircle
 } from "lucide-react";
 import { InquiryForm } from "@/components/InquiryForm";
+import { formatDisplayDate, formatDisplayDateRange, normalizeDateLabel } from "@/lib/dateFormat";
 
 export type PublicOfferDetailData = {
   slug: string;
@@ -155,10 +156,9 @@ function stripHtml(value: string) {
 }
 
 function formatDateRange(date: PublicOfferDetailData["dates"][number]) {
-  if (date.label && date.label !== date.startDate) return date.label;
-  if (date.startDate && date.endDate) return `${date.startDate} - ${date.endDate}`;
-  if (date.startDate) return date.startDate;
-  if (date.endDate) return `до ${date.endDate}`;
+  if (date.label && date.label !== date.startDate) return normalizeDateLabel(date.label, date.startDate, date.endDate);
+  const range = formatDisplayDateRange(date.startDate, date.endDate);
+  if (range) return range;
   return "Дати по заявка";
 }
 
@@ -206,7 +206,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
   const galleryImages = [safeHeroImage, ...(offer.gallery ?? []).map(normalizePublicUrl)].filter(Boolean).slice(0, 5);
   const lightboxImages = useMemo(() => Array.from(new Set(galleryImages)), [galleryImages]);
   const activeImage = activeImageIndex === null ? null : lightboxImages[activeImageIndex];
-  const nextDate = offer.dates[0]?.label ?? "Дати по заявка";
+  const nextDate = offer.dates[0] ? formatDateRange(offer.dates[0]) : "Дати по заявка";
   const safeDescriptionHtml = sanitizeOfferHtml(offer.description || offer.summary);
   const pathSectionLabel = offer.isAuthorProgram ? "Авторски програми" : offer.productTypeLabel || (offer.productType ? productTypeLabels[offer.productType] : "Пътувания");
   const routeCities = offer.destinations?.length
@@ -421,7 +421,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
                     {date.priceStatus ? (
                       <div>
                         <dt>Статус</dt>
-                        <dd>{priceStatusLabels[date.priceStatus]}{date.optionUntil ? ` ${new Date(date.optionUntil).toLocaleDateString("bg-BG")}` : ""}</dd>
+                        <dd>{priceStatusLabels[date.priceStatus]}{date.optionUntil ? ` ${formatDisplayDate(date.optionUntil)}` : ""}</dd>
                       </div>
                     ) : null}
                     {date.depositAmount ? (
@@ -568,7 +568,7 @@ export function PublicOfferDetail({ offer, showInquiry = true }: { offer: Public
               <span className="eyebrow">Запитване</span>
               <h2>Изпратете запитване</h2>
               <p>Ще върнем потвърждение за места, цена и условия.</p>
-              <InquiryForm offerTitle={offer.title} offerSlug={offer.slug} destination={destinationLabel} dates={offer.dates.map((date) => ({ label: date.label, startDate: date.startDate }))} />
+              <InquiryForm offerTitle={offer.title} offerSlug={offer.slug} destination={destinationLabel} dates={offer.dates.map((date) => ({ label: formatDateRange(date), startDate: date.startDate }))} />
             </div>
             <div className="offer-trust-card">
               <span><ShieldCheck size={18} aria-hidden="true" />Проверена програма</span>
