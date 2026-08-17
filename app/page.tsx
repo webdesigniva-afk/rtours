@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Compass, Handshake, HeartHandshake, LifeBuoy, Map, Plane, SearchCheck, Sparkles, Star } from "lucide-react";
-import { OfferCard } from "@/components/OfferCard";
+import { ArrowRight, CalendarDays, Compass, Handshake, HeartHandshake, LifeBuoy, Map, MapPin, Plane, SearchCheck, Sparkles, Star } from "lucide-react";
 import { ScrollPlaneTrail } from "@/components/ScrollPlaneTrail";
 import { ScrollRevealEffects } from "@/components/ScrollRevealEffects";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -9,8 +8,99 @@ import { HeroVideo } from "@/components/HeroVideo";
 import { TravelFinder } from "@/components/TravelFinder";
 import { collections } from "@/lib/data";
 import { listPublishedPublicOffers } from "@/lib/offerRepository";
+import type { Offer } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const countryCodeByName: Record<string, string> = {
+  "Австрия": "at",
+  "Албания": "al",
+  "Белгия": "be",
+  "България": "bg",
+  "Великобритания": "gb",
+  "Германия": "de",
+  "Гърция": "gr",
+  "Египет": "eg",
+  "Испания": "es",
+  "Италия": "it",
+  "Китай": "cn",
+  "Кипър": "cy",
+  "Малдиви": "mv",
+  "Мароко": "ma",
+  "Обединени арабски емирства": "ae",
+  "Португалия": "pt",
+  "Румъния": "ro",
+  "САЩ": "us",
+  "Сингапур": "sg",
+  "Турция": "tr",
+  "Унгария": "hu",
+  "Франция": "fr",
+  "Хърватия": "hr",
+  "Чехия": "cz",
+  "Швейцария": "ch",
+  "Япония": "jp"
+};
+
+function getCountryFlagUrl(country: string) {
+  const code = countryCodeByName[country];
+  return code ? `https://flagcdn.com/w160/${code}.png` : "";
+}
+
+function formatPickPrice(offer: Offer) {
+  return offer.priceFrom > 0
+    ? `от ${offer.priceFrom.toLocaleString("bg-BG")} ${offer.currency}`
+    : "Цена при запитване";
+}
+
+function formatPickDate(offer: Offer) {
+  const firstDate = offer.dates.find((date) => date.startDate);
+  if (!firstDate?.startDate) return "дати по заявка";
+
+  return new Intl.DateTimeFormat("bg-BG", {
+    day: "2-digit",
+    month: "long"
+  }).format(new Date(firstDate.startDate));
+}
+
+function HomePickTile({ offer }: { offer: Offer }) {
+  const title = offer.country || offer.title;
+  const subtitle = offer.destinations?.map((item) => item.city).filter(Boolean).slice(0, 3).join(" · ") || offer.region || offer.title;
+  const visibleTags = offer.tags.slice(0, 3);
+  const flagUrl = getCountryFlagUrl(title);
+
+  return (
+    <Link className="home-pick-tile" href={`/offers/${offer.slug}`}>
+      <img src={offer.heroImage} alt={offer.title} />
+      {flagUrl ? (
+        <span className="home-pick-flag" aria-hidden="true">
+          <img src={flagUrl} alt="" />
+        </span>
+      ) : null}
+      <span className="home-pick-arrow">
+        <ArrowRight size={18} aria-hidden="true" />
+      </span>
+      <span className="home-pick-shade" aria-hidden="true" />
+      <span className="home-pick-copy">
+        {visibleTags.length > 0 ? (
+          <span className="home-pick-tags">
+            {visibleTags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </span>
+        ) : null}
+        <span className="home-pick-kind">{offer.productTypeLabel || "Подбрано пътуване"}</span>
+        <strong>{title}</strong>
+        <span className="home-pick-subtitle">{subtitle}</span>
+        <span className="home-pick-meta">
+          <span><CalendarDays size={15} aria-hidden="true" />{offer.durationDays} дни</span>
+          <span>{formatPickDate(offer)}</span>
+          <span><MapPin size={15} aria-hidden="true" />{offer.region || offer.country}</span>
+          <b>{formatPickPrice(offer)}</b>
+        </span>
+      </span>
+    </Link>
+  );
+}
 
 export default async function Home() {
   const featuredOffers = await listPublishedPublicOffers();
@@ -241,6 +331,27 @@ export default async function Home() {
           </div>
         </section>
 
+        <section className="section home-picks-section">
+          <div className="container">
+            <div className="section-header home-picks-header">
+              <span className="eyebrow">Подбрано от Red Tours</span>
+              <h2>Нашата актуална селекция</h2>
+              <p>
+                Осем предложения, които екипът ни би поставил на преден план заради маршрута, момента, хотелите или преживяванията.
+              </p>
+              <Link className="section-link" href="/offers?featured=red-tours">
+                Виж всички
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </div>
+            <div className="home-picked-grid">
+            {redToursPicks.map((offer) => (
+                <HomePickTile key={offer.slug} offer={offer} />
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section className="section review-section" id="reviews">
           <div className="container">
             <div className="review-editorial-header">
@@ -290,27 +401,6 @@ export default async function Home() {
                   </article>
                 ))}
               </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section">
-          <div className="container">
-            <div className="section-header">
-              <span className="eyebrow">Подбрано от Red Tours</span>
-              <h2>Нашата актуална селекция</h2>
-              <p>
-                Осем предложения, които екипът ни би поставил на преден план заради маршрута, момента, хотелите или преживяванията.
-              </p>
-              <Link className="section-link" href="/offers?featured=red-tours">
-                Виж всички
-                <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-            </div>
-            <div className="offers-grid home-picked-grid">
-              {redToursPicks.map((offer) => (
-                <OfferCard key={offer.slug} offer={offer} />
-              ))}
             </div>
           </div>
         </section>

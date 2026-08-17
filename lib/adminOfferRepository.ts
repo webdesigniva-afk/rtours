@@ -1,4 +1,5 @@
 import { dbQuery } from "./db";
+import { displayCountryName, displayCurrency } from "./countryDisplay";
 
 export type AdminOfferRecord = {
   id: string;
@@ -523,12 +524,12 @@ export async function listAdminOfferItems() {
     id: offer.id,
     slug: offer.slug,
     title: offer.title,
-    destination: [offer.country, offer.region].filter(Boolean).join(", ") || "Без дестинация",
+    destination: [displayCountryName(offer.country), offer.region].filter(Boolean).join(", ") || "Без дестинация",
     type: mapProductType(offer.product_type, offer.product_type_label),
     source: mapSource(offer.source, offer.import_provider, offer.import_source, offer.import_last_synced_at),
     importId: offer.import_id,
     departures: offer.dates_count ?? 0,
-    price: offer.price_from ? `${Number(offer.price_from).toLocaleString("bg-BG")} ${offer.currency}` : "не е въведена",
+    price: offer.price_from ? `${Number(offer.price_from).toLocaleString("bg-BG")} ${displayCurrency(offer.currency)}` : "не е въведена",
     status: mapStatus(offer),
     publication: offer.status === "published" ? "site" : "draft",
     collection: "Без колекция",

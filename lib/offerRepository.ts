@@ -1,5 +1,6 @@
 import { getPublishedOfferBySlug, getPublishedOffers, offers } from "./data";
 import { dbQuery } from "./db";
+import { displayCountryName, displayCurrency } from "./countryDisplay";
 import { normalizeDateLabel } from "./dateFormat";
 import type { Offer, OfferStatus, OfferSupplierSection, TaxonomyTermType } from "./types";
 
@@ -226,11 +227,11 @@ function mapSupplierSections(row: PublicOfferRow): Offer["supplierSections"] {
 function mapPublicOffer(row: PublicOfferRow): Offer {
   const title = row.title || "Оферта";
   const summary = row.summary || "Подробностите за тази оферта се подготвят.";
-  const country = row.country || "Дестинация";
+  const country = displayCountryName(row.country) || "Дестинация";
   const region = row.region || country;
   const destinations = row.destinations?.length
     ? row.destinations.map((destination) => ({
-        country: destination.country,
+        country: displayCountryName(destination.country) || country,
         region: destination.region || undefined,
         city: destination.city || undefined,
         isPrimary: destination.isPrimary,
@@ -267,7 +268,7 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     durationNights,
     transport: row.transport as Offer["transport"],
     priceFrom: Number.isFinite(priceFrom) ? priceFrom : 0,
-    currency: row.currency,
+    currency: displayCurrency(row.currency),
     priceNote: "Запитване преди потвърждение",
     source: row.source as Offer["source"],
     status: row.status,
@@ -286,7 +287,7 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
           seatsOption: date.seatsOption ?? undefined,
           seatsAvailable: date.seatsAvailable ?? undefined,
           priceFrom: date.priceFrom === null ? undefined : Number(date.priceFrom),
-          currency: date.currency,
+          currency: displayCurrency(date.currency || row.currency),
           priceStatus: date.priceStatus,
           optionUntil: date.optionUntil || undefined,
           depositAmount: date.depositAmount === null ? undefined : Number(date.depositAmount),
