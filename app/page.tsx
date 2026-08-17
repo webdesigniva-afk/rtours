@@ -69,36 +69,43 @@ function HomePickTile({ offer }: { offer: Offer }) {
   const flagUrl = getCountryFlagUrl(title);
 
   return (
-    <Link className="home-pick-tile" href={`/offers/${offer.slug}`}>
-      <img src={offer.heroImage} alt={offer.title} />
-      {flagUrl ? (
-        <span className="home-pick-flag" aria-hidden="true">
-          <img src={flagUrl} alt="" />
+    <article className="home-pick-tile">
+      <Link className="home-pick-main-link" href={`/offers/${offer.slug}`}>
+        <img src={offer.heroImage} alt={offer.title} />
+        <span className="home-pick-arrow">
+          <ArrowRight size={18} aria-hidden="true" />
         </span>
-      ) : null}
-      <span className="home-pick-arrow">
-        <ArrowRight size={18} aria-hidden="true" />
-      </span>
-      <span className="home-pick-shade" aria-hidden="true" />
-      <span className="home-pick-copy">
-        {visibleTags.length > 0 ? (
-          <span className="home-pick-tags">
-            {visibleTags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
+        <span className="home-pick-shade" aria-hidden="true" />
+        <span className="home-pick-copy">
+          {visibleTags.length > 0 ? (
+            <span className="home-pick-tags">
+              {visibleTags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </span>
+          ) : null}
+          <span className="home-pick-kind">{offer.productTypeLabel || "Подбрано пътуване"}</span>
+          <strong>{title}</strong>
+          <span className="home-pick-subtitle">{subtitle}</span>
+          <span className="home-pick-meta">
+            <span><CalendarDays size={15} aria-hidden="true" />{offer.durationDays} дни</span>
+            <span>{formatPickDate(offer)}</span>
+            <span><MapPin size={15} aria-hidden="true" />{offer.region || offer.country}</span>
+            <b>{formatPickPrice(offer)}</b>
           </span>
-        ) : null}
-        <span className="home-pick-kind">{offer.productTypeLabel || "Подбрано пътуване"}</span>
-        <strong>{title}</strong>
-        <span className="home-pick-subtitle">{subtitle}</span>
-        <span className="home-pick-meta">
-          <span><CalendarDays size={15} aria-hidden="true" />{offer.durationDays} дни</span>
-          <span>{formatPickDate(offer)}</span>
-          <span><MapPin size={15} aria-hidden="true" />{offer.region || offer.country}</span>
-          <b>{formatPickPrice(offer)}</b>
         </span>
-      </span>
-    </Link>
+      </Link>
+      {flagUrl ? (
+        <Link
+          className="home-pick-flag"
+          href={`/destinations/${offer.destinationSlug}`}
+          aria-label={`Виж всички оферти за ${title}`}
+          data-tooltip={`Всички оферти за ${title}`}
+        >
+          <img src={flagUrl} alt="" />
+        </Link>
+      ) : null}
+    </article>
   );
 }
 

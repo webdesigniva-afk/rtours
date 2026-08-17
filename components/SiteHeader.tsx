@@ -53,6 +53,10 @@ export function SiteHeader() {
               );
             })}
           </nav>
+          <button className="nav-language-switch" type="button" aria-label="Смяна на езика">
+            <span className="is-active">BG</span>
+            <span>EN</span>
+          </button>
           <div className="nav-actions" aria-label="Бързи действия">
             <span className="nav-icon-action" aria-disabled="true">
               <UserRound size={18} aria-hidden="true" />
