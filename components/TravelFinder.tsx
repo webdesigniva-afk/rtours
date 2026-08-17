@@ -40,7 +40,7 @@ const moods = [
 export function TravelFinder() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [selectedMood, setSelectedMood] = useState(moods[0].label);
+  const [selectedMood, setSelectedMood] = useState("");
   const [destination, setDestination] = useState("");
   const [departureDate, setDepartureDate] = useState("");
   const [returnDate, setReturnDate] = useState("");

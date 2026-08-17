@@ -36,12 +36,19 @@ function firstText(...values: unknown[]) {
 }
 
 function roomText(raw: Record<string, unknown>) {
-  const rooms = Array.isArray(raw.rooms) ? raw.rooms : [];
+  const value = raw.rooms ?? raw.Rooms ?? raw.roomTypes ?? raw.RoomTypes ?? raw.accommodations ?? raw.Accommodations;
+  const rooms = Array.isArray(value)
+    ? value
+    : Object.entries(dataObject(value)).map(([key, item]) => {
+        const row = dataObject(item);
+        return Object.keys(row).length ? { key, ...row } : key;
+      });
 
   return rooms
-    .map((room) => {
+    .map((room, index) => {
+      if (typeof room === "string" || typeof room === "number") return textFromHtml(String(room));
       const row = dataObject(room);
-      return firstText(row.name, row.note);
+      return firstText(row.name, row.Name, row.title, row.Title, row.roomName, row.RoomName, row.label, row.note, row.Desc, row.Text, row.key) || `Стая ${index + 1}`;
     })
     .filter(Boolean)
     .join("\n");
@@ -80,6 +87,17 @@ function entityPreview(raw: unknown) {
   return text.length > 1600 ? `${text.slice(0, 1600)}...` : text;
 }
 
+function hotelFactRows(entity: SupplierEntity, raw: Record<string, unknown>, category: string, rooms: string) {
+  return [
+    { label: "ID", value: entity.key },
+    { label: "Категория", value: category },
+    { label: "Пансион", value: firstText(raw.board, raw.Board, raw.meal, raw.Meal, raw.boardName, raw.BoardName) },
+    { label: "Дестинация", value: firstText(raw.destination, raw.Destination, raw.city, raw.City, raw.Dest, raw.resort, raw.Resort) },
+    { label: "Стаи", value: rooms ? String(rooms.split("\n").filter(Boolean).length) : "" },
+    { label: "Източник", value: firstText(raw.source, raw.Source) }
+  ].filter((item) => item.value);
+}
+
 export function SupplierHotelsReviewList({ entities }: { entities: SupplierEntity[] }) {
   return (
     <div className="supplier-review-hotel-list">
@@ -89,6 +107,7 @@ export function SupplierHotelsReviewList({ entities }: { entities: SupplierEntit
         const title = hotelTitle(entity, raw, index);
         const category = firstText(editorial.category, raw.category, raw.Category);
         const rooms = firstText(editorial.rooms) || roomText(raw);
+        const facts = hotelFactRows(entity, raw, category, rooms);
 
         return (
           <article className={entity.isEnabled ? "supplier-review-hotel-item is-enabled" : "supplier-review-hotel-item"} key={entity.id}>
@@ -109,6 +128,16 @@ export function SupplierHotelsReviewList({ entities }: { entities: SupplierEntit
                 <span>Категория</span>
                 <input name={`entity_category_${entity.id}`} defaultValue={category} placeholder="напр. 4*" />
               </label>
+              {facts.length ? (
+                <div className="supplier-review-hotel-facts">
+                  {facts.map((item) => (
+                    <span key={item.label}>
+                      <strong>{item.label}</strong>
+                      {item.value}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               <label className="is-wide">
                 <span>Стаи / настаняване</span>
                 <textarea name={`entity_rooms_${entity.id}`} rows={3} defaultValue={rooms} />

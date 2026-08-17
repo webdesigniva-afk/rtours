@@ -199,6 +199,15 @@ img {
   line-height: 1.8;
 }
 
+.section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--red-deep);
+  font-weight: 900;
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -1563,6 +1572,16 @@ img {
   gap: 24px;
 }
 
+.home-picked-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1180px) {
+  .home-picked-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .collection-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1732,6 +1751,12 @@ img {
   padding: 22px;
 }
 
+.offer-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .offer-card-badge {
   width: fit-content;
   border: 1px solid rgba(181, 43, 38, 0.2);
@@ -1742,6 +1767,11 @@ img {
   font-size: 0.72rem;
   font-weight: 900;
   line-height: 1;
+  text-decoration: none;
+}
+
+.offer-card-badge:hover {
+  background: rgba(181, 43, 38, 0.13);
 }
 
 .card-body h3 {
@@ -2557,8 +2587,47 @@ img {
   animation: riseReveal 720ms var(--ease-luxury) 80ms both;
 }
 
+.offers-active-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: -8px 0 24px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 740;
+}
+
+.offers-active-filter strong {
+  color: var(--ink);
+}
+
+.offers-active-filter a,
+.offers-empty-state a {
+  color: var(--red-deep);
+  font-weight: 900;
+}
+
+.offers-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  margin-top: 24px;
+  padding: 28px;
+  background: #fffdf9;
+  color: var(--muted);
+  text-align: center;
+}
+
+.offers-empty-state strong {
+  color: var(--ink);
+}
+
 .filter-row select,
 .filter-row input,
+.filter-row button,
 .inquiry-form input,
 .inquiry-form textarea,
 .inquiry-form select {
@@ -2568,6 +2637,14 @@ img {
   background: #fffdf9;
   padding: 12px 14px;
   color: var(--ink);
+}
+
+.filter-row button {
+  border-color: var(--red-deep);
+  background: var(--red-deep);
+  color: #fffdf9;
+  cursor: pointer;
+  font-weight: 900;
 }
 
 .filter-row input {
@@ -4409,53 +4486,105 @@ img {
   font-weight: 850;
 }
 
+.offer-editor-bottom-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #e8eef6;
+  padding-top: 16px;
+}
+
+.offer-editor-bottom-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid #d8e0ed;
+  border-radius: 8px;
+  padding: 0 18px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.offer-editor-bottom-actions button.primary {
+  border-color: #a7352b;
+  background: #a7352b;
+  color: #fff;
+  box-shadow: 0 14px 26px rgba(167, 53, 43, 0.18);
+}
+
+.offer-editor-bottom-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
 .offer-import-context {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  border: 1px solid rgba(46, 84, 143, 0.18);
+  gap: 12px;
+  border: 1px solid #e3e9f3;
   border-radius: 8px;
-  background: #f7faff;
-  padding: 16px 18px;
+  background: #fbfcfe;
+  padding: 9px 11px;
 }
 
 .offer-import-context span {
-  display: block;
+  display: inline-flex;
   color: #7a2b24;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 900;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .offer-import-context strong {
-  display: block;
-  margin-top: 4px;
+  display: inline-flex;
+  margin-left: 10px;
   color: #111827;
-  font-size: 1rem;
+  font-size: 0.86rem;
+  font-weight: 950;
+}
+
+.offer-import-context em {
+  display: inline-flex;
+  margin-left: 7px;
+  border: 1px solid #dfe6f1;
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .offer-import-context p {
-  margin: 6px 0 0;
-  max-width: 760px;
+  display: inline-flex;
+  margin: 0 0 0 10px;
   color: #5f6b80;
-  font-weight: 700;
-  line-height: 1.45;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .offer-import-context a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 42px;
+  gap: 6px;
+  min-height: 32px;
   white-space: nowrap;
   border: 1px solid #d8e0ed;
   border-radius: 8px;
   background: #ffffff;
   color: #111827;
-  padding: 0 14px;
+  padding: 0 10px;
+  font-size: 0.78rem;
   font-weight: 900;
   text-decoration: none;
 }
@@ -4857,6 +4986,38 @@ img {
   -webkit-line-clamp: 2;
 }
 
+.offer-supplier-quick-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 1px;
+}
+
+.offer-supplier-quick-meta span,
+.offer-supplier-quick-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #dbe8dc;
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: #fff;
+  color: #42526a;
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.offer-supplier-quick-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.offer-supplier-quick-facts strong {
+  color: #111827;
+}
+
 .offer-supplier-quick-list details {
   padding-left: 118px;
 }
@@ -4872,6 +5033,19 @@ img {
   display: grid;
   gap: 7px;
   padding-top: 7px;
+}
+
+.offer-supplier-quick-raw pre {
+  max-height: 240px;
+  overflow: auto;
+  border-radius: 8px;
+  margin: 8px 0 0;
+  padding: 10px;
+  background: #0f172a;
+  color: #dbeafe;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .offer-supplier-quick-list input:not([type="checkbox"]),
@@ -11409,6 +11583,30 @@ img {
 .supplier-review-departure-body .is-wide,
 .supplier-review-hotel-body .is-wide {
   grid-column: 1 / -1;
+}
+
+.supplier-review-hotel-facts {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.supplier-review-hotel-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #dbe8dc;
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: #fff;
+  color: #42526a;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.supplier-review-hotel-facts strong {
+  color: #111827;
 }
 
 .supplier-review-departure-body label,

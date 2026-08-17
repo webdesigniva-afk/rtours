@@ -39,11 +39,9 @@ import {
   Underline,
   Users,
   WalletCards,
-  X,
-  XCircle
+  X
 } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
-import { PublicOfferDetail, type PublicOfferDetailData } from "@/components/PublicOfferDetail";
 import { formatDisplayDate, formatDisplayDateRange, normalizeDateLabel } from "@/lib/dateFormat";
 import { OfferContentForm, type OfferContentDraftSummary } from "../OfferContentForm";
 import { cancelNewOfferDraft, createOfferBadge, publishOfferChanges, updateOfferContent, updateOfferDatesPrices, updateOfferPublishing, updateOfferSeo, updateOfferSupplierApiReview } from "./actions";
@@ -133,7 +131,24 @@ export type AdminOfferEditorInitialOffer = {
 type DatesPricesDraftSummary = {
   priceFrom: number;
   currency: "EUR" | "BGN";
-  dates: PublicOfferDetailData["dates"];
+  dates: Array<{
+    label: string;
+    startDate: string;
+    endDate?: string;
+    departurePoints?: string;
+    availability?: "available" | "limited" | "on_request" | "sold_out";
+    seatsTotal?: number;
+    seatsConfirmed?: number;
+    seatsOption?: number;
+    seatsAvailable?: number;
+    priceFrom?: number;
+    currency?: "EUR" | "BGN";
+    priceStatus?: "fixed" | "option_until" | "dynamic" | "budgetary";
+    optionUntil?: string;
+    depositAmount?: number;
+    paymentDueDays?: number;
+    notes?: string;
+  }>;
 };
 
 type EditableItineraryDay = {
@@ -188,12 +203,51 @@ const presentationPlaceholder = [
 ].join("\n");
 
 function createSummaryFromDescription(value: string) {
+  const text = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (isProgramLikeText(text)) return "";
+
+  return text.slice(0, 160);
+}
+
+function isProgramLikeText(value: string) {
+  const text = value.trim();
+  if (!text) return false;
+  return /^(?:ден|day)\s*[-–—:]?\s*\d+/i.test(text) || /(?:^|\s)(?:ден|day)\s*[-–—:]?\s*\d+[\s\S]{0,180}(?:ден|day)\s*[-–—:]?\s*\d+/i.test(text);
+}
+
+function cleanSeoDescription(value: string) {
   return value
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 160);
+    .trim();
+}
+
+function createSeoDescriptionFallback(offer: Pick<AdminOfferEditorInitialOffer, "title" | "country" | "region" | "durationDays" | "durationNights" | "productTypeLabel">) {
+  const destination = [offer.region, offer.country].filter(Boolean).join(", ");
+  const duration = Number(offer.durationDays)
+    ? `${offer.durationDays} дни${Number(offer.durationNights) ? ` / ${offer.durationNights} нощувки` : ""}`
+    : "";
+  return [
+    offer.title,
+    destination ? `пътуване до ${destination}` : "",
+    duration
+  ].filter(Boolean).join(" - ").slice(0, 160);
+}
+
+function initialSeoDescription(offer: AdminOfferEditorInitialOffer) {
+  const saved = cleanSeoDescription(offer.seoMetaDescription);
+  if (saved && !isProgramLikeText(saved)) return saved.slice(0, 180);
+
+  const summary = cleanSeoDescription(offer.summary);
+  if (summary && !isProgramLikeText(summary)) return summary.slice(0, 180);
+
+  return createSeoDescriptionFallback(offer);
 }
 
 function createServiceItems(labels: string[], fallback: string[] = [""]) {
@@ -457,6 +511,85 @@ function supplierEntityObject(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+function supplierEntityValueByKeys(entity: AdminOfferEditorInitialOffer["supplierEntities"][number], keys: string[]) {
+  const raw = supplierEntityObject(entity.rawData);
+  const editorial = supplierEntityObject(entity.editorialData);
+
+  for (const source of [editorial, raw]) {
+    for (const key of keys) {
+      const text = supplierEntityText(source[key]);
+      if (text) return text;
+    }
+  }
+
+  return "";
+}
+
+function supplierRoomLabel(value: unknown, fallback: string) {
+  if (typeof value === "string" || typeof value === "number") return supplierEntityText(value);
+  const row = supplierEntityObject(value);
+  return [
+    supplierEntityText(row.name),
+    supplierEntityText(row.Name),
+    supplierEntityText(row.title),
+    supplierEntityText(row.Title),
+    supplierEntityText(row.roomName),
+    supplierEntityText(row.RoomName),
+    supplierEntityText(row.label),
+    supplierEntityText(row.note),
+    supplierEntityText(row.Desc),
+    supplierEntityText(row.Text)
+  ].find(Boolean) || fallback;
+}
+
+function supplierEntityRooms(entity: AdminOfferEditorInitialOffer["supplierEntities"][number]) {
+  const raw = supplierEntityObject(entity.rawData);
+  const value = raw.rooms ?? raw.Rooms ?? raw.roomTypes ?? raw.RoomTypes ?? raw.accommodations ?? raw.Accommodations;
+
+  if (Array.isArray(value)) {
+    return value.map((item, index) => supplierRoomLabel(item, `Стая ${index + 1}`)).filter(Boolean);
+  }
+
+  const objectValue = supplierEntityObject(value);
+  if (Object.keys(objectValue).length) {
+    return Object.entries(objectValue)
+      .map(([key, item]) => supplierRoomLabel(item, key))
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function supplierEntityHotelMeta(entity: AdminOfferEditorInitialOffer["supplierEntities"][number]) {
+  if (entity.type !== "hotel") return [];
+  const rooms = supplierEntityRooms(entity);
+  const category = supplierEntityValueByKeys(entity, ["category", "Category", "stars", "Stars"]);
+  const destination = supplierEntityValueByKeys(entity, ["destination", "Destination", "city", "City", "Dest", "resort", "Resort"]);
+  const board = supplierEntityValueByKeys(entity, ["board", "Board", "meal", "Meal", "boardName", "BoardName"]);
+  const source = supplierEntityValueByKeys(entity, ["source", "Source"]);
+
+  return [
+    category,
+    destination,
+    board,
+    rooms.length ? `${rooms.length} стаи` : "",
+    source,
+    entity.key ? `ID ${entity.key}` : ""
+  ].filter(Boolean);
+}
+
+function supplierEntityHotelFacts(entity: AdminOfferEditorInitialOffer["supplierEntities"][number]) {
+  const rooms = supplierEntityRooms(entity);
+  return [
+    { label: "Категория", value: supplierEntityValueByKeys(entity, ["category", "Category", "stars", "Stars"]) },
+    { label: "Дестинация", value: supplierEntityValueByKeys(entity, ["destination", "Destination", "city", "City", "Dest", "resort", "Resort"]) },
+    { label: "Пансион", value: supplierEntityValueByKeys(entity, ["board", "Board", "meal", "Meal", "boardName", "BoardName"]) },
+    { label: "Стаи", value: rooms.join(", ") },
+    { label: "Източник", value: supplierEntityValueByKeys(entity, ["source", "Source"]) },
+    { label: "Ключ", value: entity.key || "" }
+  ].filter((item) => item.value);
+}
+
 function supplierEntityMainText(entity: AdminOfferEditorInitialOffer["supplierEntities"][number]) {
   const raw = supplierEntityObject(entity.rawData);
   const editorial = supplierEntityObject(entity.editorialData);
@@ -557,13 +690,6 @@ function toggleValue(values: string[], value: string) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }
 
-function sectionStatusLabel(status: SectionStatus, percent: number) {
-  if (status === "complete") return "Готово";
-  if (status === "readonly") return "Автоматично";
-  if (status === "missing") return "Липсва";
-  return `${percent}%`;
-}
-
 function tabFromKey(tabKey?: string) {
   if (tabKey === "dates-prices") return "Дати и цени";
   if (tabKey === "api-data") return "Получени данни";
@@ -615,6 +741,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const isNewCreationFlow = offer.canCancelCreation || isNewUrlMode;
   const shouldShowEmptyEditor = offer.isNewBlankDraft;
   const contentFormId = `offer-content-form-${offer.slug}`;
+  const datesFormId = `offer-dates-form-${offer.slug}`;
   const contentFormVersion = `${offer.slug}-${offer.updatedAt}-${shouldShowEmptyEditor ? "empty" : "saved"}`;
   const [activeTab, setActiveTab] = useState(tabFromKey(initialTabKey));
   const visibleTabs = useMemo(
@@ -642,12 +769,12 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const [showOnHome, setShowOnHome] = useState(isVisibilityEnabled(offer, "homepage", false));
   const [featuredByRedTours, setFeaturedByRedTours] = useState(initialBadgeLabels.includes("Наш избор"));
   const [showInSignature, setShowInSignature] = useState(isVisibilityEnabled(offer, "collection_page", initialCollectionLabels.includes("Red Signature")));
-  const [showInPromo, setShowInPromo] = useState(isVisibilityEnabled(offer, "promo_section", false));
+  const [showInExotic, setShowInExotic] = useState(initialCollectionLabels.includes("Red Escape"));
   const [priority, setPriority] = useState(visibilityPriority(offer, 10));
   const [seoTitle, setSeoTitle] = useState(offer.seoMetaTitle || offer.title);
-  const [seoDescription, setSeoDescription] = useState(offer.seoMetaDescription || offer.summary);
+  const [seoDescription, setSeoDescription] = useState(() => initialSeoDescription(offer));
   const [seoSlug, setSeoSlug] = useState(offer.slug);
-  const [seoCanonicalUrl, setSeoCanonicalUrl] = useState(offer.seoCanonicalUrl || `/offers/${offer.slug}`);
+  const [seoCanonicalUrl, setSeoCanonicalUrl] = useState(offer.seoCanonicalUrl || "");
   const [seoKeywords, setSeoKeywords] = useState((offer.seoKeywords.length ? offer.seoKeywords : [offer.country, offer.region, offer.title].filter(Boolean)).join(", "));
   const [seoStructuredDataType, setSeoStructuredDataType] = useState(offer.seoStructuredDataType || "TouristTrip");
   const [currentHeroImageUrl, setCurrentHeroImageUrl] = useState(offer.heroImageUrl);
@@ -663,9 +790,8 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
     description: offer.description,
     hasHeroImage: Boolean(offer.heroImageUrl)
   });
-  const [datesDraft, setDatesDraft] = useState<DatesPricesDraftSummary>(() => mapAdminDatesToPublicPreview(offer));
+  const [, setDatesDraft] = useState<DatesPricesDraftSummary>(() => mapAdminDatesToPublicPreview(offer));
   const [message, setMessage] = useState("");
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showCancelDraftModal, setShowCancelDraftModal] = useState(false);
   const [isContentMediaUploading, setIsContentMediaUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -677,28 +803,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const seoUrlPath = `/offers/${seoSlug || offer.slug}`;
   const seoDescriptionPreview = seoDescription || "Кратко описание на офертата за резултатите в Google.";
   const activeDeparturesCount = offer.dates.filter((date) => date.availability !== "sold_out").length;
-  const hasIncludedServices = offer.included.some((item) => item.trim());
-  const hasExcludedServices = offer.excluded.some((item) => item.trim());
-  const hasActiveDepartureWithPrice = offer.dates.some((date) => date.availability !== "sold_out" && Number(date.priceFrom) > 0);
-  const hasSeoBasics = Boolean((seoTitle || offer.seoMetaTitle || offer.title).trim() && (seoDescription || offer.seoMetaDescription || offer.summary).trim());
-  const hasSavedTaxonomy = offer.taxonomyTerms.length > 0;
-  const hasSavedVisibility = offer.visibilityRules.some((rule) => rule.isEnabled);
-  const publishRequirements = [
-    { label: "Основни данни", ok: Boolean(offer.title && offer.country && offer.region && offer.durationDays && offer.transport), detail: "заглавие, дестинация, продължителност и транспорт" },
-    { label: "Описание", ok: Boolean(offer.summary && offer.description), detail: "кратко и пълно представяне" },
-    { label: "Основна снимка", ok: Boolean(currentHeroImageUrl), detail: "публична hero визия" },
-    { label: "Програма по дни", ok: offer.itinerary.length > 0, detail: "поне един ден с маршрут" },
-    { label: "Услуги", ok: hasIncludedServices && hasExcludedServices, detail: "какво включва и какво не включва цената" },
-    { label: "Дати и цени", ok: activeDeparturesCount > 0, detail: hasActiveDepartureWithPrice ? "има активна дата с цена" : "активна дата, цената е при запитване" },
-    { label: "Категоризация", ok: hasSavedTaxonomy, detail: "taxonomy етикети, колекции, аудитория и тип пътуване" },
-    { label: "Показване", ok: hasSavedVisibility, detail: "листинг, търсене, начална страница или колекция" },
-    { label: "SEO основа", ok: hasSeoBasics, detail: "заглавие и meta описание" }
-  ];
-  const publishMissing = publishRequirements.filter((item) => !item.ok);
-  const canPublish = publishMissing.length === 0;
-  const previewPriceLabel = datesDraft.priceFrom > 0
-    ? `${datesDraft.priceFrom.toLocaleString("bg-BG")} ${datesDraft.currency}`
-    : "Цена при запитване";
   const seoKeywordSuggestions = useMemo(
     () => Array.from(new Set([offer.country, offer.region, productTypeLabel(offer.productType), ...selectedTags.map((tag) => tag.label), ...collections, ...selectedTravelType].filter(Boolean))).slice(0, 10),
     [collections, offer.country, offer.productType, offer.region, selectedTags, selectedTravelType]
@@ -709,34 +813,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       router.replace(`/admin/offers/${seoState.newSlug}?tab=publishing`);
     }
   }, [offer.slug, router, seoState]);
-
-  const publicPreview = useMemo<PublicOfferDetailData>(
-    () => ({
-      slug: offer.slug,
-      title: offer.title,
-      summary: offer.summary,
-      description: offer.description,
-      country: offer.country,
-      region: offer.region,
-      durationDays: Number(offer.durationDays) || 0,
-      durationNights: Number(offer.durationNights) || 0,
-      priceFrom: datesDraft.priceFrom,
-      currency: datesDraft.currency,
-      priceNote: "Запитване преди потвърждение",
-      productType: offer.productType,
-      productTypeLabel: offer.productTypeLabel,
-      transport: offer.transport,
-      isAuthorProgram: offer.isAuthorProgram,
-      heroImage: currentHeroImageUrl,
-      gallery: offer.galleryImageUrls,
-      dates: datesDraft.dates,
-      itinerary: offer.itinerary,
-      highlights: offer.highlights,
-      included: offer.included,
-      excluded: offer.excluded
-    }),
-    [currentHeroImageUrl, datesDraft, offer]
-  );
 
   const sectionStatus = useMemo<Record<string, { status: SectionStatus; percent: number; filled: string[]; missing: string[] }>>(
     () => ({
@@ -798,12 +874,13 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         missing: ["Ключови думи", "Canonical URL", "Preview за Google"]
       },
       "Показване в сайта": {
-        status: showOnHome || featuredByRedTours || showInSignature || showInPromo ? "partial" : "missing",
+        status: showOnHome || featuredByRedTours || showInSignature || showInExotic ? "partial" : "missing",
         percent: 60,
         filled: [
           showOnHome ? "Показване на начална страница" : "",
           featuredByRedTours ? "Подбрано от RedTours" : "",
-          showInSignature ? "Red Signature" : "",
+          showInSignature ? "Авторски пътувания" : "",
+          showInExotic ? "Екзотични пътувания" : "",
           `Приоритет: ${priority}`
         ].filter(Boolean),
         missing: ["Период на показване", "Финални правила за колекции"]
@@ -827,7 +904,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         missing: []
       }
     }),
-    [collections, currentHeroImageUrl, featuredByRedTours, offer, priority, selectedTags, selectedTravelType, showInPromo, showInSignature, showOnHome]
+    [collections, currentHeroImageUrl, featuredByRedTours, offer, priority, selectedTags, selectedTravelType, showInExotic, showInSignature, showOnHome]
   );
 
   const workflowStatus: Record<string, { status: SectionStatus; percent: number; filled: string[]; missing: string[] }> = {
@@ -877,7 +954,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       ].filter(Boolean)
     },
     "Публикуване": {
-      status: selectedTags.length && (showOnHome || featuredByRedTours || showInSignature || showInPromo) ? "partial" : "missing",
+      status: selectedTags.length && (showOnHome || featuredByRedTours || showInSignature || showInExotic) ? "partial" : "missing",
       percent: Math.min(95, selectedTags.length * 10 + collections.length * 8 + selectedTravelType.length * 6),
       filled: [
         selectedTags.length ? `Етикети: ${selectedTags.map((tag) => tag.label).join(", ")}` : "",
@@ -885,7 +962,8 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         selectedTravelType.length ? `Типове: ${selectedTravelType.join(", ")}` : "",
         showOnHome ? "Показване на начална страница" : "",
         featuredByRedTours ? "Подбрано от RedTours" : "",
-        showInSignature ? "Red Signature" : "",
+        showInSignature ? "Авторски пътувания" : "",
+        showInExotic ? "Екзотични пътувания" : "",
         `Приоритет: ${priority}`
       ].filter(Boolean),
       missing: ["Период на акцентиране", "SEO описание", "URL slug проверка", "Social image"]
@@ -900,10 +978,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       missing: offer.importId && !offer.supplierEntities.length ? ["Няма записани supplier entities към този импорт"] : []
     }
   };
-
-  const completionPercent = Math.round(
-    visibleTabs.reduce((sum, tab) => sum + (workflowStatus[tab.label]?.percent || 0), 0) / visibleTabs.length
-  );
 
   function removeTag(label: string) {
     setActiveTagLabels((current) => current.filter((tagLabel) => tagLabel !== label));
@@ -936,51 +1010,68 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
     });
   }
 
-  function publishChanges() {
-    startTransition(async () => {
-      const result = await publishOfferChanges(offer.slug);
-      if (result.ok) {
-        setStatus(result.status);
-        setMessage(result.message);
-      } else {
-        setMessage(result.message);
-      }
+  async function savePublishingSettingsNow() {
+    const badgeLabels = Array.from(new Set([
+      ...activeTagLabels,
+      featuredByRedTours || showOnHome ? "Наш избор" : ""
+    ].filter(Boolean)));
+    const collectionLabels = Array.from(new Set([
+      ...collections,
+      showInSignature ? "Red Signature" : "",
+      showInExotic ? "Red Escape" : ""
+    ].filter(Boolean)));
+    const travelTypeLabels = selectedTravelType.length ? selectedTravelType : [productTypeLabel(offer.productType)].filter(Boolean);
+
+    return updateOfferPublishing(offer.slug, {
+      terms: [
+        ...badgeLabels.map((label) => ({ type: "badge", label })),
+        ...collectionLabels.map((label) => ({ type: "collection", label })),
+        ...selectedAudience.map((label) => ({ type: "audience", label })),
+        ...selectedExperience.map((label) => ({ type: "mood", label })),
+        ...selectedInterests.map((label) => ({ type: "theme", label })),
+        ...travelTypeLabels.map((label) => ({ type: "category", label }))
+      ],
+      visibilityRules: [
+        { placement: "offers_index", isEnabled: true, priority },
+        { placement: "search", isEnabled: true, priority },
+        { placement: "homepage", isEnabled: showOnHome, priority },
+        { placement: "collection_page", isEnabled: showInSignature || showInExotic || collectionLabels.length > 0, priority }
+      ]
     });
   }
 
-  function savePublishingSettings() {
+  async function saveSeoSettingsNow() {
+    const formData = new FormData();
+    formData.set("slug", offer.slug);
+    formData.set("seo_meta_title", seoTitle);
+    formData.set("seo_slug", seoSlug);
+    formData.set("seo_meta_description", seoDescription);
+    formData.set("seo_canonical_url", seoCanonicalUrl);
+    formData.set("seo_structured_data_type", seoStructuredDataType);
+    formData.set("seo_keywords", seoKeywords);
+    return updateOfferSeo({ ok: false, message: "" }, formData);
+  }
+
+  function saveAndPublishChanges() {
     startTransition(async () => {
-      const badgeLabels = Array.from(new Set([
-        ...activeTagLabels,
-        featuredByRedTours ? "Наш избор" : "",
-        showInPromo ? "Промо оферта" : ""
-      ].filter(Boolean)));
-      const collectionLabels = Array.from(new Set([
-        ...collections,
-        showInSignature ? "Red Signature" : ""
-      ].filter(Boolean)));
-      const travelTypeLabels = selectedTravelType.length ? selectedTravelType : [productTypeLabel(offer.productType)].filter(Boolean);
+      const publishingResult = await savePublishingSettingsNow();
+      if (!publishingResult.ok) {
+        setMessage(publishingResult.message);
+        return;
+      }
 
-      const result = await updateOfferPublishing(offer.slug, {
-        terms: [
-          ...badgeLabels.map((label) => ({ type: "badge", label })),
-          ...collectionLabels.map((label) => ({ type: "collection", label })),
-          ...selectedAudience.map((label) => ({ type: "audience", label })),
-          ...selectedExperience.map((label) => ({ type: "mood", label })),
-          ...selectedInterests.map((label) => ({ type: "theme", label })),
-          ...travelTypeLabels.map((label) => ({ type: "category", label }))
-        ],
-        visibilityRules: [
-          { placement: "offers_index", isEnabled: true, priority },
-          { placement: "search", isEnabled: true, priority },
-          { placement: "homepage", isEnabled: showOnHome, priority },
-          { placement: "collection_page", isEnabled: showInSignature || collectionLabels.length > 0, priority },
-          { placement: "promo_section", isEnabled: showInPromo, priority }
-        ]
-      });
+      const seoResult = await saveSeoSettingsNow();
+      if (!seoResult.ok) {
+        setMessage(seoResult.message);
+        return;
+      }
 
-      setMessage(result.message);
-      if (result.ok) {
+      const publishSlug = seoResult.newSlug || offer.slug;
+      const publishResult = await publishOfferChanges(publishSlug);
+      setMessage(publishResult.message);
+      if (publishResult.ok) {
+        setStatus(publishResult.status);
+        router.replace(`/admin/offers/${publishSlug}?tab=publishing`);
         router.refresh();
       }
     });
@@ -1006,7 +1097,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
     });
   }
 
-  const activeTag = selectedTags[0];
   const isNewOfferFlow = offer.canCancelCreation || isNewUrlMode;
   const breadcrumbTitle = isNewOfferFlow ? "Нова оферта" : contentDraft.title.trim() || "Нова оферта";
   const durationLabel = Number(contentDraft.durationDays) || Number(contentDraft.durationNights)
@@ -1040,18 +1130,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
             {headerDetails.length ? <p>{headerDetails.join(" / ")}</p> : null}
           </div>
           <div className="offer-editor-actions">
-            <button type="button" onClick={() => setIsPreviewOpen(true)}>
-              <Eye size={17} aria-hidden="true" />
-              Преглед в сайта
-            </button>
-            <button type="submit" form={contentFormId} formNoValidate disabled={isPending || isContentMediaUploading}>
-              <Save size={17} aria-hidden="true" />
-              {isContentMediaUploading ? "Качване..." : "Запази чернова"}
-            </button>
-            <button className="primary" type="button" onClick={publishChanges} disabled={isPending || !canPublish} title={canPublish ? "Публикувай офертата" : "Има липсващи данни преди публикуване"}>
-              <CheckCircle2 size={17} aria-hidden="true" />
-              Публикувай промените
-            </button>
             <button className="danger" type="button" onClick={cancelEditing} disabled={isPending}>
               <X size={17} aria-hidden="true" />
               Отказ
@@ -1062,16 +1140,14 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         {offer.importId ? (
           <section className="offer-import-context" aria-label="Import source">
             <div>
-              <span>Imported offer</span>
-              <strong>{importProviderLabel(offer.importProvider)} · {importChangeLabel(offer.importChangeState)}</strong>
-              <p>
-                Edit the public Red Tours offer here. Supplier-specific hotels, packages, extras and raw data stay in the import audit.
-                {offer.importLastSyncedAt ? ` Last sync: ${formatDateTime(offer.importLastSyncedAt)}.` : ""}
-              </p>
+              <span>Импорт от доставчик</span>
+              <strong>{importProviderLabel(offer.importProvider)}</strong>
+              <em>{importChangeLabel(offer.importChangeState)}</em>
+              {offer.importLastSyncedAt ? <p>Последна синхронизация: {formatDateTime(offer.importLastSyncedAt)}</p> : null}
             </div>
             <a href={`/admin/supplier-imports/${offer.importId}`}>
               <Import size={16} aria-hidden="true" />
-              Supplier audit
+              Audit
             </a>
           </section>
         ) : null}
@@ -1083,7 +1159,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
             <div>
               <h2>Редакция на офертата</h2>
             </div>
-            <strong>{completionPercent}% готова</strong>
           </header>
           <nav className="offer-editor-tabs" aria-label="Секции на офертата">
             {visibleTabs.map((tab) => {
@@ -1094,7 +1169,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                 <button className={tab.label === activeTab ? `is-active is-${state.status}` : `is-${state.status}`} type="button" key={tab.label} onClick={() => setActiveTab(tab.label)}>
                   <Icon size={16} aria-hidden="true" />
                   <span>{tab.label}</span>
-                  <em>{sectionStatusLabel(state.status, state.percent)}</em>
                 </button>
               );
             })}
@@ -1108,7 +1182,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
               {offer.importId ? <SupplierQuickReviewPanel offer={offer} /> : null}
             </div>
             <div hidden={activeTab !== "Дати и цени"}>
-              <DatesPricesWorkspace offer={offer} onDraftChange={setDatesDraft} />
+              <DatesPricesWorkspace offer={offer} onDraftChange={setDatesDraft} formId={datesFormId} />
             </div>
             {offer.importId ? (
               <div hidden={activeTab !== "Получени данни"}>
@@ -1117,34 +1191,16 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
             ) : null}
 
             <div hidden={activeTab !== "Публикуване"}>
-                <section className={canPublish ? "offer-editor-card offer-readiness-card is-ready" : "offer-editor-card offer-readiness-card"}>
+                <section className="offer-editor-card offer-readiness-card is-ready">
                   <header>
                     <div>
-                      <h2>Готовност за публикуване</h2>
-                      <span>проверява само данни, които са записани и се използват от публичната страница</span>
+                      <h2>Публикуване</h2>
+                      <span>офертата може да се публикува на всеки етап, а съдържанието може да се допълва и след това</span>
                     </div>
-                    <strong>{canPublish ? "Готова" : `${publishMissing.length} липсващи`}</strong>
+                    <strong>Без ограничения</strong>
                   </header>
-                  <div className="offer-readiness-grid">
-                    {publishRequirements.map((requirement) => {
-                      const Icon = requirement.ok ? CheckCircle2 : XCircle;
-
-                      return (
-                        <article className={requirement.ok ? "is-ok" : "is-missing"} key={requirement.label}>
-                          <Icon size={18} aria-hidden="true" />
-                          <div>
-                            <strong>{requirement.label}</strong>
-                            <span>{requirement.detail}</span>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
                   <footer className="offer-readiness-footer">
-                    <p>{canPublish ? "Офертата покрива минималния стандарт за публична страница." : "Попълнете липсващите секции, запазете промените и опитайте отново."}</p>
-                    <button className="primary" type="button" onClick={publishChanges} disabled={isPending || !canPublish}>
-                      {isPending ? "Публикуване..." : "Публикувай офертата"}
-                    </button>
+                    <p>Запази настройките, SEO данните и публичния статус. Ако по-късно добавиш снимки, дати, услуги или текстове, те ще се обновят в сайта след следващо запазване.</p>
                   </footer>
                 </section>
 
@@ -1215,35 +1271,32 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                 <section className="offer-editor-card offer-publishing-grid-card">
                   <header>
                     <h2>Показване в сайта</h2>
-                    <span>къде и с какъв приоритет участва офертата</span>
+                    <span>избери в кои публични витрини да участва офертата</span>
                   </header>
                   <div className="offer-publishing-grid">
                     <label>
-                      <input type="checkbox" checked={showOnHome} onChange={(event) => setShowOnHome(event.target.checked)} />
-                      <span>Покажи на началната страница</span>
-                    </label>
-                    <label>
-                      <input type="checkbox" checked={featuredByRedTours} onChange={(event) => setFeaturedByRedTours(event.target.checked)} />
-                      <span>Подбрано от RedTours</span>
+                      <input
+                        type="checkbox"
+                        checked={showOnHome}
+                        onChange={(event) => {
+                          setShowOnHome(event.target.checked);
+                          setFeaturedByRedTours(event.target.checked);
+                        }}
+                      />
+                      <span>Подбрано от Red Tours</span>
                     </label>
                     <label>
                       <input type="checkbox" checked={showInSignature} onChange={(event) => setShowInSignature(event.target.checked)} />
-                      <span>Покажи в Red Signature</span>
+                      <span>Авторски пътувания</span>
                     </label>
                     <label>
-                      <input type="checkbox" checked={showInPromo} onChange={(event) => setShowInPromo(event.target.checked)} />
-                      <span>Покажи в промо секцията</span>
+                      <input type="checkbox" checked={showInExotic} onChange={(event) => setShowInExotic(event.target.checked)} />
+                      <span>Екзотични пътувания</span>
                     </label>
                     <div className="offer-priority">
                       <span>Приоритет</span>
                       <input type="number" value={priority} min={0} max={100} onChange={(event) => setPriority(Number(event.target.value))} />
                     </div>
-                  </div>
-                  <div className="offer-editor-actions">
-                    <button className="secondary" type="button" onClick={savePublishingSettings} disabled={isPending}>
-                      <Save size={16} aria-hidden="true" />
-                      {isPending ? "Записване..." : "Запази публикуване"}
-                    </button>
                   </div>
                 </section>
 
@@ -1274,11 +1327,12 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                           Meta description
                           <em>{seoDescription.length}/160</em>
                         </span>
-                        <textarea name="seo_meta_description" value={seoDescription} maxLength={180} onChange={(event) => setSeoDescription(event.target.value)} />
+                        <textarea name="seo_meta_description" value={seoDescription} maxLength={180} onChange={(event) => setSeoDescription(event.target.value)} placeholder="Кратко описание за Google - 1-2 изречения, без програма по дни." />
                       </label>
                       <label>
                         <span>Canonical URL</span>
-                        <input name="seo_canonical_url" value={seoCanonicalUrl} placeholder={seoUrlPath} onChange={(event) => setSeoCanonicalUrl(event.target.value)} />
+                        <input name="seo_canonical_url" value={seoCanonicalUrl} placeholder={`Автоматично: redtours.bg${seoUrlPath}`} onChange={(event) => setSeoCanonicalUrl(event.target.value)} />
+                        <small>Остави празно, ако това е основната страница на офертата.</small>
                       </label>
                       <label>
                         <span>Structured data</span>
@@ -1308,57 +1362,40 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                       </div>
                     </aside>
                   </div>
-                  <div className="offer-editor-actions">
-                    {seoState.message ? <span className={seoState.ok ? "offer-save-message is-ok" : "offer-save-message is-error"}>{seoState.message}</span> : null}
-                    <button className="primary" type="submit" disabled={isSeoPending}>
-                      <Save size={16} aria-hidden="true" />
-                      {isSeoPending ? "Записване..." : "Запази SEO"}
-                    </button>
-                  </div>
+                  {seoState.message ? <p className={seoState.ok ? "offer-save-message is-ok" : "offer-save-message is-error"}>{seoState.message}</p> : null}
                 </form>
             </div>
 
-            {activeTab !== "Оферта" ? (
-              <section className="offer-preview-card">
-              <header>
-                <h2>Предварителен преглед в сайта</h2>
-              </header>
-              <article>
-                <div
-                  className={currentHeroImageUrl ? "offer-preview-image" : "offer-preview-image offer-preview-image-empty"}
-                  style={currentHeroImageUrl ? { backgroundImage: `linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.24)), url("${currentHeroImageUrl}")` } : undefined}
-                >
-                  {activeTag ? <span>{activeTag.label}</span> : null}
-                </div>
-                <div className="offer-preview-copy">
-                  <h3>{offer.title}</h3>
-                  <p>
-                    <CalendarDays size={16} aria-hidden="true" />
-                    {offer.durationDays} дни / {offer.durationNights} нощувки
-                    <MapPin size={16} aria-hidden="true" />
-                    {offer.country}, {offer.region}
-                  </p>
-                  <p>{offer.summary}</p>
-                  <div className="offer-preview-tags">
-                    {selectedTags.slice(1, 4).map((tag) => (
-                      <span key={tag.label}>{tag.label}</span>
-                    ))}
-                    {selectedExperience.slice(0, 2).map((item) => (
-                      <span key={item}>{item}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className="offer-preview-price">
-                  {offer.priceFrom > 0 ? <span>от</span> : <span />}
-                  <strong>{previewPriceLabel}</strong>
-                  <button type="button" onClick={() => setIsPreviewOpen(true)}>Виж офертата</button>
-                </div>
-              </article>
-              </section>
-            ) : null}
           </div>
 
         </div>
+
+        {activeTab === "Оферта" ? (
+          <footer className="offer-editor-bottom-actions">
+            <button className="primary" type="submit" form={contentFormId} name="after_save" value="dates_prices" formNoValidate disabled={isPending || isContentMediaUploading}>
+              {isContentMediaUploading || isPending ? "Записване..." : "Запази и продължи"}
+              <ArrowRight size={17} aria-hidden="true" />
+            </button>
+          </footer>
+        ) : null}
+
+        {activeTab === "Дати и цени" ? (
+          <footer className="offer-editor-bottom-actions">
+            <button className="primary" type="submit" form={datesFormId} name="after_save" value="publishing" disabled={isPending}>
+              {isPending ? "Записване..." : "Запази и продължи"}
+              <ArrowRight size={17} aria-hidden="true" />
+            </button>
+          </footer>
+        ) : null}
+
+        {activeTab === "Публикуване" ? (
+          <footer className="offer-editor-bottom-actions">
+            <button className="primary" type="button" onClick={saveAndPublishChanges} disabled={isPending || isSeoPending} title="Запази настройките и публикувай офертата">
+              <CheckCircle2 size={17} aria-hidden="true" />
+              {isPending || isSeoPending ? "Публикуване..." : "Запази и публикувай"}
+            </button>
+          </footer>
+        ) : null}
       </section>
 
       {showCancelDraftModal ? (
@@ -1386,27 +1423,6 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         </div>
       ) : null}
 
-      {isPreviewOpen ? (
-        <div className="offer-editor-full-preview" role="dialog" aria-modal="true" aria-label="Преглед на офертата">
-          <div className="offer-editor-full-preview-window">
-            <header>
-              <strong>Преглед както ще изглежда в сайта</strong>
-              <div>
-                <a href={`/offers/${offer.slug}`} target="_blank" rel="noreferrer">
-                  Отвори публична страница
-                  <ExternalLink size={15} aria-hidden="true" />
-                </a>
-                <button type="button" onClick={() => setIsPreviewOpen(false)}>
-                  <X size={18} aria-hidden="true" />
-                </button>
-              </div>
-            </header>
-            <div className="offer-editor-full-preview-body">
-              <PublicOfferDetail offer={publicPreview} showInquiry={false} />
-            </div>
-          </div>
-        </div>
-      ) : null}
     </AdminWorkspace>
   );
 }
@@ -2250,16 +2266,11 @@ function OfferContentWorkspace({
             </div>
           </section>
 
-        <footer className="offer-new-footer">
-          {state.message ? <span className={state.ok ? "offer-save-message is-ok" : "offer-save-message is-error"}>{state.message}</span> : <span />}
-          <div>
-            <button type="submit" formNoValidate>Запази чернова</button>
-            <button className="primary" type="submit" name="after_save" value="dates_prices" disabled={isPending}>
-              {isPending ? "Записване..." : "Запази и продължи"}
-              <ArrowRight size={17} aria-hidden="true" />
-            </button>
-          </div>
-        </footer>
+        {state.message ? (
+          <footer className="offer-new-footer">
+            <span className={state.ok ? "offer-save-message is-ok" : "offer-save-message is-error"}>{state.message}</span>
+          </footer>
+        ) : null}
       </section>
       </form>
 
@@ -2338,7 +2349,11 @@ function SupplierQuickReviewPanel({ offer }: { offer: AdminOfferEditorInitialOff
           <section key={group.type}>
             <h3>{supplierEntityTypeLabel(group.type)}</h3>
             <div>
-              {group.items.slice(0, 8).map((entity) => (
+              {group.items.slice(0, 8).map((entity) => {
+                const hotelMeta = supplierEntityHotelMeta(entity);
+                const hotelFacts = supplierEntityHotelFacts(entity);
+
+                return (
                 <article className={entity.isEnabled ? "is-enabled" : ""} key={entity.id}>
                   <input type="hidden" name="entity_ids" value={entity.id} />
                   <input type="hidden" name={`entity_public_section_${entity.id}`} value={supplierEntityPublicSection(entity)} />
@@ -2351,6 +2366,11 @@ function SupplierQuickReviewPanel({ offer }: { offer: AdminOfferEditorInitialOff
                     </label>
                     <div>
                       <strong>{supplierEntityMainText(entity)}</strong>
+                      {hotelMeta.length ? (
+                        <div className="offer-supplier-quick-meta">
+                          {hotelMeta.map((item) => <span key={item}>{item}</span>)}
+                        </div>
+                      ) : null}
                       <span>{supplierEntityEditableText(entity) || "Няма допълнителен текст."}</span>
                     </div>
                   </div>
@@ -2359,10 +2379,25 @@ function SupplierQuickReviewPanel({ offer }: { offer: AdminOfferEditorInitialOff
                     <div className="offer-supplier-quick-edit">
                       <input name={`entity_title_${entity.id}`} defaultValue={supplierEntityMainText(entity)} aria-label="Заглавие" />
                       <textarea name={`entity_text_${entity.id}`} defaultValue={supplierEntityEditableText(entity)} rows={3} aria-label="Текст" />
+                      {hotelFacts.length ? (
+                        <div className="offer-supplier-quick-facts">
+                          {hotelFacts.map((item) => (
+                            <span key={item.label}>
+                              <strong>{item.label}</strong>
+                              {item.value}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </details>
+                  <details className="offer-supplier-quick-raw">
+                    <summary>Raw данни</summary>
+                    <pre>{supplierEntityPreview(entity.rawData, 1400)}</pre>
+                  </details>
                 </article>
-              ))}
+                );
+              })}
               {group.items.length > 8 ? (
                 <p>Има още {group.items.length - 8} елемента в тази група. Отвори пълния списък за преглед на всички.</p>
               ) : null}
@@ -2552,10 +2587,12 @@ function SupplierApiDataWorkspace({ offer }: { offer: AdminOfferEditorInitialOff
 
 function DatesPricesWorkspace({
   offer,
-  onDraftChange
+  onDraftChange,
+  formId
 }: {
   offer: AdminOfferEditorInitialOffer;
   onDraftChange: (draft: DatesPricesDraftSummary) => void;
+  formId: string;
 }) {
   type DepartureDraft = {
     key: string;
@@ -2697,7 +2734,7 @@ function DatesPricesWorkspace({
   }, [activeDepartures, lowestPrice, offer.currency, onDraftChange, prices.length]);
 
   return (
-    <form className="offer-workflow-stack offer-dates-form" action={formAction}>
+    <form id={formId} className="offer-workflow-stack offer-dates-form" action={formAction}>
       <input type="hidden" name="slug" value={offer.slug} />
       <section className="offer-editor-card">
         <header>
@@ -2950,19 +2987,11 @@ function DatesPricesWorkspace({
         </div>
         )}
 
-        <div className="offer-workflow-footer">
-          {state.message ? <p className={state.ok ? "offer-editor-feedback" : "offer-editor-feedback is-error"}>{state.message}</p> : null}
-          <div>
-            <button type="submit" disabled={isPending}>
-              <Save size={16} aria-hidden="true" />
-              {isPending ? "Записване..." : "Запази дати и цени"}
-            </button>
-            <button className="primary" type="submit" name="after_save" value="publishing" disabled={isPending}>
-              {isPending ? "Записване..." : "Запази и продължи"}
-              <ArrowRight size={16} aria-hidden="true" />
-            </button>
+        {state.message ? (
+          <div className="offer-workflow-footer">
+            <p className={state.ok ? "offer-editor-feedback" : "offer-editor-feedback is-error"}>{state.message}</p>
           </div>
-        </div>
+        ) : null}
       </section>
     </form>
   );
@@ -2974,29 +3003,6 @@ function ReadOnlyField({ label, value, wide = false, multiline = false }: { labe
       <span>{label}</span>
       <output className={multiline ? "is-multiline" : ""}>{value}</output>
     </label>
-  );
-}
-
-function SectionWorkspace({ section, state }: { section: EditorSection; state: { status: SectionStatus; percent: number; filled: string[]; missing: string[] } }) {
-  return (
-    <section className="offer-editor-card offer-editor-placeholder">
-      <header>
-        <h2>{section.label}</h2>
-        <span>{section.description}</span>
-      </header>
-      <div className="offer-section-workspace">
-        <div>
-          <strong>Какво трябва да се редактира тук</strong>
-          <p>
-            Тази секция ще съдържа реалните полета за {section.label.toLowerCase()}. Целта е да не се отваря отделна страница, а служителят да вижда текущите данни, липсите и редакционните действия на едно място.
-          </p>
-        </div>
-        <div>
-          <strong>{sectionStatusLabel(state.status, state.percent)}</strong>
-          <p>{state.missing.length > 0 ? "Има оставащи данни за попълване преди офертата да е напълно готова." : "Секцията няма критични липси според текущата структура."}</p>
-        </div>
-      </div>
-    </section>
   );
 }
 

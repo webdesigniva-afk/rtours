@@ -14,6 +14,9 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const featuredOffers = await listPublishedPublicOffers();
+  const redToursPicks = featuredOffers
+    .filter((offer) => (offer.visibilityPlacements ?? []).includes("homepage") || offer.tags.includes("Наш избор") || (offer.badgeSlugs ?? []).includes("nash-izbor"))
+    .slice(0, 8);
   const collectionDetails: Record<string, { label: string; audience: string; cue: string }> = {
     "red-signature": {
       label: "Red Signature",
@@ -113,7 +116,7 @@ export default async function Home() {
               <span className="eyebrow">Подбрано от RedTours</span>
               <p>Нашата актуална селекция от пътувания, които си заслужават заради маршрута, момента и преживяванията по пътя.</p>
               <p>Тук ще откриете както нови програми, така и любими дестинации, към които бихме се върнали отново.</p>
-              <Link className="signature-link" href="/offers">
+              <Link className="signature-link" href="/offers?featured=red-tours">
                 Вижте всички предложения
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>
@@ -294,15 +297,18 @@ export default async function Home() {
         <section className="section">
           <div className="container">
             <div className="section-header">
-              <span className="eyebrow">Избрани пътувания</span>
-              <h2>Подбрани програми</h2>
+              <span className="eyebrow">Подбрано от Red Tours</span>
+              <h2>Нашата актуална селекция</h2>
               <p>
-                Всяка програма трябва да може да носи собствен характер, но да стои в една обща,
-                премиум система за съдържание, търсене и запитвания.
+                Осем предложения, които екипът ни би поставил на преден план заради маршрута, момента, хотелите или преживяванията.
               </p>
+              <Link className="section-link" href="/offers?featured=red-tours">
+                Виж всички
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
             </div>
-            <div className="offers-grid">
-              {featuredOffers.map((offer) => (
+            <div className="offers-grid home-picked-grid">
+              {redToursPicks.map((offer) => (
                 <OfferCard key={offer.slug} offer={offer} />
               ))}
             </div>

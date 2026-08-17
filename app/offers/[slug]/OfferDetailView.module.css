@@ -59,6 +59,30 @@
   overflow-wrap: anywhere;
 }
 
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badges a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid rgba(184, 15, 29, 0.18);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(184, 15, 29, 0.08);
+  color: #8f1d1d;
+  font-size: 0.76rem;
+  font-weight: 820;
+  text-decoration: none;
+}
+
+.badges a:hover {
+  background: rgba(184, 15, 29, 0.13);
+}
+
 .hero p,
 .section p,
 .inquiryCard p {

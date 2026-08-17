@@ -13,7 +13,7 @@ export function OfferCard({ offer }: { offer: Offer }) {
   const priceLabel = offer.priceFrom > 0
     ? `от ${offer.priceFrom.toLocaleString("bg-BG")} ${offer.currency}`
     : "Цена при запитване";
-  const primaryBadge = offer.tags[0];
+  const visibleBadges = offer.tags.slice(0, 3);
 
   return (
     <article className="offer-card">
@@ -21,7 +21,15 @@ export function OfferCard({ offer }: { offer: Offer }) {
         <img src={offer.heroImage} alt={offer.title} />
       </Link>
       <div className="card-body">
-        {primaryBadge ? <span className="offer-card-badge">{primaryBadge}</span> : null}
+        {visibleBadges.length ? (
+          <div className="offer-card-badges" aria-label="Етикети">
+            {visibleBadges.map((badge, index) => (
+              <Link className="offer-card-badge" href={`/offers?tag=${encodeURIComponent(offer.badgeSlugs?.[index] || badge)}`} key={badge}>
+                {badge}
+              </Link>
+            ))}
+          </div>
+        ) : null}
         <div className="card-meta">
           <span className="pill">
             <MapPin size={15} aria-hidden="true" />

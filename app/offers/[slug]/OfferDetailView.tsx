@@ -84,6 +84,7 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
   const transport = offer.transport ? transportLabels[offer.transport] ?? repairText(offer.transport) : "Транспорт по програма";
   const included = offer.included.map((item) => repairText(item)).filter(Boolean).slice(0, 10);
   const highlights = (offer.highlights ?? []).map((item) => repairText(item)).filter(Boolean).slice(0, 6);
+  const badges = offer.tags.map((tag) => repairText(tag)).filter(Boolean).slice(0, 8);
   const itinerary = offer.itinerary
     .filter((day) => day.title || day.description)
     .slice(0, 8);
@@ -102,6 +103,15 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
 
           <span className={styles.kicker}>{repairText(offer.country)}</span>
           <h1>{title}</h1>
+          {badges.length ? (
+            <div className={styles.badges} aria-label="Етикети">
+              {badges.map((badge, index) => (
+                <Link href={`/offers?tag=${encodeURIComponent(offer.badgeSlugs?.[index] || badge)}`} key={badge}>
+                  {badge}
+                </Link>
+              ))}
+            </div>
+          ) : null}
           <p>{summary}</p>
 
           <div className={styles.heroActions}>
