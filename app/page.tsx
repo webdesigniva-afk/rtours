@@ -16,7 +16,7 @@ export default async function Home() {
   const featuredOffers = await listPublishedPublicOffers();
   const redToursPicks = featuredOffers
     .filter((offer) => (offer.visibilityPlacements ?? []).includes("homepage") || offer.tags.includes("Наш избор") || (offer.badgeSlugs ?? []).includes("nash-izbor"))
-    .slice(0, 8);
+    .slice(0, 6);
   const collectionDetails: Record<string, { label: string; audience: string; cue: string }> = {
     "red-signature": {
       label: "Red Signature",

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CalendarDays, MapPin, Plane } from "lucide-react";
+import { BusFront, CalendarDays, Car, MapPin, Plane } from "lucide-react";
+import { destinationSlug } from "@/lib/destinationSlug";
 import type { Offer } from "@/lib/types";
 
 const transportLabel = {
@@ -9,11 +10,26 @@ const transportLabel = {
   mixed: "Комбинирано"
 };
 
+function TransportIcon({ transport }: { transport: Offer["transport"] }) {
+  if (transport === "bus") return <BusFront size={15} aria-hidden="true" />;
+  if (transport === "own_transport") return <Car size={15} aria-hidden="true" />;
+  if (transport === "mixed") {
+    return (
+      <span className="transport-icon-pair" aria-hidden="true">
+        <Plane size={14} />
+        <BusFront size={14} />
+      </span>
+    );
+  }
+  return <Plane size={15} aria-hidden="true" />;
+}
+
 export function OfferCard({ offer }: { offer: Offer }) {
   const priceLabel = offer.priceFrom > 0
     ? `от ${offer.priceFrom.toLocaleString("bg-BG")} ${offer.currency}`
     : "Цена при запитване";
-  const visibleBadges = offer.tags.slice(0, 3);
+  const visibleBadges = offer.tags.slice(0, 2);
+  const countryHref = `/destinations/${destinationSlug(offer.country)}`;
 
   return (
     <article className="offer-card">
@@ -31,10 +47,10 @@ export function OfferCard({ offer }: { offer: Offer }) {
           </div>
         ) : null}
         <div className="card-meta">
-          <span className="pill">
+          <Link className="pill" href={countryHref}>
             <MapPin size={15} aria-hidden="true" />
             {offer.country}
-          </span>
+          </Link>
           <span className="pill">
             <CalendarDays size={15} aria-hidden="true" />
             {offer.durationDays} дни
@@ -47,7 +63,7 @@ export function OfferCard({ offer }: { offer: Offer }) {
         <div className="offer-actions">
           <span className="offer-price">{priceLabel}</span>
           <span className="pill">
-            <Plane size={15} aria-hidden="true" />
+            <TransportIcon transport={offer.transport} />
             {transportLabel[offer.transport]}
           </span>
         </div>
