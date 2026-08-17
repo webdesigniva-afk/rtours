@@ -225,7 +225,7 @@ export default async function Home() {
                 <p>Има пътувания, които не могат да бъдат намерени в готов каталог.</p>
                 <p>Те започват с идея, преминават през внимателно проучване и се превръщат в маршрут с характер. Подбираме местата, темпото, хотелите, местните партньори и преживяванията така, че всеки ден да има смисъл, а цялото пътуване да се усеща като завършена история.</p>
               </div>
-              <Link className="signature-link" href="/offers?collection=red-signature">
+              <Link className="signature-link" href="/author-programs">
                 Разгледайте авторските програми
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>

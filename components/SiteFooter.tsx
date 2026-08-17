@@ -3,7 +3,7 @@ import { ArrowUpRight, Facebook, Instagram } from "lucide-react";
 
 const footerLinks = [
   { href: "/offers", label: "Пътувания" },
-  { href: "/offers?collection=red-signature", label: "Авторски програми" },
+  { href: "/author-programs", label: "Авторски програми" },
   { href: "/destinations?type=exotic", label: "Екзотики" },
   { href: "/offers?collection=red-private", label: "Специални преживявания" },
   { href: "/about", label: "За Red Tours" },

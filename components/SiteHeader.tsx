@@ -7,7 +7,7 @@ import { ArrowRight, UserRound } from "lucide-react";
 
 const navItems = [
   { href: "/offers", label: "Пътувания", match: (path: string) => path.startsWith("/offers") },
-  { href: "/offers?collection=red-signature", label: "Авторски програми", match: () => false },
+  { href: "/author-programs", label: "Авторски програми", match: (path: string) => path.startsWith("/author-programs") },
   { href: "/destinations?type=exotic", label: "Екзотики", match: (path: string) => path.startsWith("/destinations") },
   { href: "/offers?collection=red-private", label: "Специални преживявания", match: () => false },
   { href: "/about", label: "За Red Tours", match: (path: string) => path.startsWith("/about") },
