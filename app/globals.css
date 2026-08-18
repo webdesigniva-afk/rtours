@@ -825,12 +825,12 @@ textarea {
 .author-dark-band .author-dark-typing {
   position: relative;
   z-index: 2;
-  max-width: 720px;
+  max-width: 620px;
   color: #fff;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(42px, 5vw, 78px);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(34px, 4vw, 52px);
   font-weight: 500;
-  line-height: 0.95;
+  line-height: 1.08;
   text-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
 }
 
