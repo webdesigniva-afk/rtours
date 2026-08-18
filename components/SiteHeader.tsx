@@ -74,13 +74,13 @@ export function SiteHeader() {
           </Link>
           <nav className="nav-menu" aria-label="Основна навигация">
             <div className="nav-dropdown">
-              <button
+              <Link
                 className={isTravelActive ? "nav-link nav-dropdown-trigger is-active" : "nav-link nav-dropdown-trigger"}
-                type="button"
+                href="/offers"
               >
                 Пътувания
                 <ChevronDown size={14} aria-hidden="true" />
-              </button>
+              </Link>
               <div className="nav-submenu" role="menu">
                 {travelMenuItems.map((item) => {
                   const Icon = item.icon;
@@ -110,10 +110,10 @@ export function SiteHeader() {
               </div>
             </div>
             <div className="nav-dropdown">
-              <button className="nav-link nav-dropdown-trigger" type="button">
+              <Link className="nav-link nav-dropdown-trigger" href="/offers">
                 Red Collections
                 <ChevronDown size={14} aria-hidden="true" />
-              </button>
+              </Link>
               <div className="nav-submenu" role="menu">
                 {collectionMenuItems.map((item) => {
                   const Icon = item.icon;

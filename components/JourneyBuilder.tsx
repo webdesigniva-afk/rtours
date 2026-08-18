@@ -67,6 +67,8 @@ function getDestinationMatch(value: string) {
 
 const dateChoices = ["Имам точни дати", "Гъвкави сме", "Само сезон"];
 const travelerChoices = ["Сам/а", "Двама", "Семейство", "Приятели", "Частна група", "По работа"];
+const accommodationChoices = ["Boutique", "4★ комфорт", "5★ Luxury", "Нямам предпочитание"];
+const budgetChoices = ["До 2 000 EUR", "2 000 – 4 000 EUR", "Над 4 000 EUR", "Нека го обсъдим"];
 const occasionChoicesByTravelers: Record<string, string[]> = {
   "Сам/а": ["Просто така", "Лично приключение", "Рожден ден", "Празник", "Друго"],
   "Двама": ["Honeymoon", "Годишнина", "Предложение", "Романтично бягство", "Рожден ден", "Просто така", "Друго"],
@@ -130,15 +132,31 @@ export function JourneyBuilder() {
   const [season, setSeason] = useState("");
   const [seasonYear, setSeasonYear] = useState("");
   const [travelers, setTravelers] = useState("");
+  const [travelerAdults, setTravelerAdults] = useState("");
+  const [travelerChildren, setTravelerChildren] = useState("");
+  const [workPeople, setWorkPeople] = useState("");
   const [occasion, setOccasion] = useState("");
   const [customOccasion, setCustomOccasion] = useState("");
   const [moods, setMoods] = useState<string[]>([]);
+  const [accommodation, setAccommodation] = useState("");
+  const [budget, setBudget] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [preferredContact, setPreferredContact] = useState("");
   const [pace, setPace] = useState(48);
   const [comfort, setComfort] = useState(38);
   const [freedom, setFreedom] = useState(62);
   const [completed, setCompleted] = useState(false);
   const [state, action, isPending] = useActionState(submitInquiry, { ok: false, message: "" });
   const occasionChoices = occasionChoicesByTravelers[travelers] || [];
+  const needsFamilyCounts = ["Семейство", "Приятели", "Частна група"].includes(travelers);
+  const needsWorkCount = travelers === "По работа";
+  const travelerDetailsIncomplete = needsFamilyCounts
+    ? !travelerAdults || !travelerChildren
+    : needsWorkCount
+      ? !workPeople
+      : false;
 
   const selectedDestination = destinationMode === "surprise" ? "Изненада" : destination || "Ще изберем посока";
   const selectedOccasion = occasion === "Друго" ? customOccasion || "Друг повод" : occasion;
@@ -157,6 +175,8 @@ export function JourneyBuilder() {
         : `${season} ${seasonYear}`
     : "Ще изберем период";
   const selectedMoodLabels = moods.length ? moods.join(" · ") : "Ще изберем усещането";
+  const selectedAccommodation = accommodation || "Ще изберем настаняване";
+  const selectedBudget = budget || "Ще уточним бюджета";
   const selectedPace = pace < 38 ? "Бавно и спокойно" : pace > 66 ? "Искам да видя всичко" : "Балансирано";
   const selectedComfort = comfort < 38 ? "Комфорт" : comfort > 66 ? "Приключение" : "Комфорт с характер";
   const selectedFreedom = freedom < 38 ? "Свободно време" : freedom > 66 ? "Организирана програма" : "Добър баланс";
@@ -168,14 +188,16 @@ export function JourneyBuilder() {
     : step === 1
       ? datesIncomplete
       : step === 2
-        ? !travelers
-        : !moods.length;
+        ? !travelers || travelerDetailsIncomplete
+        : !moods.length || !accommodation || !budget;
   const journeySummary = [
     `МЯСТО: ${selectedDestination}`,
     `ПЕРИОД: ${selectedPeriod}`,
-    `ПЪТУВАЩИ: ${travelers || "Ще изберем"}`,
+    `ПЪТУВАЩИ: ${travelers || "Ще изберем"}${needsFamilyCounts ? ` · ${travelerAdults || "?"} възрастни · ${travelerChildren || "?"} деца` : needsWorkCount ? ` · ${workPeople || "?"} души` : ""}`,
     `ПОВОД: ${selectedOccasion || "Без уточнен повод"}`,
     `УСЕЩАНЕ: ${selectedMoodLabels}`,
+    `НАСТАНЯВАНЕ: ${selectedAccommodation}`,
+    `БЮДЖЕТ: ${selectedBudget}`,
     `ТЕМПО: ${selectedPace}`,
     `СТИЛ: ${selectedComfort}`,
     `СВОБОДА: ${selectedFreedom}`
@@ -187,6 +209,9 @@ export function JourneyBuilder() {
 
   function selectTravelers(choice: string) {
     setTravelers(choice);
+    setTravelerAdults("");
+    setTravelerChildren("");
+    setWorkPeople("");
     setOccasion("");
     setCustomOccasion("");
   }
@@ -320,6 +345,24 @@ export function JourneyBuilder() {
                   <div className="journey-pill-grid journey-pill-grid-wide">
                     {travelerChoices.map((choice) => <ChoiceCard key={choice} active={travelers === choice} onClick={() => selectTravelers(choice)}>{choice}</ChoiceCard>)}
                   </div>
+                  {needsFamilyCounts ? (
+                    <div className="journey-date-range journey-traveler-counts">
+                      <label className="journey-input-field">
+                        <span>Брой възрастни</span>
+                        <input type="number" min="1" value={travelerAdults} onChange={(event) => setTravelerAdults(event.target.value)} placeholder="Напр. 2" />
+                      </label>
+                      <label className="journey-input-field">
+                        <span>Брой деца</span>
+                        <input type="number" min="0" value={travelerChildren} onChange={(event) => setTravelerChildren(event.target.value)} placeholder="Напр. 1" />
+                      </label>
+                    </div>
+                  ) : null}
+                  {needsWorkCount ? (
+                    <label className="journey-input-field journey-traveler-count-single">
+                      <span>Брой хора</span>
+                      <input type="number" min="1" value={workPeople} onChange={(event) => setWorkPeople(event.target.value)} placeholder="Напр. 8" />
+                    </label>
+                  ) : null}
                   <div className="journey-sub-question">
                     <span>{travelers ? "Има ли повод?" : "Първо изберете с кого пътувате"}</span>
                     {travelers ? <div className="journey-inline-choices">
@@ -332,16 +375,28 @@ export function JourneyBuilder() {
 
               {step === 3 ? (
                 <>
-                  <span className="eyebrow">04 / Как искате да се чувствате там?</span>
-                  <h2>Изберете до три усещания.</h2>
-                  <p className="journey-question-intro">Това не е списък с услуги. Това е посоката, в която трябва да се движи вашето пътуване.</p>
+                  <span className="eyebrow">04 / Как искате да преживеете света?</span>
+                  <h2>Как обичате да пътувате?</h2>
+                  <p className="journey-question-intro">Изберете усещанията, ритъма, мястото за нощувка и рамката, в която да създадем вашето пътуване.</p>
                   <div className="journey-mood-grid">
                     {moodChoices.map((choice) => <ChoiceCard key={choice.label} image={choice.image} active={moods.includes(choice.label)} onClick={() => toggleMood(choice.label)}>{choice.label}</ChoiceCard>)}
                   </div>
                   <div className="journey-sliders">
-                    <label><span>Бавно и спокойно</span><input type="range" min="0" max="100" value={pace} onChange={(event) => setPace(Number(event.target.value))} /><span>Искам да видя всичко</span></label>
-                    <label><span>Комфорт</span><input type="range" min="0" max="100" value={comfort} onChange={(event) => setComfort(Number(event.target.value))} /><span>Приключение</span></label>
-                    <label><span>Свободно време</span><input type="range" min="0" max="100" value={freedom} onChange={(event) => setFreedom(Number(event.target.value))} /><span>Организирана програма</span></label>
+                    <label><span>Бавно и спокойно</span><input type="range" min="0" max="100" value={pace} style={{ "--slider-progress": `${pace}%` } as React.CSSProperties} onChange={(event) => setPace(Number(event.target.value))} /><span>Искам да видя всичко</span></label>
+                    <label><span>Комфорт</span><input type="range" min="0" max="100" value={comfort} style={{ "--slider-progress": `${comfort}%` } as React.CSSProperties} onChange={(event) => setComfort(Number(event.target.value))} /><span>Приключение</span></label>
+                    <label><span>Свободно време</span><input type="range" min="0" max="100" value={freedom} style={{ "--slider-progress": `${freedom}%` } as React.CSSProperties} onChange={(event) => setFreedom(Number(event.target.value))} /><span>Организирана програма</span></label>
+                  </div>
+                  <div className="journey-sub-question journey-builder-choice-section">
+                    <span>Как обичате да отсядате?</span>
+                    <div className="journey-inline-choices">
+                      {accommodationChoices.map((choice) => <button className={accommodation === choice ? "is-selected" : ""} type="button" key={choice} onClick={() => setAccommodation(choice)}>{choice}</button>)}
+                    </div>
+                  </div>
+                  <div className="journey-sub-question journey-builder-choice-section">
+                    <span>Ориентировъчен бюджет</span>
+                    <div className="journey-inline-choices">
+                      {budgetChoices.map((choice) => <button className={budget === choice ? "is-selected" : ""} type="button" key={choice} onClick={() => setBudget(choice)}>{choice}</button>)}
+                    </div>
                   </div>
                 </>
               ) : null}
@@ -356,7 +411,7 @@ export function JourneyBuilder() {
               <span className="eyebrow">Вашата идея е създадена</span>
               <h2>Това вече прилича на пътуване.</h2>
               <p>Остава да го превърнем в маршрут.</p>
-              <div className="journey-final-mark"><Sparkles size={18} aria-hidden="true" /> CREATED WITH RED TOURS</div>
+              <div className="journey-final-mark"><Sparkles size={18} aria-hidden="true" /> СЪЗДАДЕНО ЗАЕДНО С RED TOURS</div>
             </div>
           )}
 
@@ -384,11 +439,13 @@ export function JourneyBuilder() {
             <div className="journey-board-lines">
               <div className="is-revealed"><MapPin size={15} aria-hidden="true" /><span>Посока</span><strong>{isBlankJourney ? "Ще я открием заедно" : selectedDestination}</strong></div>
               {hasSelectedPeriod && (step >= 1 || completed) ? <div className="is-revealed"><Sparkles size={15} aria-hidden="true" /><span>Период</span><strong>{selectedPeriod}</strong></div> : null}
-              {step >= 2 || completed ? <div className="is-revealed"><Heart size={15} aria-hidden="true" /><span>Пътуващи</span><strong>{travelers}{selectedOccasion ? ` · ${selectedOccasion}` : ""}</strong></div> : null}
+              {step >= 2 || completed ? <div className="is-revealed"><Heart size={15} aria-hidden="true" /><span>Пътуващи</span><strong>{travelers}{needsFamilyCounts ? ` · ${travelerAdults} възр. · ${travelerChildren} деца` : needsWorkCount ? ` · ${workPeople} души` : ""}{selectedOccasion ? ` · ${selectedOccasion}` : ""}</strong></div> : null}
               {step >= 3 || completed ? <div className="is-revealed"><Sparkles size={15} aria-hidden="true" /><span>Усещане</span><strong>{selectedMoodLabels}</strong></div> : null}
               {step >= 3 || completed ? <div className="is-revealed"><RouteIcon size={15} aria-hidden="true" /><span>Темпо</span><strong>{selectedPace}</strong></div> : null}
               {step >= 3 || completed ? <div className="is-revealed"><Heart size={15} aria-hidden="true" /><span>Стил</span><strong>{selectedComfort}</strong></div> : null}
               {step >= 3 || completed ? <div className="is-revealed"><Sparkles size={15} aria-hidden="true" /><span>Свобода</span><strong>{selectedFreedom}</strong></div> : null}
+              {step >= 3 || completed ? <div className="is-revealed"><Heart size={15} aria-hidden="true" /><span>Настаняване</span><strong>{selectedAccommodation}</strong></div> : null}
+              {step >= 3 || completed ? <div className="is-revealed"><Sparkles size={15} aria-hidden="true" /><span>Бюджет</span><strong>{selectedBudget}</strong></div> : null}
             </div>
             <div className={`journey-board-moods${step >= 3 || completed ? " is-revealed" : ""}`}>
               {moods.map((mood) => <img src={moodChoices.find((choice) => choice.label === mood)?.image} alt={mood} key={mood} />)}
@@ -401,39 +458,57 @@ export function JourneyBuilder() {
           <div className="journey-contact-panel">
             <div>
               <span className="eyebrow">Последна стъпка</span>
-              <h3>Изпратете идеята на Red Tours.</h3>
-              <p>Ще я превърнем в първия разговор за вашия маршрут.</p>
+              <h3>Само още няколко детайла.</h3>
+              <p>Оставете ни последните детайли и начин за контакт. Оттук нататък поемаме ние.</p>
             </div>
+            {state.ok ? (
+              <div className="journey-success-state">
+                <span className="journey-success-mark"><Sparkles size={20} aria-hidden="true" /></span>
+                <span className="eyebrow">Идеята е при нас. ✦</span>
+                <h3>Оттук започва нашата част.</h3>
+                <p>Ще разгледаме всичко, което ни изпратихте, и ще се свържем с вас, за да превърнем идеята в маршрут.</p>
+              </div>
+            ) : (
             <form className="journey-contact-form" action={action}>
               <input type="hidden" name="destination" value={selectedDestination} />
               <input type="hidden" name="departure" value={selectedPeriod} />
-              <input type="hidden" name="adults" value={travelers === "Двама" ? "2" : "1"} />
-              <input type="hidden" name="children" value={travelers === "Семейство" ? "1" : "0"} />
-              <input type="hidden" name="budget" value="" />
+              <input type="hidden" name="adults" value={needsFamilyCounts ? travelerAdults : needsWorkCount ? workPeople : travelers === "Двама" ? "2" : travelers === "Сам/а" ? "1" : ""} />
+              <input type="hidden" name="children" value={needsFamilyCounts ? travelerChildren : "0"} />
+              <input type="hidden" name="budget" value={budget} />
+              <input type="hidden" name="brief_destination" value={selectedDestination} />
+              <input type="hidden" name="brief_period" value={selectedPeriod} />
+              <input type="hidden" name="dates_flexible" value={dateMode === "Гъвкави сме" ? "Да" : "Ще уточним"} />
+              <input type="hidden" name="brief_adults" value={needsFamilyCounts ? travelerAdults : needsWorkCount ? workPeople : travelers === "Двама" ? "2" : travelers === "Сам/а" ? "1" : ""} />
+              <input type="hidden" name="children_ages" value="" />
+              <input type="hidden" name="duration" value="" />
+              <input type="hidden" name="brief_occasion" value={selectedOccasion} />
+              <input type="hidden" name="experiences" value={selectedMoodLabels} />
+              <input type="hidden" name="accommodation_style" value={accommodation} />
+              <input type="hidden" name="brief_budget" value={budget} />
               <input type="hidden" name="lead_source" value="tailor_made_builder" />
               <textarea name="message" value={journeySummary} readOnly hidden />
               <div className="journey-contact-intro">
-                <span className="eyebrow">Разкажете ни за вашето пътуване</span>
-                <p>Не е необходимо да имате готов план. Споделете това, което вече знаете, а ние ще ви помогнем да уточним останалото.</p>
+                <span className="eyebrow">Има ли нещо друго, което искате да знаем?</span>
+                <p>Специални изисквания, конкретни места, повод или нещо друго, което е важно за вас.</p>
               </div>
-              <label><span>Име и фамилия</span><input name="name" autoComplete="name" required placeholder="Вашето име" /></label>
-              <label><span>Телефон</span><input name="phone" autoComplete="tel" placeholder="+359" /></label>
-              <label><span>Email</span><input name="email" type="email" autoComplete="email" required placeholder="name@example.com" /></label>
-              <label><span>Желана дестинация</span><input name="brief_destination" value={selectedDestination} readOnly /></label>
-              <label><span>Предпочитан период</span><input name="brief_period" value={selectedPeriod} readOnly /></label>
-              <label><span>Гъвкави ли са датите?</span><select name="dates_flexible" defaultValue={dateMode === "Гъвкави сме" ? "Да" : "Ще уточним"}><option>Да</option><option>Не</option><option>Ще уточним</option></select></label>
-              <label><span>Брой възрастни</span><input name="brief_adults" type="number" min="1" defaultValue={travelers === "Двама" ? "2" : "1"} /></label>
-              <label><span>Брой деца и възрасти</span><input name="children_ages" placeholder="Напр. 2 деца, на 6 и 10 г." /></label>
-              <label><span>Продължителност</span><input name="duration" placeholder="Напр. 10-12 дни" /></label>
-              <label><span>Повод за пътуването</span><input name="brief_occasion" value={selectedOccasion} readOnly /></label>
-              <label><span>Какво искате да преживеете?</span><input name="experiences" value={selectedMoodLabels} readOnly /></label>
-              <label><span>Стил на настаняване</span><select name="accommodation_style" defaultValue="Бутиков и комфортен"><option>Бутиков и комфортен</option><option>Луксозен</option><option>Автентичен</option><option>Практичен</option><option>Ще разчитам на препоръка</option></select></label>
-              <label><span>Ориентировъчен общ бюджет</span><input name="brief_budget" placeholder="Напр. 4 000 EUR общо" /></label>
-              <label><span>Предпочитан начин за контакт</span><select name="preferred_contact" defaultValue="Имейл"><option>Имейл</option><option>Телефон</option><option>Viber / WhatsApp</option></select></label>
-              <label className="is-wide"><span>Допълнителна информация</span><textarea name="additional_information" placeholder="Всичко, което би ни помогнало да ви разберем по-добре..." rows={4} /></label>
-              <button className="button" type="submit" disabled={isPending}>{isPending ? "Изпращане..." : "Изпратете идеята"}<Send size={16} aria-hidden="true" /></button>
+              <label className="is-wide"><span>Допълнителна информация <em>По желание</em></span><textarea name="additional_information" placeholder="Разкажете ни за всичко, което би помогнало да ви разберем по-добре..." rows={4} /></label>
+              <div className="journey-contact-intro journey-contact-details-heading">
+                <span className="eyebrow">И как да се свържем с вас?</span>
+              </div>
+              <label><span>Име и фамилия</span><input name="name" type="text" autoComplete="name" value={contactName} onChange={(event) => setContactName(event.target.value)} required placeholder="Вашето име" /></label>
+              <label><span>Email</span><input name="email" type="email" autoComplete="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} required placeholder="name@example.com" /></label>
+              <label><span>Телефон</span><input name="phone" type="tel" autoComplete="tel" value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} required={preferredContact !== "Email"} placeholder="+359" /></label>
+              <input type="hidden" name="preferred_contact" value={preferredContact} />
+              <div className="journey-contact-methods is-wide">
+                <span>Предпочитан начин за контакт</span>
+                <div className="journey-inline-choices" role="group" aria-label="Предпочитан начин за контакт">
+                  {["Телефон", "Email", "WhatsApp", "Viber"].map((method) => <button className={preferredContact === method ? "is-selected" : ""} type="button" key={method} onClick={() => setPreferredContact(method)}><i aria-hidden="true" />{method}</button>)}
+                </div>
+              </div>
+              <button className="button is-wide" type="submit" disabled={isPending || !preferredContact}>{isPending ? "Изпращане..." : "Изпратете моето пътуване"}<ArrowRight size={16} aria-hidden="true" /></button>
               {state.message ? <p className={`journey-form-message${state.ok ? " is-ok" : " is-error"}`}>{state.message}</p> : null}
             </form>
+            )}
           </div>
         ) : null}
       </div>

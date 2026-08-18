@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowDown, ArrowRight, Check, CheckCircle2, Map, MessageCircle, Plane, UsersRound } from "lucide-react";
 import { JourneyBuilder } from "@/components/JourneyBuilder";
+import { HeroVideo } from "@/components/HeroVideo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -27,14 +28,20 @@ export default function TailorMadePage() {
             <div className="tailor-hero-copy">
               <span className="eyebrow">Tailor-made / Пътуване по мярка</span>
               <h1>Няма готов маршрут.<em>Създаваме вашия.</em></h1>
-              <p>Започнете с това, което знаете. Ние ще ви помогнем с останалото.</p>
+              <p>Дайте ни началото. Дестинация, повод, период — или просто усещане. Останалото ще създадем заедно.</p>
               <a className="button" href="#journey-builder">Да започнем <ArrowRight size={17} aria-hidden="true" /></a>
             </div>
             <div className="tailor-hero-collage" aria-hidden="true">
-              <div className="tailor-photo tailor-photo-main"><img src="https://images.unsplash.com/photo-1542640244-7e672d6cef4e?auto=format&fit=crop&w=1000&q=86" alt="" /></div>
-              <div className="tailor-photo tailor-photo-small"><img src="https://images.unsplash.com/photo-1492571350019-22de08371fd3?auto=format&fit=crop&w=700&q=86" alt="" /></div>
-              <span className="tailor-stamp">TAILOR-MADE<br /><strong>R</strong><br />JOURNEYS</span>
-              <svg className="tailor-route-line" viewBox="0 0 620 360" fill="none"><path d="M8 292C104 248 111 330 218 286C315 246 276 92 398 119C482 138 495 268 610 180" /></svg>
+              <div className="tailor-photo tailor-photo-main"><img src="/images/destinations/japan.jpg" alt="Япония" /><HeroVideo /></div>
+              <div className="tailor-photo tailor-photo-small"><img src="/images/hero/hero2.jpg" alt="Пътуващи хора" /></div>
+              <div className="tailor-photo tailor-photo-fragment"><img src="/images/hero/hero1.jpg" alt="Пътуващи хора" /></div>
+              <img className="tailor-stamp" src="/images/brand/tailor-made-stamp.png" alt="Tailor-made journeys" />
+              <span className="tailor-collage-label">YOUR JOURNEY <b>/</b> STARTS HERE</span>
+              <span className="tailor-micro-label tailor-micro-destination">DESTINATION / <b>?</b></span>
+              <span className="tailor-micro-label tailor-micro-when">WHEN / <b>?</b></span>
+              <span className="tailor-micro-label tailor-micro-with">WITH / <b>?</b></span>
+              <span className="tailor-micro-label tailor-micro-tokyo">TOKYO? <b>·</b> SPRING <b>·</b> 12 DAYS</span>
+              <svg className="tailor-route-line" viewBox="0 0 620 360" fill="none"><path d="M8 292C104 248 111 330 218 286C315 246 276 92 398 119C482 138 495 268 610 180" /><circle cx="8" cy="292" r="5" /><circle cx="610" cy="180" r="5" /></svg>
             </div>
           </div>
           <a className="tailor-scroll-cue" href="#how-it-works"><ArrowDown size={15} aria-hidden="true" /> Създаваме заедно</a>
@@ -72,8 +79,9 @@ export default function TailorMadePage() {
 
         <section className="tailor-quiet-footer">
           <div className="container">
-            <Check size={18} aria-hidden="true" />
-            <span>Не търсим готовия отговор. Търсим вашия.</span>
+            <span className="tailor-quiet-typing" aria-label="Не търсим готовия отговор. Търсим вашия.">
+              Не търсим готовия отговор. Търсим <em>вашия</em>.
+            </span>
           </div>
         </section>
       </main>

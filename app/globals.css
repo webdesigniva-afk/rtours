@@ -19344,8 +19344,9 @@ textarea,
 
 .tailor-hero {
   position: relative;
-  min-height: 700px;
-  padding: 112px 0 76px;
+  min-height: 100svh;
+  padding: 88px 0 58px;
+  box-sizing: border-box;
   background:
     radial-gradient(circle at 78% 24%, rgba(184, 15, 29, 0.06), transparent 24%),
     linear-gradient(135deg, #fffdf8 0%, #f7f1e8 100%);
@@ -19356,18 +19357,19 @@ textarea,
   grid-template-columns: minmax(360px, 0.8fr) minmax(480px, 1.2fr);
   align-items: center;
   gap: clamp(40px, 7vw, 110px);
+  transform: translateY(24px);
 }
 
 .tailor-hero-copy {
   position: relative;
-  z-index: 2;
+  z-index: 6;
 }
 
 .tailor-hero-copy h1 {
   max-width: 600px;
   margin: 22px 0 24px;
   color: var(--ink);
-  font-size: clamp(48px, 5.7vw, 84px);
+  font-size: clamp(44px, 4.9vw, 72px);
   font-weight: 850;
   letter-spacing: -0.04em;
   line-height: 0.98;
@@ -19395,9 +19397,20 @@ textarea,
 .tailor-hero-copy .button,
 .journey-navigation .button,
 .journey-contact-form .button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 10px;
+}
+
+.tailor-hero-copy .button::after {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 14px);
+  width: clamp(80px, 9vw, 150px);
+  border-top: 1px dashed rgba(184, 15, 29, 0.52);
+  content: "";
+  transform: translateY(-50%);
 }
 
 .tailor-hero-collage {
@@ -19421,11 +19434,28 @@ textarea,
   object-fit: cover;
 }
 
+.tailor-photo-main > video {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: normal;
+  animation: tailorVideoReveal 900ms ease both;
+}
+
+@keyframes tailorVideoReveal {
+  from { opacity: 0; transform: scale(1.04); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 .tailor-photo-main {
   top: 0;
   right: 5%;
   width: 68%;
   height: 300px;
+  animation: tailorMainFloat 8s ease-in-out infinite;
 }
 
 .tailor-photo-small {
@@ -19435,33 +19465,44 @@ textarea,
   width: 43%;
   height: 245px;
   transform: rotate(-6deg);
+  animation: tailorSmallFloat 7s ease-in-out 400ms infinite;
+}
+
+.tailor-photo-fragment {
+  right: 1%;
+  bottom: 0;
+  z-index: 3;
+  width: 27%;
+  height: 128px;
+  border-width: 5px;
+  transform: rotate(8deg);
+  animation: tailorFragmentFloat 6s ease-in-out 800ms infinite;
+}
+
+@keyframes tailorMainFloat {
+  0%, 100% { transform: rotate(3deg) translate3d(0, 0, 0); }
+  50% { transform: rotate(2.2deg) translate3d(-5px, -7px, 0); }
+}
+
+@keyframes tailorSmallFloat {
+  0%, 100% { transform: rotate(-6deg) translate3d(0, 0, 0); }
+  50% { transform: rotate(-4.5deg) translate3d(6px, -9px, 0); }
+}
+
+@keyframes tailorFragmentFloat {
+  0%, 100% { transform: rotate(8deg) translate3d(0, 0, 0); }
+  50% { transform: rotate(10deg) translate3d(-4px, -5px, 0); }
 }
 
 .tailor-stamp {
   position: absolute;
-  top: 6%;
-  right: -2%;
+  top: 0;
+  right: -7%;
   z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 126px;
-  height: 126px;
-  border: 1px solid rgba(184, 15, 29, 0.48);
-  border-radius: 50%;
-  color: var(--red);
-  font-size: 9px;
-  font-weight: 850;
-  letter-spacing: 0.2em;
-  line-height: 1.5;
-  text-align: center;
-  transform: rotate(18deg);
-}
-
-.tailor-stamp strong {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 38px;
-  font-weight: 500;
-  line-height: 0.8;
+  width: 190px;
+  height: 190px;
+  object-fit: contain;
+  transform: rotate(7deg);
 }
 
 .tailor-route-line {
@@ -19475,8 +19516,82 @@ textarea,
 
 .tailor-route-line path {
   stroke: var(--red);
-  stroke-width: 1.2;
-  opacity: 0.7;
+  stroke-width: 1;
+  opacity: 0.42;
+  stroke-dasharray: 5 16;
+  animation: tailorRouteTravel 9s linear infinite;
+}
+
+.tailor-route-line circle {
+  fill: var(--red);
+  stroke: var(--ivory);
+  stroke-width: 3;
+  animation: tailorRoutePulse 2.6s ease-in-out infinite;
+}
+
+.tailor-route-line circle:last-child {
+  animation-delay: 1.3s;
+}
+
+.tailor-collage-label {
+  position: absolute;
+  right: 15%;
+  bottom: 3%;
+  z-index: 4;
+  color: var(--red-deep);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  transform: rotate(-3deg);
+}
+
+.tailor-collage-label b {
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.tailor-micro-label {
+  position: absolute;
+  z-index: 7;
+  padding: 8px 10px;
+  border: 1px solid rgba(95, 83, 68, 0.16);
+  background: rgba(255, 253, 248, 0.9);
+  box-shadow: 0 7px 18px rgba(37, 31, 24, 0.08);
+  color: rgba(23, 20, 18, 0.68);
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+.tailor-micro-label b {
+  color: var(--red);
+  font-size: 0.82rem;
+}
+
+.tailor-micro-destination { top: 27%; left: 1%; transform: rotate(-4deg); }
+.tailor-micro-when { top: 53%; right: -1%; transform: rotate(3deg); }
+.tailor-micro-with { bottom: 22%; left: 35%; transform: rotate(-3deg); }
+.tailor-micro-tokyo { top: 10%; left: 42%; color: var(--red-deep); transform: rotate(2deg); }
+
+@keyframes tailorRoutePulse {
+  0%, 100% { opacity: 0.7; transform: scale(0.85); transform-origin: center; }
+  50% { opacity: 1; transform: scale(1.25); transform-origin: center; }
+}
+
+@keyframes tailorRouteTravel {
+  to { stroke-dashoffset: -84; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tailor-photo-main,
+  .tailor-photo-small,
+  .tailor-photo-fragment,
+  .tailor-photo-main > video,
+  .tailor-route-line path,
+  .tailor-route-line circle {
+    animation: none;
+  }
 }
 
 .tailor-scroll-cue {
@@ -19496,7 +19611,12 @@ textarea,
 
 .tailor-process {
   padding: 76px 0 94px;
-  background: #f1e9df;
+  background-color: #fbf9f4;
+  background-image:
+    linear-gradient(rgba(184, 15, 29, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(184, 15, 29, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 78% 18%, rgba(184, 15, 29, 0.06), transparent 24%);
+  background-size: 72px 72px, 72px 72px, 100% 100%;
 }
 
 .tailor-process-layout {
@@ -19647,17 +19767,21 @@ textarea,
 }
 
 .journey-progress {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
+  gap: 0;
   margin-bottom: 70px;
 }
 
 .journey-progress-step {
   position: relative;
-  display: grid;
-  grid-template-columns: auto auto minmax(30px, 1fr);
-  gap: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   align-items: center;
+  min-width: 0;
+  padding-right: 0;
   color: rgba(23, 20, 18, 0.38);
   font-size: 0.7rem;
   font-weight: 850;
@@ -19666,13 +19790,17 @@ textarea,
 
 .journey-progress-connector {
   display: block;
+  position: absolute;
+  top: 14px;
+  left: 50%;
   width: 100%;
   height: 1px;
-  background: var(--line);
+  background: linear-gradient(90deg, rgba(95, 83, 68, 0.22), rgba(95, 83, 68, 0.1));
+  transform: translateY(-50%);
 }
 
 .journey-progress-step.is-active .journey-progress-connector {
-  background: rgba(184, 15, 29, 0.58);
+  background: linear-gradient(90deg, rgba(184, 15, 29, 0.68), rgba(184, 15, 29, 0.18));
 }
 
 .journey-progress-step span {
@@ -19682,10 +19810,13 @@ textarea,
   place-items: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--line);
+  flex: 0 0 auto;
+  border: 1px solid rgba(95, 83, 68, 0.22);
   border-radius: 50%;
   background: var(--ivory);
   font-size: 0.65rem;
+  letter-spacing: 0.02em;
+  transition: border-color 220ms ease, background 220ms ease, box-shadow 220ms ease, transform 220ms ease;
 }
 
 .journey-progress-step.is-active {
@@ -19696,6 +19827,16 @@ textarea,
   border-color: var(--red);
   background: var(--red);
   color: white;
+  box-shadow: 0 0 0 5px rgba(184, 15, 29, 0.08), 0 5px 12px rgba(127, 11, 21, 0.18);
+  transform: scale(1.06);
+}
+
+.journey-progress-step strong {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  text-align: center;
 }
 
 .journey-layout {
@@ -19835,6 +19976,16 @@ textarea,
 
 .journey-date-range .journey-input-field {
   min-width: 0;
+}
+
+.journey-traveler-counts {
+  max-width: 520px;
+  margin-top: 10px;
+}
+
+.journey-traveler-count-single {
+  max-width: 250px;
+  margin-top: 10px;
 }
 
 .journey-help-note {
@@ -19986,12 +20137,13 @@ textarea,
 
 .journey-mood-grid .journey-choice.is-selected {
   border-color: var(--red);
-  box-shadow: 0 14px 28px rgba(184, 15, 29, 0.2);
+  box-shadow: 0 16px 30px rgba(184, 15, 29, 0.22), 0 0 0 3px rgba(184, 15, 29, 0.08);
+  transform: translateY(-4px);
 }
 
 .journey-mood-grid .journey-choice:hover img,
 .journey-mood-grid .journey-choice.is-selected img {
-  filter: saturate(1.08) contrast(1.04);
+  filter: brightness(1.08) saturate(1.12) contrast(1.04);
   transform: scale(1.035);
 }
 
@@ -19999,6 +20151,14 @@ textarea,
   display: grid;
   gap: 18px;
   margin-top: 34px;
+}
+
+.journey-builder-choice-section {
+  margin-top: 34px;
+}
+
+.journey-builder-choice-section + .journey-builder-choice-section {
+  margin-top: 26px;
 }
 
 .journey-sliders label {
@@ -20016,7 +20176,55 @@ textarea,
 
 .journey-sliders input {
   width: 100%;
-  accent-color: var(--red);
+  height: 24px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.journey-sliders input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--red) 0 var(--slider-progress), rgba(95, 83, 68, 0.18) var(--slider-progress) 100%);
+}
+
+.journey-sliders input::-webkit-slider-thumb {
+  width: 19px;
+  height: 19px;
+  margin-top: -7px;
+  border: 2px solid white;
+  border-radius: 50% 50% 50% 0;
+  background: radial-gradient(circle at 58% 42%, white 0 2px, transparent 2.5px), var(--red);
+  box-shadow: 0 3px 9px rgba(127, 11, 21, 0.28);
+  appearance: none;
+  transform: rotate(-45deg);
+}
+
+.journey-sliders input::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(95, 83, 68, 0.18);
+}
+
+.journey-sliders input::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--red);
+}
+
+.journey-sliders input::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: 2px solid white;
+  border-radius: 50% 50% 50% 0;
+  background: radial-gradient(circle at 58% 42%, white 0 2px, transparent 2.5px), var(--red);
+  box-shadow: 0 3px 9px rgba(127, 11, 21, 0.28);
+  transform: rotate(-45deg);
+}
+
+.journey-sliders input:focus-visible {
+  outline: 2px solid rgba(184, 15, 29, 0.35);
+  outline-offset: 5px;
 }
 
 .journey-navigation {
@@ -20547,11 +20755,117 @@ textarea,
   line-height: 1.6;
 }
 
+.journey-contact-methods {
+  display: grid;
+  gap: 9px;
+  align-self: end;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.journey-contact-methods .journey-inline-choices {
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.journey-contact-methods .journey-inline-choices button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 12px 8px 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.journey-contact-methods .journey-inline-choices button i {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(95, 83, 68, 0.35);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.journey-contact-methods .journey-inline-choices button.is-selected {
+  border: 0;
+  background: transparent;
+  color: var(--red-deep);
+}
+
+.journey-contact-methods .journey-inline-choices button.is-selected i {
+  border-color: var(--red);
+  background: var(--red);
+  box-shadow: inset 0 0 0 3px var(--ivory);
+}
+
+.journey-success-state {
+  display: grid;
+  align-content: center;
+  min-height: 300px;
+  padding: 36px;
+  background: var(--night);
+  color: white;
+}
+
+.journey-success-state .eyebrow {
+  margin-top: 18px;
+  color: var(--gold-soft);
+}
+
+.journey-success-state h3 {
+  max-width: 420px;
+  margin: 12px 0;
+  color: white;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.05;
+}
+
+.journey-success-state p {
+  max-width: 520px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.7;
+}
+
+.journey-success-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  color: var(--gold-soft);
+}
+
+.journey-contact-intro em,
+.journey-contact-form label em {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.journey-contact-details-heading {
+  margin-top: 18px;
+}
+
 .journey-contact-form label {
   margin-top: 0;
 }
 
 .journey-contact-form label.is-wide {
+  grid-column: 1 / -1;
+}
+
+.journey-contact-form > .is-wide {
   grid-column: 1 / -1;
 }
 
@@ -20579,8 +20893,9 @@ textarea,
 
 .journey-contact-form .button {
   justify-content: center;
-  width: 100%;
+  width: min(100%, 390px);
   min-height: 49px;
+  justify-self: start;
 }
 
 .journey-form-message {
@@ -20600,8 +20915,8 @@ textarea,
 
 .tailor-quiet-footer {
   padding: 35px 0;
-  background: var(--night);
-  color: rgba(255, 255, 255, 0.74);
+  background: #2b302c;
+  color: rgba(255, 253, 248, 0.78);
 }
 
 .tailor-quiet-footer .container {
@@ -20617,6 +20932,37 @@ textarea,
   color: var(--gold-soft);
 }
 
+.tailor-quiet-typing {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--gold-soft);
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  animation: tailorQuietTyping 3.8s steps(44, end) forwards;
+}
+
+.tailor-quiet-typing em {
+  color: #e33b46;
+  font-style: italic;
+  font-weight: 850;
+}
+
+@keyframes tailorQuietTyping {
+  from { max-width: 0; }
+  to { max-width: 44ch; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tailor-quiet-typing {
+    max-width: none;
+    border-right: 0;
+    animation: none;
+  }
+}
+
 @media (max-width: 900px) {
   .tailor-hero {
     min-height: auto;
@@ -20627,6 +20973,10 @@ textarea,
   .journey-layout,
   .journey-layout.is-complete {
     grid-template-columns: 1fr;
+  }
+
+  .tailor-hero-inner {
+    transform: none;
   }
 
   .tailor-hero-collage {
@@ -20669,6 +21019,36 @@ textarea,
 
   .tailor-photo-small {
     height: 170px;
+  }
+
+  .tailor-photo-fragment {
+    right: 2%;
+    width: 27%;
+    height: 72px;
+  }
+
+  .tailor-micro-when,
+  .tailor-micro-with {
+    display: none;
+  }
+
+  .tailor-micro-destination {
+    top: 24%;
+    left: 0;
+  }
+
+  .tailor-micro-tokyo {
+    top: 8%;
+    left: auto;
+    right: 10%;
+  }
+
+  .tailor-micro-label {
+    font-size: 0.48rem;
+  }
+
+  .tailor-hero-copy .button::after {
+    display: none;
   }
 
   .tailor-stamp {
