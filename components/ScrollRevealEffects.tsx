@@ -7,6 +7,7 @@ const revealSelectors = [
   ".signature-grid",
   ".collection-header",
   ".collection-card",
+  ".author-process",
   ".brand-proof-copy",
   ".proof-card",
   ".review-editorial-header",

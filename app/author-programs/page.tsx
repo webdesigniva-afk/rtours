@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, Compass, HeartHandshake, Plane, Route, Sparkles, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AuthorTypingCaption } from "@/components/AuthorTypingCaption";
+import { ScrollRevealEffects } from "@/components/ScrollRevealEffects";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { formatDisplayDate } from "@/lib/dateFormat";
@@ -99,6 +100,7 @@ export default async function AuthorProgramsPage() {
     <>
       <SiteHeader />
       <main className="author-page">
+        <ScrollRevealEffects />
         <section className="author-hero">
           <div className="container author-hero-grid">
             <div className="author-hero-copy">
@@ -194,8 +196,10 @@ export default async function AuthorProgramsPage() {
               <g className="author-process-route-accent" transform="translate(992 58)">
                 <path d="M0 4 L4 0 L8 4 L4 8 Z" />
               </g>
-              <g className="author-process-route-plane" transform="translate(1182 -28) rotate(-8) scale(1.28)">
-                <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 20.5 3S17.5 3.5 16 5l-3.5 3.5-8.2-1.8c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3l6.4 4-2.4 2.4-3-.6c-.4-.1-.8.1-1 .5l-.2.4c-.2.4-.1.9.3 1.2L6 19l2.1 2.7c.3.4.8.5 1.2.3l.4-.2c.4-.2.6-.6.5-1l-.6-3 2.4-2.4 4 6.4c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z" />
+              <g className="author-process-route-plane-position" transform="translate(1182 -28) rotate(-8) scale(1.28)">
+                <g className="author-process-route-plane">
+                  <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 20.5 3S17.5 3.5 16 5l-3.5 3.5-8.2-1.8c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3l6.4 4-2.4 2.4-3-.6c-.4-.1-.8.1-1 .5l-.2.4c-.2.4-.1.9.3 1.2L6 19l2.1 2.7c.3.4.8.5 1.2.3l.4-.2c.4-.2.6-.6.5-1l-.6-3 2.4-2.4 4 6.4c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z" />
+                </g>
               </g>
             </svg>
             {processItems.map(({ number, title, text }, index) => (

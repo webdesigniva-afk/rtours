@@ -29,14 +29,23 @@ export async function submitInquiry(_state: InquiryActionState, formData: FormDa
   const offerTitle = readString(formData, "offer_title");
   const destination = readString(formData, "destination");
   const departure = readString(formData, "departure") || readString(formData, "travel_period");
-  const adults = readPositiveInt(readString(formData, "adults"), 2);
+  const adults = readPositiveInt(readString(formData, "adults") || readString(formData, "brief_adults"), 2);
   const children = readPositiveInt(readString(formData, "children"), 0);
   const roomType = readString(formData, "room_type");
-  const budget = readString(formData, "budget");
+  const budget = readString(formData, "budget") || readString(formData, "brief_budget");
   const contactName = readString(formData, "name");
   const contactEmail = readString(formData, "email");
   const contactPhone = readString(formData, "phone");
-  const notes = readString(formData, "message");
+  const notes = [
+    readString(formData, "message"),
+    readString(formData, "children_ages") ? `Деца и възрасти: ${readString(formData, "children_ages")}` : "",
+    readString(formData, "duration") ? `Продължителност: ${readString(formData, "duration")}` : "",
+    readString(formData, "dates_flexible") ? `Гъвкави дати: ${readString(formData, "dates_flexible")}` : "",
+    readString(formData, "experiences") ? `Преживявания: ${readString(formData, "experiences")}` : "",
+    readString(formData, "accommodation_style") ? `Настаняване: ${readString(formData, "accommodation_style")}` : "",
+    readString(formData, "preferred_contact") ? `Предпочитан контакт: ${readString(formData, "preferred_contact")}` : "",
+    readString(formData, "additional_information") ? `Допълнителна информация: ${readString(formData, "additional_information")}` : ""
+  ].filter(Boolean).join("\n");
   const leadSource = normalizeSource(readString(formData, "lead_source"), Boolean(offerSlug));
   const travelersCount = (adults || 0) + (children || 0);
   const headersList = await headers();

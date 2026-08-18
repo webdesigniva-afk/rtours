@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown, Compass, Plane, Route, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, ChevronDown, Compass, Mountain, Music2, Plane, Route, Sparkles, Utensils, UsersRound, UserRound } from "lucide-react";
 
 const travelMenuItems = [
   {
+    href: "/author-programs",
     label: "Авторски програми",
     text: "Маршрути, създадени от Red Tours с личен почерк.",
     icon: Compass
@@ -22,14 +23,23 @@ const travelMenuItems = [
     icon: Sparkles
   },
   {
+    href: "/tailor-made",
     label: "Tailor-made",
     text: "Вашата идея, превърната в цялостен маршрут.",
     icon: Route
   }
 ];
 
+const collectionMenuItems = [
+  { href: "/offers?collection=red-icons", label: "Red Icons", text: "Места, които остават.", icon: Mountain },
+  { href: "/offers?collection=red-hidden", label: "Red Hidden", text: "Отвъд очевидното.", icon: Compass },
+  { href: "/offers?collection=red-taste", label: "Red Taste", text: "Светът има вкус.", icon: Utensils },
+  { href: "/offers?collection=red-wild", label: "Red Wild", text: "По-близо до дивото.", icon: Mountain },
+  { href: "/offers?collection=red-live", label: "Red Live", text: "Бъдете там, когато се случва.", icon: Music2 },
+  { href: "/offers?collection=red-circle", label: "Red Circle", text: "По-малко хора. Повече преживяване.", icon: UsersRound }
+];
+
 const navItems = [
-  { href: "/#collections", label: "Red Collections", match: () => false },
   { href: "/about", label: "За Red Tours", match: (path: string) => path.startsWith("/about") },
   { href: "/contacts", label: "Контакти", match: (path: string) => path.startsWith("/contacts") },
   { href: "/blog", label: "Блог", match: (path: string) => path.startsWith("/blog") }
@@ -74,9 +84,8 @@ export function SiteHeader() {
               <div className="nav-submenu" role="menu">
                 {travelMenuItems.map((item) => {
                   const Icon = item.icon;
-
-                  return (
-                    <button className="nav-submenu-link" key={item.label} role="menuitem" type="button">
+                  const itemContent = (
+                    <>
                       <span className="nav-submenu-icon">
                         <Icon size={18} aria-hidden="true" />
                       </span>
@@ -85,7 +94,41 @@ export function SiteHeader() {
                         <em>{item.text}</em>
                       </span>
                       <ArrowRight size={15} aria-hidden="true" />
+                    </>
+                  );
+
+                  return item.href ? (
+                    <Link className="nav-submenu-link" href={item.href} key={item.label} role="menuitem">
+                      {itemContent}
+                    </Link>
+                  ) : (
+                    <button className="nav-submenu-link" key={item.label} role="menuitem" type="button">
+                      {itemContent}
                     </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="nav-dropdown">
+              <button className="nav-link nav-dropdown-trigger" type="button">
+                Red Collections
+                <ChevronDown size={14} aria-hidden="true" />
+              </button>
+              <div className="nav-submenu" role="menu">
+                {collectionMenuItems.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Link className="nav-submenu-link" href={item.href} key={item.href} role="menuitem">
+                      <span className="nav-submenu-icon">
+                        <Icon size={18} aria-hidden="true" />
+                      </span>
+                      <span>
+                        <strong>{item.label}</strong>
+                        <em>{item.text}</em>
+                      </span>
+                      <ArrowRight size={15} aria-hidden="true" />
+                    </Link>
                   );
                 })}
               </div>
