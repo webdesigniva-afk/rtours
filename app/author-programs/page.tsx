@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Check, Compass, HeartHandshake, Plane, Route, Sparkles, UsersRound } from "lucide-react";
+import { ArrowRight, CalendarDays, Compass, HeartHandshake, Plane, Route, Sparkles, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AuthorTypingCaption } from "@/components/AuthorTypingCaption";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -168,7 +168,7 @@ export default async function AuthorProgramsPage() {
             <svg className="author-process-route" viewBox="0 0 1220 128" preserveAspectRatio="none" aria-hidden="true">
               <path
                 className="author-process-route-line"
-                d="M0 64 C70 64 132 60 244 64 C328 67 386 76 488 64 C578 54 648 56 732 64 C820 72 888 57 976 64 C1026 68 1048 60 1062 42 C1078 20 1064 0 1092 -7 C1128 -16 1164 -10 1220 8"
+                d="M0 64 C70 64 132 60 244 64 C328 67 386 76 488 64 C578 54 648 56 732 64 C820 72 888 57 976 64 C1026 68 1048 60 1062 42 C1078 20 1064 0 1092 -7 C1110 -11 1126 -7 1142 2"
               />
               {[
                 [0, 64],
@@ -194,7 +194,7 @@ export default async function AuthorProgramsPage() {
               <g className="author-process-route-accent" transform="translate(992 58)">
                 <path d="M0 4 L4 0 L8 4 L4 8 Z" />
               </g>
-              <g className="author-process-route-plane" transform="translate(1190 -1) rotate(-8) scale(1.28)">
+              <g className="author-process-route-plane" transform="translate(1182 -28) rotate(-8) scale(1.28)">
                 <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 20.5 3S17.5 3.5 16 5l-3.5 3.5-8.2-1.8c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3l6.4 4-2.4 2.4-3-.6c-.4-.1-.8.1-1 .5l-.2.4c-.2.4-.1.9.3 1.2L6 19l2.1 2.7c.3.4.8.5 1.2.3l.4-.2c.4-.2.6-.6.5-1l-.6-3 2.4-2.4 4 6.4c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z" />
               </g>
             </svg>
@@ -223,7 +223,7 @@ export default async function AuthorProgramsPage() {
             <header className="author-section-header">
               <div>
                 <span className="author-eyebrow">Създадени от нас</span>
-                <h2>Истории, които ви очакват.</h2>
+                <h2>Открийте следващото си авторско пътуване.</h2>
               </div>
               <Link href="/offers?collection=red-signature">
                 Вижте всички програми
@@ -243,24 +243,6 @@ export default async function AuthorProgramsPage() {
                 <p>Когато отбележиш оферта като авторска в администрацията, тя ще се появи тук.</p>
               </div>
             )}
-          </div>
-        </section>
-
-        <section className="author-final-cta">
-          <div className="container author-final-grid">
-            <div>
-              <span className="author-eyebrow">Следващата идея</span>
-              <h2>Открийте следващото си <em>авторско</em> пътуване.</h2>
-              <p>Ние измисляме маршрута. Вие събирате историите.</p>
-              <Link className="button" href="/offers?collection=red-signature">
-                Разгледайте програмите
-                <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-            </div>
-            <div className="author-final-image">
-              <img src={heroImages[1]} alt="" />
-              <span><Check size={18} aria-hidden="true" /> внимателно подбран маршрут</span>
-            </div>
           </div>
         </section>
       </main>

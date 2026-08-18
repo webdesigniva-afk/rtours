@@ -3,13 +3,33 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, UserRound } from "lucide-react";
+import { ArrowRight, ChevronDown, Compass, Plane, Route, Sparkles, UserRound } from "lucide-react";
+
+const travelMenuItems = [
+  {
+    label: "Авторски програми",
+    text: "Маршрути, създадени от Red Tours с личен почерк.",
+    icon: Compass
+  },
+  {
+    label: "Екзотики",
+    text: "Далечни посоки, ярки култури и внимателно темпо.",
+    icon: Plane
+  },
+  {
+    label: "Специални преживявания",
+    text: "Пътувания с повече лично отношение и детайл.",
+    icon: Sparkles
+  },
+  {
+    label: "Tailor-made",
+    text: "Вашата идея, превърната в цялостен маршрут.",
+    icon: Route
+  }
+];
 
 const navItems = [
-  { href: "/offers", label: "Пътувания", match: (path: string) => path.startsWith("/offers") },
-  { href: "/author-programs", label: "Авторски програми", match: (path: string) => path.startsWith("/author-programs") },
-  { href: "/destinations?type=exotic", label: "Екзотики", match: (path: string) => path.startsWith("/destinations") },
-  { href: "/offers?collection=red-private", label: "Специални преживявания", match: () => false },
+  { href: "/#collections", label: "Red Collections", match: () => false },
   { href: "/about", label: "За Red Tours", match: (path: string) => path.startsWith("/about") },
   { href: "/contacts", label: "Контакти", match: (path: string) => path.startsWith("/contacts") },
   { href: "/blog", label: "Блог", match: (path: string) => path.startsWith("/blog") }
@@ -18,6 +38,11 @@ const navItems = [
 export function SiteHeader() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
+  const isTravelActive =
+    pathname.startsWith("/offers") ||
+    pathname.startsWith("/author-programs") ||
+    pathname.startsWith("/destinations") ||
+    pathname.startsWith("/tailor-made");
 
   useEffect(() => {
     const updateScrollState = () => setIsScrolled(window.scrollY > 18);
@@ -38,6 +63,33 @@ export function SiteHeader() {
             </span>
           </Link>
           <nav className="nav-menu" aria-label="Основна навигация">
+            <div className="nav-dropdown">
+              <button
+                className={isTravelActive ? "nav-link nav-dropdown-trigger is-active" : "nav-link nav-dropdown-trigger"}
+                type="button"
+              >
+                Пътувания
+                <ChevronDown size={14} aria-hidden="true" />
+              </button>
+              <div className="nav-submenu" role="menu">
+                {travelMenuItems.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <button className="nav-submenu-link" key={item.label} role="menuitem" type="button">
+                      <span className="nav-submenu-icon">
+                        <Icon size={18} aria-hidden="true" />
+                      </span>
+                      <span>
+                        <strong>{item.label}</strong>
+                        <em>{item.text}</em>
+                      </span>
+                      <ArrowRight size={15} aria-hidden="true" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             {navItems.map((item) => {
               const active = item.match(pathname);
 

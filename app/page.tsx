@@ -6,7 +6,6 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { HeroVideo } from "@/components/HeroVideo";
 import { TravelFinder } from "@/components/TravelFinder";
-import { collections } from "@/lib/data";
 import { listPublishedPublicOffers } from "@/lib/offerRepository";
 import type { Offer } from "@/lib/types";
 
@@ -114,33 +113,50 @@ export default async function Home() {
   const redToursPicks = featuredOffers
     .filter((offer) => (offer.visibilityPlacements ?? []).includes("homepage") || offer.tags.includes("Наш избор") || (offer.badgeSlugs ?? []).includes("nash-izbor"))
     .slice(0, 6);
-  const collectionDetails: Record<string, { label: string; audience: string; cue: string }> = {
-    "red-signature": {
-      label: "Red Signature",
-      audience: "Авторски програми",
-      cue: "Селекция от маршрути, хотели и преживявания, подредени с личен вкус."
+  const redCollections = [
+    {
+      slug: "red-icons",
+      name: "Red Icons",
+      title: "Места, които остават.",
+      text: "Емблематични маршрути и преживявания, които поне веднъж си заслужава да бъдат изживени.",
+      image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=84"
     },
-    "red-moments": {
-      label: "Red Moments",
-      audience: "Кратки бягства",
-      cue: "Кратки формати с точен ритъм, силна атмосфера и лесна организация."
+    {
+      slug: "red-hidden",
+      name: "Red Hidden",
+      title: "Отвъд очевидното.",
+      text: "По-малко познати места, истории и кътчета на Европа извън утъпканите маршрути.",
+      image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=1400&q=84"
     },
-    "red-escape": {
-      label: "Red Escape",
-      audience: "Екзотични дестинации",
-      cue: "Нова посока, различен ритъм и усещане за откъсване от обичайното."
+    {
+      slug: "red-taste",
+      name: "Red Taste",
+      title: "Светът има вкус.",
+      text: "Пътувания през местната кухня, виното и вкусовете, които разказват една дестинация.",
+      image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1400&q=84"
     },
-    "red-family": {
-      label: "Red Family",
-      audience: "Пътувания за цялото семейство",
-      cue: "Програми с удобен ритъм, повече спокойствие и внимание към всеки."
+    {
+      slug: "red-wild",
+      name: "Red Wild",
+      title: "По-близо до дивото.",
+      text: "Впечатляващи пейзажи, природни феномени и срещи с дивия свят.",
+      image: "https://images.unsplash.com/photo-1456926631375-92c8ce872def?auto=format&fit=crop&w=1400&q=84"
     },
-    "red-private": {
-      label: "Red Private",
-      audience: "Индивидуални и VIP преживявания",
-      cue: "Персонален маршрут, внимателен подбор и услуга с максимална дискретност."
+    {
+      slug: "red-live",
+      name: "Red Live",
+      title: "Бъдете там, когато се случва.",
+      text: "Концерти, фестивали и културни събития, около които си заслужава да построите цяло пътуване.",
+      image: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1400&q=84"
+    },
+    {
+      slug: "red-circle",
+      name: "Red Circle",
+      title: "По-малко хора. Повече преживяване.",
+      text: "Внимателно подбрани маршрути за малки групи и по-личен начин на пътуване.",
+      image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1400&q=84"
     }
-  };
+  ];
   const reviewStats = ["4,9", "192 Google отзива", "проверими мнения"];
   const googleReviews = [
     {
@@ -276,7 +292,7 @@ export default async function Home() {
               </p>
             </div>
             <div className="collection-grid">
-              {collections.map((collection) => (
+              {redCollections.map((collection) => (
                 <Link
                   className="collection-card"
                   href={`/offers?collection=${collection.slug}`}
@@ -285,11 +301,11 @@ export default async function Home() {
                 >
                   <img src={collection.image} alt={collection.name} />
                   <div className="collection-card-content">
-                    <span className="eyebrow">{collectionDetails[collection.slug].audience}</span>
                     <h3>
-                      <span>Red</span> {collectionDetails[collection.slug].label.replace("Red ", "")}
+                      <span>Red</span> {collection.name.replace("Red ", "")}
                     </h3>
-                    <p>{collectionDetails[collection.slug].cue}</p>
+                    <strong>{collection.title}</strong>
+                    <p>{collection.text}</p>
                   </div>
                 </Link>
               ))}
