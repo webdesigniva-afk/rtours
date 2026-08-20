@@ -21975,7 +21975,7 @@ textarea,
 /* Contact page redesign */
 .contact-redesign {
   background:
-    linear-gradient(180deg, #f7fafc 0%, #fbfdff 42%, #ffffff 100%);
+    linear-gradient(180deg, #f7fafc 0%, #fbfdff 42%, #eef7fd 100%);
   color: #171412;
 }
 
@@ -22006,7 +22006,7 @@ textarea,
     radial-gradient(ellipse at 83% 77%, rgba(190, 206, 219, 0.42) 0%, rgba(239, 245, 249, 0.5) 24%, transparent 52%),
     radial-gradient(ellipse at 12% 78%, rgba(197, 213, 226, 0.38) 0%, rgba(246, 250, 252, 0.48) 24%, transparent 54%);
   filter: blur(7px);
-  opacity: 1;
+  opacity: 0.74;
   content: "";
   pointer-events: none;
 }
@@ -22135,20 +22135,20 @@ textarea,
   top: -14%;
   left: -10%;
   width: 126%;
-  opacity: 0.92;
+  opacity: 0.66;
   animation: contactCloudWideDrift 38s linear infinite;
   filter:
     blur(0.2px)
-    drop-shadow(0 24px 36px rgba(112, 133, 151, 0.24));
+    drop-shadow(0 18px 28px rgba(112, 133, 151, 0.16));
 }
 
 .contact-map-cloud-soft {
   width: 50%;
-  opacity: 0.7;
+  opacity: 0.48;
   mix-blend-mode: screen;
   filter:
     blur(0.15px)
-    drop-shadow(0 20px 36px rgba(105, 128, 148, 0.2));
+    drop-shadow(0 14px 28px rgba(105, 128, 148, 0.14));
 }
 
 .contact-map-cloud-soft-left {
@@ -22318,7 +22318,7 @@ textarea,
   background:
     radial-gradient(ellipse at 16% 8%, rgba(218, 229, 238, 0.52) 0%, transparent 34%),
     radial-gradient(ellipse at 84% 10%, rgba(226, 235, 242, 0.42) 0%, transparent 36%),
-    linear-gradient(180deg, #fbfdff 0%, #ffffff 100%);
+    linear-gradient(180deg, #fbfdff 0%, #f8fcff 58%, #f3faff 100%);
 }
 
 .contact-section-title {
@@ -22347,7 +22347,7 @@ textarea,
 .contact-office-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 22px;
   align-items: stretch;
 }
 
@@ -22357,13 +22357,13 @@ textarea,
   flex-direction: column;
   overflow: hidden;
   min-height: 336px;
-  border: 1px solid rgba(143, 158, 170, 0.18);
-  border-radius: 8px;
-  padding: 30px 28px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 10px;
+  padding: 34px 30px 30px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 253, 255, 0.88));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(250, 253, 255, 0.56));
   box-shadow:
-    0 24px 60px rgba(54, 73, 89, 0.08),
+    0 20px 54px rgba(54, 73, 89, 0.07),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
   transition:
     border-color 180ms ease,
@@ -22384,9 +22384,9 @@ textarea,
 }
 
 .contact-office-card:hover {
-  border-color: rgba(166, 28, 31, 0.2);
+  border-color: rgba(166, 28, 31, 0.14);
   box-shadow:
-    0 30px 74px rgba(54, 73, 89, 0.12),
+    0 28px 70px rgba(54, 73, 89, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
   transform: translateY(-3px);
 }
@@ -22470,10 +22470,10 @@ textarea,
   display: grid;
   position: relative;
   z-index: 1;
-  gap: 14px;
-  margin-top: 16px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(143, 158, 170, 0.14);
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(143, 158, 170, 0.08);
 }
 
 .contact-office-details > a,
@@ -22543,13 +22543,15 @@ textarea,
 }
 
 .contact-hours-summary {
+  position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) 1px minmax(0, 1fr);
   gap: clamp(22px, 4vw, 48px);
   align-items: center;
+  overflow: hidden;
   margin-top: 20px;
-  border: 1px solid rgba(31, 45, 58, 0.16);
-  border-radius: 8px;
+  border: 1px solid rgba(31, 45, 58, 0.12);
+  border-radius: 14px;
   padding: 26px clamp(28px, 4vw, 46px);
   background:
     radial-gradient(ellipse at 8% 50%, rgba(166, 28, 31, 0.12), transparent 30%),
@@ -22558,6 +22560,17 @@ textarea,
   box-shadow:
     0 22px 58px rgba(32, 48, 64, 0.14),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.contact-hours-summary::before {
+  position: absolute;
+  top: 0;
+  left: clamp(28px, 4vw, 46px);
+  width: min(220px, 28%);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 38, 59, 0), #ff263b 18%, rgba(255, 38, 59, 0.22) 72%, rgba(255, 38, 59, 0));
+  content: "";
 }
 
 .contact-hours-summary-icon {
@@ -22613,22 +22626,23 @@ textarea,
 .contact-form-section {
   position: relative;
   overflow: hidden;
-  min-height: 760px;
-  border-top: 1px solid rgba(143, 158, 170, 0.12);
-  padding: 108px 0 86px;
+  min-height: 660px;
+  border-top: 0;
+  padding: 88px 0 58px;
   background:
-    radial-gradient(ellipse at 14% 24%, rgba(226, 235, 242, 0.54) 0%, transparent 36%),
-    radial-gradient(ellipse at 86% 32%, rgba(245, 248, 251, 0.92) 0%, transparent 36%),
-    linear-gradient(180deg, #ffffff 0%, #f7fbfe 100%);
+    linear-gradient(180deg, rgba(243, 250, 255, 0) 0%, rgba(234, 244, 251, 0.84) 24%, #eaf4fb 100%),
+    radial-gradient(ellipse at 14% 24%, rgba(199, 218, 232, 0.58) 0%, transparent 38%),
+    radial-gradient(ellipse at 86% 32%, rgba(219, 232, 242, 0.88) 0%, transparent 38%),
+    linear-gradient(180deg, #f3faff 0%, #eaf4fb 100%);
 }
 
 .contact-form-section::before {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.68) 26%, transparent 52%),
-    radial-gradient(ellipse at 12% 84%, rgba(184, 207, 224, 0.34) 0%, rgba(236, 244, 249, 0.42) 30%, transparent 52%),
-    radial-gradient(ellipse at 18% 90%, rgba(255, 255, 255, 0.92) 0%, transparent 34%);
+    linear-gradient(90deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.48) 26%, transparent 52%),
+    radial-gradient(ellipse at 12% 84%, rgba(151, 186, 211, 0.48) 0%, rgba(214, 230, 241, 0.52) 30%, transparent 52%),
+    radial-gradient(ellipse at 18% 90%, rgba(241, 248, 252, 0.74) 0%, transparent 34%);
   content: "";
   pointer-events: none;
 }
@@ -22640,13 +22654,13 @@ textarea,
 .contact-form-clouds {
   position: absolute;
   left: -8vw;
-  bottom: -44px;
+  bottom: -62px;
   z-index: 1;
   width: min(860px, 60vw);
   max-width: none;
   opacity: 1;
   mix-blend-mode: screen;
-  transform: scale(-1, -1);
+  transform: none;
   transform-origin: center;
   filter:
     drop-shadow(0 18px 42px rgba(126, 151, 171, 0.22))
@@ -22659,7 +22673,7 @@ textarea,
 .contact-form-route {
   position: absolute;
   left: -4vw;
-  bottom: 122px;
+  bottom: 92px;
   z-index: 2;
   width: min(720px, 52vw);
   height: auto;
@@ -22713,9 +22727,21 @@ textarea,
   font-weight: 820;
 }
 
+.contact-form-note {
+  display: inline-block;
+  margin: 22px 0 0 34px;
+  color: rgba(166, 28, 31, 0.78);
+  font-family: "Segoe Script", "Brush Script MT", cursive;
+  font-size: clamp(0.98rem, 1.08vw, 1.28rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.45;
+  transform: rotate(-3deg);
+}
+
 .contact-page-form {
   display: grid;
-  gap: 26px;
+  gap: 22px;
   border: 0;
   border-radius: 0;
   padding: 0;
@@ -22781,7 +22807,7 @@ textarea,
 .contact-field-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 34px 38px;
+  gap: 26px 38px;
 }
 
 .contact-field-grid label,
@@ -22836,7 +22862,7 @@ textarea,
 }
 
 .contact-field-grid textarea {
-  min-height: 116px;
+  min-height: 96px;
   resize: vertical;
 }
 
@@ -22889,15 +22915,15 @@ textarea,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  min-width: 360px;
-  min-height: 68px;
+  gap: 10px;
+  min-width: 300px;
+  min-height: 56px;
   border: 0;
   border-radius: 8px;
-  padding: 0 32px;
+  padding: 0 26px;
   background: linear-gradient(180deg, #c71927, #9d0e19);
   color: #fff;
-  font-size: 0.98rem;
+  font-size: 0.9rem;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -22990,6 +23016,11 @@ textarea,
     font-size: 1.02rem;
     letter-spacing: 0.08em;
     line-height: 1.78;
+  }
+
+  .contact-form-note {
+    margin-left: 12px;
+    font-size: 1rem;
   }
 
   .contact-bulgaria-map {
