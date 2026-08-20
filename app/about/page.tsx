@@ -1,57 +1,38 @@
 import type { Metadata } from "next";
-import { BadgeCheck, Gem, Handshake, Route } from "lucide-react";
 import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "За RedTours",
-  description: "Философия, подход и доверие зад пътуванията на RedTours."
+  title: "За Red Tours",
+  description: "Философия, подход и доверие зад пътуванията на Red Tours."
 };
 
 export default function AboutPage() {
   return (
     <>
       <SiteHeader />
-      <main>
-        <section className="container page-title">
-          <PublicBreadcrumbs items={[{ label: "За RedTours" }]} />
-          <span className="eyebrow">За RedTours</span>
-          <h1>Не продаваме маршрути. Подреждаме преживявания.</h1>
-          <p>
-            RedTours трябва да бъде представен като екип с вкус, опит и оперативна дисциплина:
-            хора, които познават детайлите и правят пътуването спокойно за клиента.
-          </p>
-        </section>
-
-        <section className="section split-band">
-          <div className="container split">
-            <div>
-              <span className="eyebrow">Бутиков подход</span>
-              <h2>Премиум усещането идва от подбор, не от шум.</h2>
+      <main className="about-page">
+        <section className="about-hero">
+          <div className="about-hero-media" aria-hidden="true">
+            <img src="/images/about/about-hero.png" alt="" />
+          </div>
+          <div className="container about-hero-inner">
+            <div className="about-hero-copy">
+              <PublicBreadcrumbs items={[{ label: "За Red Tours" }]} />
+              <h1>
+                Пътуването
+                <span>е лично.</span>
+                <em>Така подхождаме и ние.</em>
+              </h1>
               <p>
-                Новият сайт трябва да покаже начина на работа на RedTours: внимателно съдържание,
-                реални материали, доверие, ясна организация и персонална грижа.
+                Red Tours създава и организира пътувания за хора, които търсят повече от стандартна програма.
+              </p>
+              <p>
+                За нас всяка дестинация е съчетание от места, хора, истории, логистика и безброй малки решения.
+                Затова подбираме внимателно не само къде ще ви отведем, но и как ще преживеете пътя дотам.
               </p>
             </div>
-            <ul className="feature-list">
-              <li>
-                <Gem size={22} aria-hidden="true" />
-                Авторски програми и тематични колекции с ясна редакционна логика.
-              </li>
-              <li>
-                <Route size={22} aria-hidden="true" />
-                Маршрути, които се подреждат според ритъм, сезон и преживяване.
-              </li>
-              <li>
-                <Handshake size={22} aria-hidden="true" />
-                Персонално обслужване преди, по време и след пътуването.
-              </li>
-              <li>
-                <BadgeCheck size={22} aria-hidden="true" />
-                Структура, която по-късно може да поддържа MyTrips, документи и ERP процеси.
-              </li>
-            </ul>
           </div>
         </section>
       </main>
