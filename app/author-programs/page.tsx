@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Compass, HeartHandshake, Plane, Route, Sparkles, UsersRound } from "lucide-react";
+import { ArrowRight, CalendarDays, Compass, HeartHandshake, Route, Sparkles, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AuthorTypingCaption } from "@/components/AuthorTypingCaption";
 import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
@@ -94,7 +94,6 @@ function AuthorProgramCard({ offer, featured = false }: { offer: Offer; featured
 
 export default async function AuthorProgramsPage() {
   const offers = (await listPublishedPublicOffers()).filter(isSignatureOffer);
-  const heroImages = heroCollageImages;
   const visibleOffers = offers.slice(0, 5);
 
   return (
@@ -103,6 +102,14 @@ export default async function AuthorProgramsPage() {
       <main className="author-page">
         <ScrollRevealEffects />
         <section className="author-hero">
+          <div className="author-hero-video" aria-hidden="true">
+            <video className="author-hero-video-item is-first" autoPlay muted loop playsInline preload="metadata">
+              <source src="https://www.pexels.com/download/video/10745869/" type="video/mp4" />
+            </video>
+            <video className="author-hero-video-item is-second" autoPlay muted loop playsInline preload="metadata">
+              <source src="https://www.pexels.com/download/video/4782636/" type="video/mp4" />
+            </video>
+          </div>
           <div className="container author-hero-grid">
             <div className="author-hero-copy">
               <PublicBreadcrumbs items={[{ label: "Пътувания", href: "/offers" }, { label: "Авторски програми" }]} />
@@ -110,7 +117,6 @@ export default async function AuthorProgramsPage() {
                 Пътувания, които започват
                 <span><em>с идея.</em></span>
               </h1>
-              <span className="author-red-line" aria-hidden="true" />
               <p>
                 Авторските програми на Red Tours са създадени от нас от първата идея до последния детайл.
               </p>
@@ -120,28 +126,7 @@ export default async function AuthorProgramsPage() {
               </p>
             </div>
 
-            <div className="author-hero-collage" aria-label="Колаж от авторски пътувания">
-              <span className="author-route-line" aria-hidden="true" />
-              <span className="author-route-dot is-start" aria-hidden="true" />
-              <span className="author-route-dot is-mid" aria-hidden="true" />
-              <span className="author-route-dot is-end" aria-hidden="true" />
-              <span className="author-coordinate-note" aria-hidden="true">route in progress</span>
-              <Plane className="author-plane is-one" size={18} aria-hidden="true" />
-              <Plane className="author-plane is-two" size={16} aria-hidden="true" />
-              <div className="author-collage-frame is-main">
-                <img src={heroImages[0]} alt="" />
-                <span>01 / idea</span>
-              </div>
-              <div className="author-collage-frame is-route">
-                <img src={heroImages[1]} alt="" />
-                <span>02 / route</span>
-              </div>
-              <div className="author-collage-frame is-experience">
-                <img src={heroImages[2]} alt="" />
-                <span>03 / experience</span>
-              </div>
-              <p>Подхождаме с любопитство. Създаваме с отношение.</p>
-            </div>
+            <div className="author-hero-video-space" aria-hidden="true" />
           </div>
         </section>
 
@@ -165,38 +150,14 @@ export default async function AuthorProgramsPage() {
           </div>
           <div className="container author-process-label">Как създаваме програмите</div>
           <div className="container author-process">
-            <svg className="author-process-route" viewBox="0 0 1220 128" preserveAspectRatio="none" aria-hidden="true">
+            <svg className="author-process-route" viewBox="0 0 1220 390" preserveAspectRatio="none" aria-hidden="true">
               <path
                 className="author-process-route-line"
-                d="M0 64 C70 64 132 60 244 64 C328 67 386 76 488 64 C578 54 648 56 732 64 C820 72 888 57 976 64 C1026 68 1048 60 1062 42 C1078 20 1064 0 1092 -7 C1110 -11 1126 -7 1142 2"
+                d="M118 156 C208 156 246 188 270 236 C306 306 420 304 462 236 C504 170 536 156 638 156 C738 156 796 160 804 210 C818 286 900 304 964 258 C1018 218 1038 188 1106 178"
               />
-              {[
-                [0, 64],
-                [244, 64],
-                [488, 64],
-                [732, 64],
-                [976, 64]
-              ].map(([x, y]) => (
-                <g className="author-process-route-stop" transform={`translate(${x} ${y})`} key={x}>
-                  <circle className="author-process-route-halo" r="8.8" />
-                  <circle className="author-process-route-core" r="3.2" />
-                </g>
-              ))}
-              <g className="author-process-route-accent" transform="translate(260 58)">
-                <path d="M0 4 L4 0 L8 4 L4 8 Z" />
-              </g>
-              <g className="author-process-route-accent" transform="translate(504 58)">
-                <path d="M0 4 L4 0 L8 4 L4 8 Z" />
-              </g>
-              <g className="author-process-route-accent" transform="translate(748 58)">
-                <path d="M0 4 L4 0 L8 4 L4 8 Z" />
-              </g>
-              <g className="author-process-route-accent" transform="translate(992 58)">
-                <path d="M0 4 L4 0 L8 4 L4 8 Z" />
-              </g>
-              <g className="author-process-route-plane-position" transform="translate(1182 -28) rotate(-8) scale(1.28)">
+              <g className="author-process-route-plane-position" transform="translate(1126 176) rotate(-10) scale(0.42) translate(-38 -38)">
                 <g className="author-process-route-plane">
-                  <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 20.5 3S17.5 3.5 16 5l-3.5 3.5-8.2-1.8c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3l6.4 4-2.4 2.4-3-.6c-.4-.1-.8.1-1 .5l-.2.4c-.2.4-.1.9.3 1.2L6 19l2.1 2.7c.3.4.8.5 1.2.3l.4-.2c.4-.2.6-.6.5-1l-.6-3 2.4-2.4 4 6.4c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2Z" />
+                  <path d="M60.1666 38H60.0776C60.0776 38 61.254 39.9002 47.2749 40.6107L43.6589 45.9167H44.2443C45.1187 45.9167 45.8276 46.6256 45.8276 47.5C45.8276 48.3745 45.1187 49.0834 44.2443 49.0834H41.4144L39.673 51.4584H39.8901C40.7645 51.4584 41.4734 52.1672 41.4734 53.0417C41.4734 53.9161 40.7645 54.625 39.8901 54.625H37.2359C35.1849 57.1943 33.2902 59.2888 31.9734 60.1667C31.9734 60.1667 29.2026 60.1667 29.2026 58.5833C29.2026 58.5833 35.6397 46.782 37.9164 40.8418C23.6609 40.9597 23.6609 39.9792 23.6609 39.9792C23.6609 39.9792 20.4943 45.9167 17.3276 45.9167L19.7026 38H19.7917L17.4167 30.0833C20.5833 30.0833 23.75 36.0208 23.75 36.0208C23.75 36.0208 23.75 35.0403 38.0055 35.1582C35.7288 29.218 29.2917 17.4167 29.2917 17.4167C29.2917 15.8333 32.0625 15.8334 32.0625 15.8334C33.3792 16.7112 35.2739 18.8058 37.325 21.375H39.9792C40.8536 21.375 41.5625 22.0839 41.5625 22.9583C41.5625 23.8328 40.8536 24.5417 39.9792 24.5417H39.7621L41.5034 26.9167H44.3333C45.2078 26.9167 45.9167 27.6255 45.9167 28.5C45.9167 29.3744 45.2078 30.0833 44.3333 30.0833H43.7479L47.3639 35.3893C61.343 36.0998 60.1666 38 60.1666 38Z" />
                 </g>
               </g>
             </svg>
@@ -210,6 +171,7 @@ export default async function AuthorProgramsPage() {
                 <img src={processImages[index]} alt="" />
               </article>
             ))}
+            <p className="author-process-note">Защото доброто пътуване се помни. Отношението също.</p>
           </div>
         </section>
 
