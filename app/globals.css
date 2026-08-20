@@ -20,6 +20,8 @@
   --space-section-mobile: 56px;
   --container: 1220px;
   --ease-luxury: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --public-page-start: 128px;
+  --public-page-start-mobile: 138px;
 }
 
 @keyframes navReveal {
@@ -282,7 +284,7 @@ textarea {
 .author-hero {
   position: relative;
   min-height: 100svh;
-  padding: 128px 0 42px;
+  padding: var(--public-page-start) 0 42px;
   display: flex;
   align-items: center;
 }
@@ -1248,7 +1250,7 @@ textarea {
 
 @media (max-width: 980px) {
   .author-hero {
-    padding: 138px 0 58px;
+    padding: var(--public-page-start-mobile) 0 58px;
   }
 
   .author-hero-grid,
@@ -4331,8 +4333,57 @@ img {
 }
 
 .page-title {
-  padding: 150px 0 42px;
+  padding: var(--public-page-start) 0 42px;
   animation: riseReveal 760ms var(--ease-luxury) both;
+}
+
+.public-breadcrumb {
+  max-width: 100%;
+  margin: 0 0 clamp(18px, 3vh, 34px);
+  color: rgba(23, 20, 18, 0.46);
+  font-size: 0.82rem;
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.public-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.public-breadcrumb li {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.public-breadcrumb li + li::before {
+  content: "/";
+  flex: 0 0 auto;
+  margin-right: 10px;
+  color: rgba(184, 15, 29, 0.42);
+}
+
+.public-breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.public-breadcrumb a:hover {
+  color: var(--red-deep);
+}
+
+.public-breadcrumb span[aria-current="page"] {
+  min-width: 0;
+  color: rgba(23, 20, 18, 0.66);
+  overflow-wrap: anywhere;
 }
 
 .page-title h1 {
@@ -4669,8 +4720,13 @@ img {
   display: grid;
   gap: 18px;
   pointer-events: none;
-  padding-top: 150px;
+  padding-top: var(--public-page-start);
   padding-bottom: clamp(56px, 8vw, 110px);
+}
+
+.destination-landing-content .public-breadcrumb {
+  margin-bottom: 2px;
+  pointer-events: auto;
 }
 
 .destination-landing-content .eyebrow,
@@ -4736,7 +4792,7 @@ img {
   }
 
   .destination-landing-content {
-    padding-top: 130px;
+    padding-top: var(--public-page-start-mobile);
   }
 }
 
@@ -17395,7 +17451,7 @@ img {
 
 .contact-hero-premium {
   position: relative;
-  padding: 150px 0 56px;
+  padding: var(--public-page-start) 0 56px;
   background:
     linear-gradient(120deg, rgba(248, 244, 238, 0.92), rgba(255, 253, 248, 0.76)),
     var(--paper);
@@ -17426,6 +17482,10 @@ img {
   font-size: clamp(3.6rem, 5.7vw, 6.75rem);
   font-weight: 900;
   line-height: 0.9;
+}
+
+.contact-hero-copy .public-breadcrumb {
+  margin-bottom: 24px;
 }
 
 .contact-hero-copy p {
@@ -18582,7 +18642,7 @@ img {
   }
 
   .contact-hero-premium {
-    padding-top: 132px;
+    padding-top: var(--public-page-start-mobile);
   }
 
   .contact-command-card {
@@ -18866,6 +18926,7 @@ body {
 }
 
 .eyebrow,
+.public-breadcrumb,
 .offer-breadcrumb,
 .offer-section-title .eyebrow,
 .offer-booking-card > div:first-child span,
@@ -19342,10 +19403,58 @@ textarea,
   }
 }
 
+@keyframes tailorTitleInkReveal {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+    filter: blur(5px);
+    transform: translateY(0.18em) skewX(-4deg);
+  }
+  42% {
+    opacity: 1;
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 -6% 0 0);
+    filter: blur(0);
+    transform: translateY(0) skewX(0);
+  }
+}
+
+@keyframes tailorTitleSheen {
+  0% {
+    opacity: 0;
+    transform: translateX(-115%) skewX(-12deg);
+  }
+  18% {
+    opacity: 0.72;
+  }
+  72%,
+  100% {
+    opacity: 0;
+    transform: translateX(118%) skewX(-12deg);
+  }
+}
+
+@keyframes tailorTitleUnderline {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  24% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
 .tailor-hero {
   position: relative;
   min-height: 100svh;
-  padding: 88px 0 58px;
+  padding: var(--public-page-start) 0 58px;
   box-sizing: border-box;
   background:
     radial-gradient(circle at 78% 24%, rgba(184, 15, 29, 0.06), transparent 24%),
@@ -19357,12 +19466,15 @@ textarea,
   grid-template-columns: minmax(360px, 0.8fr) minmax(480px, 1.2fr);
   align-items: center;
   gap: clamp(40px, 7vw, 110px);
-  transform: translateY(24px);
 }
 
 .tailor-hero-copy {
   position: relative;
   z-index: 6;
+}
+
+.tailor-hero-copy .public-breadcrumb {
+  margin-bottom: 20px;
 }
 
 .tailor-hero-copy h1 {
@@ -19376,7 +19488,10 @@ textarea,
 }
 
 .tailor-hero-copy h1 em {
+  position: relative;
   display: block;
+  width: fit-content;
+  max-width: 100%;
   margin-top: 15px;
   color: var(--red);
   font-family: Georgia, "Times New Roman", serif;
@@ -19384,6 +19499,37 @@ textarea,
   font-style: italic;
   font-weight: 500;
   letter-spacing: 0;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 0 0.08em 0.08em 0;
+  transform-origin: left center;
+  animation: tailorTitleInkReveal 1400ms var(--ease-luxury) 420ms both;
+}
+
+.tailor-hero-copy h1 em::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0.08em -0.12em 0.02em 0;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 253, 248, 0.88) 38%, rgba(213, 177, 113, 0.3) 54%, transparent 72%);
+  content: "";
+  transform: translateX(-115%) skewX(-12deg);
+  animation: tailorTitleSheen 1250ms var(--ease-luxury) 600ms both;
+}
+
+.tailor-hero-copy h1 em::after {
+  position: absolute;
+  right: 0.04em;
+  bottom: 0.03em;
+  left: 0.03em;
+  height: 0.12em;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(184, 15, 29, 0), rgba(184, 15, 29, 0.54) 18%, rgba(183, 138, 69, 0.46) 78%, rgba(183, 138, 69, 0));
+  content: "";
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: tailorTitleUnderline 980ms var(--ease-luxury) 980ms both;
 }
 
 .tailor-hero-copy p {
@@ -19462,7 +19608,7 @@ textarea,
   bottom: 4%;
   left: 5%;
   z-index: 2;
-  width: 43%;
+  width: 53%;
   height: 245px;
   transform: rotate(-6deg);
   animation: tailorSmallFloat 7s ease-in-out 400ms infinite;
@@ -19472,8 +19618,8 @@ textarea,
   right: 1%;
   bottom: 0;
   z-index: 3;
-  width: 27%;
-  height: 128px;
+  width: 37%;
+  height: 178px;
   border-width: 5px;
   transform: rotate(8deg);
   animation: tailorFragmentFloat 6s ease-in-out 800ms infinite;
@@ -19535,44 +19681,137 @@ textarea,
 
 .tailor-collage-label {
   position: absolute;
-  right: 15%;
-  bottom: 3%;
-  z-index: 4;
-  color: var(--red-deep);
-  font-size: 0.58rem;
-  font-weight: 900;
-  letter-spacing: 0.18em;
-  transform: rotate(-3deg);
+  left: 33%;
+  bottom: -10%;
+  z-index: 9;
+  display: grid;
+
+  width: 220px;
+  max-width: 35%;
+
+  color: #d83a32;
+
+  font-family: "Caveat", "Segoe Print", cursive;
+  font-size: clamp(0.75rem, 1.05vw, 1rem);
+  font-weight: 400;
+
+  letter-spacing: 0.01em;
+  line-height: 1;
+
+  padding: 2px 4px;
+  background: none;
+  text-shadow: none;
+
+  transform: rotate(-9deg);
+  pointer-events: none;
 }
 
-.tailor-collage-label b {
-  color: var(--gold);
-  font-weight: 900;
+.tailor-collage-label span {
+  display: block;
+}
+
+.tailor-collage-label span + span {
+  margin-left: 36px;
+}
+
+.tailor-collage-label svg {
+  width: min(160px, 68%);
+  height: auto;
+  margin: 4px 0 0 94px;
+  overflow: visible;
+  color: rgba(184, 15, 29, 0.38);
+}
+
+.tailor-collage-label path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .tailor-micro-label {
   position: absolute;
   z-index: 7;
-  padding: 8px 10px;
-  border: 1px solid rgba(95, 83, 68, 0.16);
-  background: rgba(255, 253, 248, 0.9);
-  box-shadow: 0 7px 18px rgba(37, 31, 24, 0.08);
-  color: rgba(23, 20, 18, 0.68);
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 253, 248, 0.72);
+  border-radius: 999px;
+  padding: 8px 11px;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 248, 0.92), rgba(255, 253, 248, 0.72)),
+    rgba(255, 253, 248, 0.82);
+  box-shadow:
+    0 12px 28px rgba(37, 31, 24, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  color: rgba(23, 20, 18, 0.58);
+  font-size: 0.53rem;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  line-height: 1;
   white-space: nowrap;
+  backdrop-filter: blur(12px);
+}
+
+.tailor-micro-label::after {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 2px solid rgba(255, 253, 248, 0.92);
+  border-radius: 999px;
+  background: var(--red);
+  box-shadow: 0 6px 14px rgba(127, 11, 21, 0.2);
+  content: "";
 }
 
 .tailor-micro-label b {
-  color: var(--red);
-  font-size: 0.82rem;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.45em;
+  height: 1.45em;
+  border-radius: 999px;
+  background: rgba(184, 15, 29, 0.09);
+  color: var(--red-deep);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
-.tailor-micro-destination { top: 27%; left: 1%; transform: rotate(-4deg); }
-.tailor-micro-when { top: 53%; right: -1%; transform: rotate(3deg); }
-.tailor-micro-with { bottom: 22%; left: 35%; transform: rotate(-3deg); }
-.tailor-micro-tokyo { top: 10%; left: 42%; color: var(--red-deep); transform: rotate(2deg); }
+.tailor-micro-destination {
+  top: 7%;
+  left: 31%;
+  transform: rotate(1.5deg);
+}
+
+.tailor-micro-destination::after {
+  right: 18px;
+  bottom: -5px;
+}
+
+.tailor-micro-when {
+  top: 51%;
+  left: 2%;
+  transform: rotate(-5deg);
+}
+
+.tailor-micro-when::after {
+  right: 16px;
+  top: -5px;
+}
+
+.tailor-micro-with {
+  right: 3%;
+  bottom: 30%;
+  transform: rotate(5deg);
+}
+
+.tailor-micro-with::after {
+  left: 16px;
+  bottom: -5px;
+}
 
 @keyframes tailorRoutePulse {
   0%, 100% { opacity: 0.7; transform: scale(0.85); transform-origin: center; }
@@ -19584,6 +19823,16 @@ textarea,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tailor-hero-copy h1 em,
+  .tailor-hero-copy h1 em::before,
+  .tailor-hero-copy h1 em::after {
+    clip-path: none;
+    opacity: 1;
+    filter: none;
+    transform: none;
+    animation: none;
+  }
+
   .tailor-photo-main,
   .tailor-photo-small,
   .tailor-photo-fragment,
@@ -19610,20 +19859,19 @@ textarea,
 }
 
 .tailor-process {
-  padding: 76px 0 94px;
-  background-color: #fbf9f4;
-  background-image:
-    linear-gradient(rgba(184, 15, 29, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(184, 15, 29, 0.035) 1px, transparent 1px),
-    radial-gradient(circle at 78% 18%, rgba(184, 15, 29, 0.06), transparent 24%);
-  background-size: 72px 72px, 72px 72px, 100% 100%;
+  padding: 68px 0 64px;
+  border-top: 1px solid rgba(79, 67, 55, 0.08);
+  border-bottom: 1px solid rgba(79, 67, 55, 0.08);
+  background:
+    radial-gradient(ellipse at 84% 0%, rgba(184, 15, 29, 0.035), transparent 34%),
+    linear-gradient(180deg, #fffdf8 0%, #fbf8f2 100%);
 }
 
 .tailor-process-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
-  gap: 34px;
-  align-items: end;
+  grid-template-columns: minmax(220px, 0.58fr) minmax(0, 2.2fr);
+  gap: clamp(30px, 4vw, 58px);
+  align-items: start;
 }
 
 .tailor-process-heading {
@@ -19631,88 +19879,81 @@ textarea,
 }
 
 .tailor-process-heading h2 {
-  max-width: 650px;
+  max-width: 340px;
   margin: 0;
-  font-size: clamp(29px, 3vw, 44px);
-  letter-spacing: -0.03em;
-  line-height: 1.04;
+  color: #24211e;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(30px, 2.6vw, 42px);
+  font-weight: 780;
+  letter-spacing: 0;
+  line-height: 1.12;
+  text-wrap: balance;
 }
 
 .tailor-process-line {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0;
+  padding-top: 6px;
 }
 
 .tailor-process-line article {
   position: relative;
+  z-index: 2;
   min-width: 0;
-  min-height: 250px;
-  padding: 0 20px 0 0;
+  min-height: 228px;
+  padding: 0 clamp(12px, 1.25vw, 18px) 0 0;
 }
 
 .tailor-process-node {
   position: relative;
-  display: flex;
-  align-items: center;
-  min-height: 64px;
-  margin-bottom: 16px;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  min-height: 72px;
+  margin-bottom: 18px;
 }
 
-.tailor-process-connector {
+.tailor-process-route {
   position: absolute;
-  top: 18px;
-  left: 66px;
-  width: calc(100% - 70px);
-  height: 28px;
+  top: 11px;
+  left: 2px;
+  z-index: 1;
+  width: calc(100% + 42px);
+  height: 72px;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.tailor-process-connector::before {
+.tailor-process-route path {
+  fill: none;
+  stroke: rgba(127, 11, 21, 0.46);
+  stroke-width: 1.7;
+  stroke-dasharray: 6 9;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.tailor-process-route circle {
+  fill: var(--red-deep);
+  stroke: #fffdf8;
+  stroke-width: 3;
+  opacity: 0.92;
+  vector-effect: non-scaling-stroke;
+}
+
+.tailor-process-plane {
   position: absolute;
-  top: 14px;
-  right: 18px;
-  left: 0;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(184, 15, 29, 0.2), rgba(184, 15, 29, 0.76));
-  content: "";
-}
-
-.tailor-process-connector::after {
-  position: absolute;
-  top: 9px;
-  right: 7px;
-  width: 10px;
-  height: 10px;
-  border-top: 1.5px solid var(--red);
-  border-right: 1.5px solid var(--red);
-  content: "";
-  transform: rotate(45deg);
-}
-
-.tailor-process-connector {
-  overflow: hidden;
-}
-
-.tailor-process-node {
-  --route-delay: 0ms;
-}
-
-.tailor-process-node::after {
-  position: absolute;
-  top: 10px;
-  left: 47px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--red);
-  box-shadow: 0 0 0 4px rgba(184, 15, 29, 0.08), 0 0 14px rgba(184, 15, 29, 0.55);
-  content: "";
-  opacity: 0;
-  animation: tailorRouteTravel 3.6s var(--ease-luxury) var(--route-delay) infinite;
-}
-
-.tailor-process-line article:last-child .tailor-process-node::after {
-  display: none;
+  top: -4px;
+  right: -45px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  color: rgba(127, 11, 21, 0.9);
+  fill: currentColor;
+  filter: drop-shadow(0 4px 8px rgba(127, 11, 21, 0.14));
+  transform: rotate(-11deg);
 }
 
 .tailor-process-icon {
@@ -19720,13 +19961,13 @@ textarea,
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  margin-bottom: 18px;
-  border: 1px solid rgba(184, 15, 29, 0.28);
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(127, 11, 21, 0.14);
   border-radius: 50%;
-  background: var(--ivory);
-  color: var(--red);
+  background: rgba(255, 253, 248, 0.86);
+  color: var(--red-deep);
+  box-shadow: 0 10px 26px rgba(37, 31, 24, 0.035);
   transition: background 220ms ease, color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
 }
 
@@ -19738,25 +19979,27 @@ textarea,
 }
 
 .tailor-process-line small {
-  color: var(--red);
-  font-size: 0.72rem;
+  color: var(--red-deep);
+  font-size: clamp(1.18rem, 1.45vw, 1.62rem);
   font-weight: 900;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
 }
 
 .tailor-process-line h3 {
-  max-width: 180px;
-  margin: 10px 0 8px;
-  font-size: 0.86rem;
-  line-height: 1.3;
+  max-width: 176px;
+  margin: 10px 0 10px;
+  color: #24211e;
+  font-size: clamp(0.92rem, 0.98vw, 1.08rem);
+  font-weight: 850;
+  line-height: 1.28;
 }
 
 .tailor-process-line p {
-  max-width: 185px;
+  max-width: 178px;
   margin: 0;
   color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.55;
+  font-size: clamp(0.78rem, 0.82vw, 0.9rem);
+  line-height: 1.58;
 }
 
 .journey-builder {
@@ -20966,17 +21209,13 @@ textarea,
 @media (max-width: 900px) {
   .tailor-hero {
     min-height: auto;
-    padding-top: 74px;
+    padding-top: var(--public-page-start-mobile);
   }
 
   .tailor-hero-inner,
   .journey-layout,
   .journey-layout.is-complete {
     grid-template-columns: 1fr;
-  }
-
-  .tailor-hero-inner {
-    transform: none;
   }
 
   .tailor-hero-collage {
@@ -21027,24 +21266,37 @@ textarea,
     height: 72px;
   }
 
+  .tailor-collage-label {
+    left: 38%;
+    bottom: -5%;
+    max-width: 56%;
+    font-size: clamp(0.82rem, 4.2vw, 1.08rem);
+  }
+
+  .tailor-collage-label span + span {
+    margin-left: 22px;
+  }
+
+  .tailor-collage-label svg {
+    width: 104px;
+    margin-left: 58px;
+  }
+
   .tailor-micro-when,
   .tailor-micro-with {
     display: none;
   }
 
   .tailor-micro-destination {
-    top: 24%;
-    left: 0;
-  }
-
-  .tailor-micro-tokyo {
-    top: 8%;
-    left: auto;
-    right: 10%;
+    top: 4%;
+    left: 25%;
+    transform: rotate(1deg);
   }
 
   .tailor-micro-label {
     font-size: 0.48rem;
+    gap: 5px;
+    padding: 7px 9px;
   }
 
   .tailor-hero-copy .button::after {
@@ -21068,7 +21320,11 @@ textarea,
 
   .tailor-process-layout {
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 34px;
+  }
+
+  .tailor-process-heading h2 {
+    max-width: 680px;
   }
 
   .tailor-process-line,
@@ -21081,8 +21337,9 @@ textarea,
 
   .tailor-process-line {
     grid-template-columns: 1fr;
-    gap: 22px;
+    gap: 18px;
     margin-top: 24px;
+    padding-top: 0;
   }
 
   .tailor-process-line article {
@@ -21095,10 +21352,19 @@ textarea,
     position: absolute;
     top: 0;
     left: 0;
+    width: 56px;
+    min-height: 56px;
   }
 
-  .tailor-process-connector {
+  .tailor-process-route,
+  .tailor-process-plane {
     display: none;
+  }
+
+  .tailor-process-icon {
+    width: 52px;
+    height: 52px;
+    box-shadow: 0 8px 18px rgba(37, 31, 24, 0.035);
   }
 
   .journey-progress {
@@ -21166,11 +21432,6 @@ textarea,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tailor-process-node::after {
-    animation: none;
-    opacity: 0.72;
-  }
-
   .journey-board-flash-reel img {
     animation: none;
     opacity: 0;

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCircle2, Clock, MapPin, Plane, ShieldCheck, Sparkles } from "lucide-react";
 import { InquiryForm } from "@/components/InquiryForm";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { normalizeDateLabel } from "@/lib/dateFormat";
 import type { Offer } from "@/lib/types";
 import styles from "./OfferDetailView.module.css";
@@ -85,6 +86,7 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
   const included = offer.included.map((item) => repairText(item)).filter(Boolean).slice(0, 10);
   const highlights = (offer.highlights ?? []).map((item) => repairText(item)).filter(Boolean).slice(0, 6);
   const badges = offer.tags.map((tag) => repairText(tag)).filter(Boolean).slice(0, 8);
+  const sectionLabel = offer.isAuthorProgram ? "Авторски програми" : repairText(offer.productTypeLabel || "", "");
   const itinerary = offer.itinerary
     .filter((day) => day.title || day.description)
     .slice(0, 8);
@@ -93,13 +95,15 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
-          <nav className={styles.breadcrumb} aria-label="Път до офертата">
-            <Link href="/">Начало</Link>
-            <span>/</span>
-            <Link href="/offers">Пътувания</Link>
-            <span>/</span>
-            <span>{repairText(offer.country)}</span>
-          </nav>
+          <PublicBreadcrumbs
+            className={styles.breadcrumb}
+            label="Път до офертата"
+            items={[
+              { label: "Пътувания", href: "/offers" },
+              ...(sectionLabel ? [{ label: sectionLabel, href: offer.isAuthorProgram ? "/author-programs" : "/offers" }] : []),
+              { label: repairText(offer.country) }
+            ]}
+          />
 
           <span className={styles.kicker}>{repairText(offer.country)}</span>
           <h1>{title}</h1>

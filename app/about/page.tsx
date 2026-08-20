@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BadgeCheck, Gem, Handshake, Route } from "lucide-react";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -14,6 +15,7 @@ export default function AboutPage() {
       <SiteHeader />
       <main>
         <section className="container page-title">
+          <PublicBreadcrumbs items={[{ label: "За RedTours" }]} />
           <span className="eyebrow">За RedTours</span>
           <h1>Не продаваме маршрути. Подреждаме преживявания.</h1>
           <p>

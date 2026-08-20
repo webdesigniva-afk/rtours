@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -13,6 +14,7 @@ export default function BlogPage() {
       <SiteHeader />
       <main>
         <section className="container page-title">
+          <PublicBreadcrumbs items={[{ label: "Блог" }]} />
           <span className="eyebrow">Блог</span>
           <h1>Истории и идеи за следващото пътуване</h1>
           <p>

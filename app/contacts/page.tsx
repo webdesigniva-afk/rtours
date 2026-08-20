@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowRight, Clock, Mail, MapPin, MessageCircle, Navigation, Phone, Send, ShieldCheck } from "lucide-react";
 import { InquiryForm } from "@/components/InquiryForm";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -49,6 +50,7 @@ export default function ContactsPage() {
         <section className="contact-hero-premium">
           <div className="container contact-hero-premium-inner">
             <div className="contact-hero-copy">
+              <PublicBreadcrumbs items={[{ label: "Контакти" }]} />
               <span className="eyebrow">Контакти</span>
               <h1>Един разговор може да подреди цялото пътуване.</h1>
               <p>

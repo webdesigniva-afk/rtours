@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, Compass, HeartHandshake, Plane, Route, Sparkles, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AuthorTypingCaption } from "@/components/AuthorTypingCaption";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { ScrollRevealEffects } from "@/components/ScrollRevealEffects";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -104,10 +105,7 @@ export default async function AuthorProgramsPage() {
         <section className="author-hero">
           <div className="container author-hero-grid">
             <div className="author-hero-copy">
-              <nav className="author-breadcrumb" aria-label="Път">
-                <Link href="/">Начало</Link>
-                <span>Авторски програми</span>
-              </nav>
+              <PublicBreadcrumbs items={[{ label: "Пътувания", href: "/offers" }, { label: "Авторски програми" }]} />
               <h1>
                 Пътувания, които започват
                 <span><em>с идея.</em></span>

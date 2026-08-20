@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { DestinationGlobe } from "@/components/DestinationGlobe";
 import { OfferCard } from "@/components/OfferCard";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { destinations } from "@/lib/data";
@@ -69,6 +70,7 @@ export default async function DestinationDetailPage({ params }: DestinationPageP
             <DestinationGlobe country={country} destinations={globeDestinations} />
           </div>
           <div className="container destination-landing-content">
+            <PublicBreadcrumbs items={[{ label: "Пътувания", href: "/offers" }, { label: "Дестинации", href: "/destinations" }, { label: country }]} />
             <Link className="destination-back-link" href="/destinations">
               <ArrowLeft size={17} aria-hidden="true" />
               Всички дестинации

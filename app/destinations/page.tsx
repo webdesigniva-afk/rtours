@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, MapPin } from "lucide-react";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { destinations } from "@/lib/data";
 import { destinationSlug } from "@/lib/destinationSlug";
 import { listPublishedPublicOffers } from "@/lib/offerRepository";
@@ -40,6 +41,7 @@ export default async function DestinationsPage() {
       <SiteHeader />
       <main>
         <section className="container page-title">
+          <PublicBreadcrumbs items={[{ label: "Пътувания", href: "/offers" }, { label: "Дестинации" }]} />
           <span className="eyebrow">Дестинации</span>
           <h1>Дестинации, подбрани с контекст</h1>
           <p>

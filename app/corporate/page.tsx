@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { BriefcaseBusiness, CalendarCheck, UsersRound } from "lucide-react";
 import { InquiryForm } from "@/components/InquiryForm";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -15,6 +16,7 @@ export default function CorporatePage() {
       <SiteHeader />
       <main>
         <section className="container page-title">
+          <PublicBreadcrumbs items={[{ label: "Корпоративни клиенти" }]} />
           <span className="eyebrow">RedTours за бизнеса</span>
           <h1>Корпоративни пътувания и събития с персонален сценарий</h1>
           <p>

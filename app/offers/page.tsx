@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { OfferCard } from "@/components/OfferCard";
+import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { collections, destinations } from "@/lib/data";
@@ -212,6 +213,7 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
       <SiteHeader />
       <main>
         <section className="container page-title">
+          <PublicBreadcrumbs items={[{ label: "Пътувания" }]} />
           <span className="eyebrow">Пътувания</span>
           <h1>Откриване по дестинация, тема и настроение</h1>
           <p>
