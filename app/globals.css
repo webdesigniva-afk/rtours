@@ -2679,128 +2679,417 @@ img {
 .signature-strip {
   position: relative;
   z-index: 3;
+
   margin-top: 0;
-  padding: 34px 0 56px;
-  background: #fbfaf7;
+  padding: 34px 0 54px;
+
+  background:
+    radial-gradient(
+      ellipse at 20% 0%,
+      rgba(184, 15, 29, 0.04),
+      transparent 36%
+    ),
+    linear-gradient(
+      180deg,
+      #fffdf8 0%,
+      #fbfaf7 100%
+    );
 }
+
+
+/* GRID */
 
 .signature-grid {
   position: relative;
+
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  overflow: hidden;
+  gap: clamp(12px, 1.35vw, 20px);
+
+  align-items: stretch;
+
+  overflow: visible;
+
+  background: transparent;
   border: 0;
   border-radius: 0;
-  background: transparent;
   box-shadow: none;
+
   animation: riseReveal 840ms var(--ease-luxury) 520ms both;
 }
 
-.signature-grid::before {
-  display: none;
-}
+
+/* CARDS */
 
 .signature-intro,
 .signature-item {
   position: relative;
   z-index: 1;
+
   display: flex;
   flex-direction: column;
-  gap: 12px;
+
   min-width: 0;
-  min-height: 300px;
-  height: 100%;
+  height: 400px;
+
   overflow: hidden;
+
   border: 1px solid rgba(33, 31, 28, 0.08);
-  border-radius: 12px;
-  padding: clamp(20px, 2vw, 26px);
-  background: rgba(255, 255, 255, 0.62);
+  border-radius: 8px;
+
+  padding: clamp(20px, 1.8vw, 26px) 0 0;
+
+  background: rgba(255, 253, 248, 0.97);
   color: var(--ink);
-  box-shadow: 0 16px 46px rgba(33, 31, 28, 0.06);
-  transition: background 240ms ease, box-shadow 240ms ease;
+
+  box-shadow:
+    0 16px 42px rgba(33, 31, 28, 0.055);
+
+  transition:
+    transform 240ms var(--ease-luxury),
+    border-color 240ms ease,
+    box-shadow 240ms ease;
 }
 
 .signature-intro:hover,
 .signature-item:hover {
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 22px 54px rgba(33, 31, 28, 0.08);
+  transform: translateY(-2px);
+
+  border-color: rgba(184, 15, 29, 0.13);
+
+  box-shadow:
+    0 20px 52px rgba(33, 31, 28, 0.075);
 }
+
+
+/* NUMBER */
+
+.signature-index {
+  position: relative;
+  z-index: 4;
+
+  display: block;
+
+  margin:
+    0
+    clamp(19px, 1.7vw, 25px)
+    18px;
+
+  color: rgba(127, 11, 21, 0.065);
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.9rem, 2.25vw, 2.42rem);
+  font-weight: 400;
+  line-height: 0.8;
+
+  letter-spacing: 0.01em;
+}
+
+
+/* HEADINGS */
 
 .signature-intro .eyebrow,
 .signature-item strong {
   position: relative;
-  z-index: 1;
+  z-index: 4;
+
+  display: block;
+
   color: var(--red-deep);
-  font-size: clamp(0.76rem, 0.9vw, 0.9rem);
-  font-weight: 880;
-  letter-spacing: 0.07em;
-  line-height: 1.24;
+
+  font-size: clamp(0.82rem, 0.96vw, 1.04rem);
+  font-weight: 780;
+  line-height: 1.16;
+
+  letter-spacing: 0.055em;
   text-transform: uppercase;
 }
 
-.signature-intro::before,
-.signature-item::before {
-  display: none;
+.signature-intro .eyebrow {
+  margin:
+    0
+    clamp(19px, 1.7vw, 25px)
+    0;
 }
 
-.signature-intro p {
+/* =========================================================
+   INTRO CARD TEXT
+   ========================================================= */
+
+.signature-intro > p {
   position: relative;
-  z-index: 1;
-  max-width: none;
-  margin: 0;
-  color: #6b645c;
-  font-size: clamp(0.84rem, 0.9vw, 0.94rem);
-  font-weight: 500;
-  line-height: 1.6;
+  z-index: 4;
+
+  margin:
+    12px
+    clamp(19px, 1.7vw, 25px)
+    0;
+
+  color: rgba(23, 20, 18, 0.62);
+
+  font-size: clamp(0.79rem, 0.84vw, 0.88rem);
+  font-weight: 430;
+  line-height: 1.48;
 }
 
-.signature-watermark {
-  position: absolute;
-  right: clamp(16px, 2vw, 28px);
-  bottom: clamp(82px, 6vw, 104px);
-  z-index: 0;
-  width: clamp(96px, 9vw, 150px);
-  height: clamp(96px, 9vw, 150px);
-  color: rgba(184, 15, 29, 0.055);
-  pointer-events: none;
-  transform: rotate(-8deg);
+
+/* =========================================================
+   OTHER CARDS TEXT
+   ========================================================= */
+
+.signature-item > div:not(.signature-photo) {
+  position: relative;
+  z-index: 4;
+
+  margin:
+    0
+    clamp(19px, 1.7vw, 25px);
 }
+
+.signature-item > div:not(.signature-photo) p {
+  margin: 12px 0 0;
+
+  color: rgba(23, 20, 18, 0.62);
+
+  font-size: clamp(0.79rem, 0.84vw, 0.88rem);
+  font-weight: 430;
+  line-height: 1.48;
+}
+
+
+/* =========================================================
+   PHOTO
+   ========================================================= */
+
+.signature-photo {
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 58px;
+
+  z-index: 2;
+
+  width: 100%;
+  height: 330px;
+
+  margin: 0;
+  overflow: hidden;
+
+  pointer-events: none;
+
+  /*
+   * Горната част изчезва напълно към текста,
+   * след което снимката постепенно се появява.
+   */
+
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 10%,
+    rgba(0, 0, 0, 0.03) 19%,
+    rgba(0, 0, 0, 0.10) 28%,
+    rgba(0, 0, 0, 0.25) 38%,
+    rgba(0, 0, 0, 0.48) 48%,
+    rgba(0, 0, 0, 0.72) 58%,
+    rgba(0, 0, 0, 0.90) 68%,
+    #000 80%,
+    #000 100%
+  );
+
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 10%,
+    rgba(0, 0, 0, 0.03) 19%,
+    rgba(0, 0, 0, 0.10) 28%,
+    rgba(0, 0, 0, 0.25) 38%,
+    rgba(0, 0, 0, 0.48) 48%,
+    rgba(0, 0, 0, 0.72) 58%,
+    rgba(0, 0, 0, 0.90) 68%,
+    #000 80%,
+    #000 100%
+  );
+}
+
+
+/* =========================================================
+   ACTUAL IMAGE
+   ========================================================= */
+
+.signature-photo img {
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  display: block;
+
+  width: 100%;
+  height: 285px;
+
+  object-fit: cover;
+  object-position: center;
+
+  opacity: 0.94;
+
+  filter:
+    saturate(0.92)
+    contrast(1.02);
+}
+
+
+/* =========================================================
+   INDIVIDUAL IMAGE POSITIONING
+   ========================================================= */
+
+/* Italy / Colosseum */
+.signature-card:nth-child(1) .signature-photo img {
+  object-position: center 42%;
+}
+
+/* Japan */
+.signature-card:nth-child(2) .signature-photo img {
+  object-position: center 45%;
+}
+
+/* Exotic */
+.signature-card:nth-child(3) .signature-photo img {
+  object-position: center 50%;
+}
+
+/* Tailor-made */
+.signature-card:nth-child(4) .signature-photo img {
+  object-position: center 50%;
+}
+
+/* INDIVIDUAL IMAGE POSITION */
+
+.signature-card:nth-child(1) .signature-photo img {
+  object-position: center 42%;
+}
+
+.signature-card:nth-child(2) .signature-photo img {
+  object-position: center 45%;
+}
+
+.signature-card:nth-child(3) .signature-photo img {
+  object-position: center 52%;
+}
+
+.signature-card:nth-child(4) .signature-photo img {
+  object-position: center 50%;
+}
+
+
+/* LINK */
 
 .signature-link {
-  position: relative;
-  z-index: 1;
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  z-index: 6;
+
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  align-self: end;
+  justify-content: space-between;
+
+  gap: 12px;
+
   width: 100%;
-  min-height: 42px;
-  height: auto;
-  margin-top: auto;
-  border: 1px solid rgba(184, 15, 29, 0.14);
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: #fff7f7;
-  color: var(--red-deep);
-  font-size: 0.78rem;
-  font-weight: 850;
-  line-height: 1.2;
-  text-align: center;
+  height: 58px;
+  min-height: 58px;
+
+  margin: 0;
+
+  padding:
+    14px
+    clamp(19px, 1.7vw, 25px);
+
+  border: 0;
+  border-top: 1px solid rgba(127, 11, 21, 0.075);
+
+  background:
+    rgba(255, 253, 248, 0.97);
+
+  color: rgba(127, 11, 21, 0.88);
+
+  font-size: clamp(0.68rem, 0.72vw, 0.78rem);
+  font-weight: 650;
+  line-height: 1.25;
+
+  text-align: left;
   text-wrap: balance;
+
   box-shadow: none;
-  backdrop-filter: none;
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+
+  transition:
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.signature-link svg {
+  flex: 0 0 auto;
+
+  width: 18px;
+  height: 18px;
+
+  stroke-width: 1.7;
+
+  transition: transform 180ms ease;
 }
 
 .signature-link:hover,
 .signature-intro:hover .signature-link,
 .signature-item:hover .signature-link {
-  border-color: rgba(184, 15, 29, 0.26);
-  background: #fff;
   color: var(--red-deep);
-  transform: translateY(-1px);
+
+  border-color: rgba(127, 11, 21, 0.18);
+}
+
+.signature-link:hover svg,
+.signature-intro:hover .signature-link svg,
+.signature-item:hover .signature-link svg {
+  transform: translateX(3px);
+}
+
+
+/* ANIMATION */
+
+.signature-item {
+  animation: riseReveal 720ms var(--ease-luxury) both;
+}
+
+.signature-item:nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.signature-item:nth-child(3) {
+  animation-delay: 90ms;
+}
+
+.signature-item:nth-child(4) {
+  animation-delay: 140ms;
+}
+
+.signature-link:hover,
+.signature-intro:hover .signature-link,
+.signature-item:hover .signature-link {
+  border-color: rgba(127, 11, 21, 0.22);
+  background: transparent;
+  color: var(--red-deep);
+  box-shadow: none;
+  transform: none;
+}
+
+.signature-link:hover svg,
+.signature-intro:hover .signature-link svg,
+.signature-item:hover .signature-link svg {
+  transform: translateX(3px);
 }
 
 .signature-item {
@@ -2817,52 +3106,290 @@ img {
 }
 
 .signature-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid rgba(184, 15, 29, 0.2);
-  border-radius: 999px;
-  background: rgba(255, 247, 247, 0.84);
-  color: var(--red-deep);
-  font-size: 0.72rem;
-  font-weight: 950;
-  line-height: 1;
+  display: none;
+}
+
+.signature-index {
+  position: relative;
+  z-index: 3;
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(127, 11, 21, 0.12);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.05rem, 3vw, 3.25rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 0.76;
 }
 
 .signature-item div {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   display: grid;
-  gap: 12px;
+  gap: 9px;
 }
 
 .signature-item div,
 .signature-intro p:last-of-type {
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 
 .signature-intro > p:first-of-type,
 .signature-item p:first-of-type {
-  color: #4f4840;
-  font-size: clamp(0.92rem, 1vw, 1.02rem);
-  font-weight: 500;
-  line-height: 1.48;
+  color: rgba(23, 20, 18, 0.76);
+  font-size: clamp(0.82rem, 0.9vw, 0.94rem);
+  font-weight: 430;
+  line-height: 1.42;
 }
 
 .signature-item div span,
 .signature-item p {
   margin: 0;
-  color: #6f675f;
-  font-size: clamp(0.82rem, 0.88vw, 0.9rem);
-  font-weight: 500;
-  line-height: 1.58;
+  color: rgba(23, 20, 18, 0.58);
+  font-size: clamp(0.76rem, 0.8vw, 0.84rem);
+  font-weight: 400;
+  line-height: 1.43;
+}
+
+.signature-intro p:last-of-type,
+.signature-item p:nth-of-type(2) {
+  display: block;
+  overflow: visible;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: initial;
+}
+
+.signature-photo {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 112px;
+  width: 100%;
+  min-height: 112px;
+  margin-top: auto;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.signature-photo::before,
+.signature-photo::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  content: "";
+}
+
+.signature-photo::before {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.92) 0%, rgba(255, 253, 248, 0.42) 28%, rgba(255, 253, 248, 0.04) 72%),
+    linear-gradient(90deg, rgba(255, 253, 248, 0.18), transparent 32%, transparent 72%, rgba(255, 253, 248, 0.18));
+}
+
+.signature-photo::after {
+  background:
+    linear-gradient(0deg, rgba(57, 47, 36, 0.08), transparent 62%);
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+.signature-photo img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center bottom;
+  filter: saturate(0.88) contrast(1) sepia(0.03);
+  opacity: 0.76;
+  transform: scale(1.01);
+  transition: opacity 300ms ease, filter 300ms ease, transform 500ms var(--ease-luxury);
+  mask-image: none;
+}
+
+.signature-card:nth-child(2) .signature-photo img {
+  object-position: center 68%;
+}
+
+.signature-card:nth-child(3) .signature-photo img {
+  object-position: center 58%;
+}
+
+.signature-card:nth-child(4) .signature-photo img {
+  object-position: center 56%;
+}
+
+.signature-intro:hover .signature-photo img,
+.signature-item:hover .signature-photo img {
+  opacity: 0.84;
+  filter: saturate(0.96) contrast(1.02) sepia(0.01);
+  transform: scale(1);
 }
 
 @media (max-width: 720px) {
   .signature-grid {
     grid-template-columns: 1fr;
+  }
+
+  .signature-intro,
+  .signature-item {
+    height: 540px;
+  }
+
+  .signature-intro .eyebrow,
+  .signature-item strong {
+    max-width: none;
+  }
+
+  .signature-photo {
+    height: 160px;
+    min-height: 0;
+  }
+}
+
+/* Canonical signature layout. Keep this block last for the section. */
+.signature-grid {
+  align-items: stretch;
+}
+
+.signature-intro,
+.signature-item {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: 560px;
+  padding: clamp(20px, 1.8vw, 26px) 0 0;
+  overflow: hidden;
+}
+
+.signature-intro p:last-of-type,
+.signature-item p:nth-of-type(2) {
+  display: block;
+  overflow: visible;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: initial;
+}
+
+.signature-photo {
+  position: relative;
+  inset: auto;
+  z-index: 2;
+  display: block;
+  flex: 0 0 170px;
+  width: 100%;
+  height: 170px;
+  min-height: 170px;
+  margin: auto 0 0;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.16) 18%,
+    rgba(0, 0, 0, 0.72) 42%,
+    #000 68%,
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.16) 18%,
+    rgba(0, 0, 0, 0.72) 42%,
+    #000 68%,
+    #000 100%
+  );
+}
+
+.signature-photo img {
+  position: static;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.9;
+  filter: saturate(0.94) contrast(1.02);
+  transform: none;
+}
+
+.signature-link {
+  position: relative;
+  inset: auto;
+  z-index: 6;
+  flex: 0 0 58px;
+  width: 100%;
+  height: 58px;
+  min-height: 58px;
+  margin: 0;
+  background: rgba(255, 253, 248, 0.98);
+}
+
+.signature-intro,
+.signature-item {
+  transition:
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.signature-intro:hover,
+.signature-item:hover {
+  transform: none;
+  border-color: rgba(184, 15, 29, 0.16);
+  box-shadow: 0 16px 42px rgba(33, 31, 28, 0.055);
+}
+
+.signature-photo {
+  transition:
+    -webkit-mask-image 520ms ease,
+    mask-image 520ms ease;
+}
+
+.signature-photo img {
+  transition:
+    transform 1600ms var(--ease-luxury),
+    opacity 520ms ease,
+    filter 520ms ease;
+  transform: scale(1);
+}
+
+.signature-intro:hover .signature-photo,
+.signature-item:hover .signature-photo {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.22) 16%,
+    rgba(0, 0, 0, 0.8) 38%,
+    #000 62%,
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.22) 16%,
+    rgba(0, 0, 0, 0.8) 38%,
+    #000 62%,
+    #000 100%
+  );
+}
+
+.signature-intro:hover .signature-photo img,
+.signature-item:hover .signature-photo img {
+  transform: scale(1.025);
+  opacity: 0.96;
+  filter: saturate(0.98) contrast(1.03);
+}
+
+.signature-link svg {
+  transition: transform 260ms ease;
+}
+
+.signature-link:hover svg,
+.signature-intro:hover .signature-link svg,
+.signature-item:hover .signature-link svg {
+  transform: translateX(5px);
+}
+
+@media (max-width: 720px) {
+  .signature-intro,
+  .signature-item {
+    height: auto;
+    min-height: 560px;
   }
 }
 
@@ -18421,8 +18948,7 @@ img {
 
   .signature-strip {
     margin-top: 0;
-    padding: 18px 0 0;
-    background: var(--paper);
+    padding: 26px 0 38px;
   }
 
   .signature-grid {
@@ -18431,7 +18957,8 @@ img {
 
   .signature-intro,
   .signature-item {
-    min-height: auto;
+    min-height: 560px;
+    height: auto;
   }
 
   .service-proof {
@@ -19043,8 +19570,9 @@ body {
 
 .signature-intro,
 .signature-item {
-  border-color: rgba(33, 31, 28, 0.07);
-  box-shadow: 0 14px 40px rgba(33, 31, 28, 0.045);
+  border-color: rgba(33, 31, 28, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 16px 42px rgba(33, 31, 28, 0.055);
 }
 
 .signature-intro > p:first-of-type,
@@ -19172,8 +19700,6 @@ body {
 
 .collection-card,
 .offer-card,
-.signature-intro,
-.signature-item,
 .offer-hero-image,
 .offer-hero-thumbs img,
 .offer-visual-main,
@@ -19201,7 +19727,6 @@ body {
 .travel-ai-bar,
 .travel-ai-bar button,
 .finder-submit,
-.signature-link,
 .offer-detail-actions .button,
 .offer-hero-proof span,
 .offer-booking-card > a,

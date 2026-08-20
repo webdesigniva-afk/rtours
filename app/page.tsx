@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Compass, Handshake, HeartHandshake, LifeBuoy, Map, MapPin, Plane, SearchCheck, Sparkles, Star } from "lucide-react";
+import { ArrowRight, CalendarDays, Compass, Handshake, HeartHandshake, LifeBuoy, MapPin, SearchCheck, Star } from "lucide-react";
 import { ScrollPlaneTrail } from "@/components/ScrollPlaneTrail";
 import { ScrollRevealEffects } from "@/components/ScrollRevealEffects";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -225,21 +225,27 @@ export default async function Home() {
         <section className="signature-strip" aria-label="Подходът на RedTours">
           <div className="container signature-grid">
             <article className="signature-intro signature-card">
-              <Sparkles className="signature-watermark" size={150} strokeWidth={0.65} aria-hidden="true" />
+              <span className="signature-index" aria-hidden="true">01</span>
               <span className="eyebrow">Подбрано от RedTours</span>
               <p>Нашата актуална селекция от пътувания, които си заслужават заради маршрута, момента и преживяванията по пътя.</p>
               <p>Тук ще откриете както нови програми, така и любими дестинации, към които бихме се върнали отново.</p>
+              <div className="signature-photo" aria-hidden="true">
+                <img src="/images/destinations/italy.avif" alt="" />
+              </div>
               <Link className="signature-link" href="/offers?featured=red-tours">
                 Вижте всички предложения
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>
             </article>
             <article className="signature-item signature-card">
-              <Compass className="signature-watermark" size={150} strokeWidth={0.65} aria-hidden="true" />
+              <span className="signature-index" aria-hidden="true">02</span>
               <div>
                 <strong>Авторски пътувания</strong>
                 <p>Има пътувания, които не могат да бъдат намерени в готов каталог.</p>
                 <p>Те започват с идея, преминават през внимателно проучване и се превръщат в маршрут с характер. Подбираме местата, темпото, хотелите, местните партньори и преживяванията така, че всеки ден да има смисъл, а цялото пътуване да се усеща като завършена история.</p>
+              </div>
+              <div className="signature-photo" aria-hidden="true">
+                <img src="/images/destinations/japan.jpg" alt="" />
               </div>
               <Link className="signature-link" href="/author-programs">
                 Разгледайте авторските програми
@@ -247,11 +253,14 @@ export default async function Home() {
               </Link>
             </article>
             <article className="signature-item signature-card">
-              <Plane className="signature-watermark" size={150} strokeWidth={0.65} aria-hidden="true" />
+              <span className="signature-index" aria-hidden="true">03</span>
               <div>
                 <strong>Екзотични пътувания</strong>
                 <p>Далечните дестинации изискват повече от самолетен билет и хотел. Те изискват познаване на мястото, правилен ритъм, надеждни партньори и добра подготовка.</p>
                 <p>Ние се грижим за сложната част, за да можете вие да преживеете пътуването истински.</p>
+              </div>
+              <div className="signature-photo" aria-hidden="true">
+                <img src="/images/destinations/mauritius.avif" alt="" />
               </div>
               <Link className="signature-link" href="/offers?collection=red-escape">
                 Разгледайте екзотиките
@@ -259,13 +268,16 @@ export default async function Home() {
               </Link>
             </article>
             <article className="signature-item signature-card">
-              <Map className="signature-watermark" size={150} strokeWidth={0.65} aria-hidden="true" />
+              <span className="signature-index" aria-hidden="true">04</span>
               <div>
                 <strong>
                   Пътуване по мярка
                 </strong>
                 <p>Понякога готовата програма не е достатъчна.</p>
                 <p>Разкажете ни къде искате да отидете, как обичате да пътувате и какво е важно за вас. Ще създадем индивидуален маршрут, съобразен с вашите интереси, време, темпо и бюджет.</p>
+              </div>
+              <div className="signature-photo" aria-hidden="true">
+                <img src="/images/destinations/iceland.avif" alt="" />
               </div>
               <Link className="signature-link" href="/contacts#inquiry">
                 Разкажете ни за вашето пътуване
