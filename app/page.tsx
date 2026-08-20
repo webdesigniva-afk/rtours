@@ -157,7 +157,6 @@ export default async function Home() {
       image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1400&q=84"
     }
   ];
-  const reviewStats = ["4,9", "192 Google отзива", "проверими мнения"];
   const googleReviews = [
     {
       name: "Radka Peneva",
@@ -391,11 +390,6 @@ export default async function Home() {
               <div>
                 <span className="eyebrow">Google отзиви</span>
                 <h2>Гласове на клиенти, които вече са пътували с RedTours.</h2>
-              </div>
-              <div className="review-stat-row" aria-label="Google рейтинг">
-                {reviewStats.map((stat) => (
-                  <span key={stat}>{stat}</span>
-                ))}
               </div>
             </div>
             <div className="review-showcase">

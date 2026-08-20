@@ -1,5 +1,15 @@
 import Link from "next/link";
-import { ArrowUpRight, Facebook, Instagram } from "lucide-react";
+import {
+  ArrowUpRight,
+  CircleHelp,
+  Cookie,
+  Facebook,
+  FileText,
+  Instagram,
+  Phone,
+  ShieldCheck,
+  Twitter
+} from "lucide-react";
 
 const footerLinks = [
   { href: "/offers", label: "Пътувания" },
@@ -14,7 +24,14 @@ const footerLinks = [
 const socialLinks = [
   { href: "https://www.facebook.com/REDTOURSLtd/#", label: "Facebook", icon: Facebook },
   { href: "https://www.instagram.com/redtours_ltd", label: "Instagram", icon: Instagram },
-  { href: "https://x.com/#!/REDTOURSLtd", label: "X", icon: ArrowUpRight }
+  { href: "https://x.com/#!/REDTOURSLtd", label: "X", icon: Twitter }
+];
+
+const legalButtons = [
+  { label: "Общи условия", icon: FileText },
+  { label: "Политика за поверителност", icon: ShieldCheck },
+  { label: "Бисквитки", icon: Cookie },
+  { label: "FAQ", icon: CircleHelp }
 ];
 
 export function SiteFooter() {
@@ -44,6 +61,10 @@ export function SiteFooter() {
           <span>Ред Турс ЕООД</span>
           <strong>Лицензиран туроператор</strong>
           <p>РК 01-6737 · Основана през 2011 · 3 офиса в България</p>
+          <a className="footer-phone" href="tel:070010775">
+            <Phone size={18} aria-hidden="true" />
+            0700 10 775
+          </a>
         </div>
 
         <div className="footer-social">
@@ -55,6 +76,15 @@ export function SiteFooter() {
               </a>
             ))}
           </div>
+        </div>
+
+        <div className="footer-legal" aria-label="Правна информация">
+          {legalButtons.map(({ label, icon: Icon }) => (
+            <button key={label} type="button">
+              <Icon size={15} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="footer-bottom">
