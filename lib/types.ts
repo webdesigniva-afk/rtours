@@ -92,6 +92,8 @@ export interface OfferTaxonomyTerm {
   termSlug: string;
   termType: TaxonomyTermType;
   source: OfferSource;
+  name?: string;
+  publicLabel?: string;
   isPrimary?: boolean;
   confidence?: number;
 }
@@ -211,8 +213,14 @@ export interface Offer {
   themeSlugs?: string[];
   taxonomyTerms?: OfferTaxonomyTerm[];
   taxonomyTermSlugs?: string[];
+  taxonomyTermLabels?: string[];
   badgeSlugs?: string[];
   audienceSlugs?: string[];
+  audienceLabels?: string[];
+  categoryLabels?: string[];
+  themeLabels?: string[];
+  moodSlugs?: string[];
+  moodLabels?: string[];
   visibilityPlacements?: OfferVisibilityPlacement[];
   visibilityRules?: OfferVisibilityRule[];
   country: string;

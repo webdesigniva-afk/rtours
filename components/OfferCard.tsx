@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BusFront, CalendarDays, Car, MapPin, Plane } from "lucide-react";
 import { destinationSlug } from "@/lib/destinationSlug";
+import { MAX_OFFER_CARD_BADGES } from "@/lib/offerPresentation";
 import type { Offer } from "@/lib/types";
 
 const transportLabel = {
@@ -28,7 +29,7 @@ export function OfferCard({ offer }: { offer: Offer }) {
   const priceLabel = offer.priceFrom > 0
     ? `от ${offer.priceFrom.toLocaleString("bg-BG")} ${offer.currency}`
     : "Цена при запитване";
-  const visibleBadges = offer.tags.slice(0, 2);
+  const visibleBadges = offer.tags.slice(0, MAX_OFFER_CARD_BADGES);
   const countryHref = `/destinations/${destinationSlug(offer.country)}`;
 
   return (
@@ -55,6 +56,10 @@ export function OfferCard({ offer }: { offer: Offer }) {
             <CalendarDays size={15} aria-hidden="true" />
             {offer.durationDays} дни
           </span>
+          <span className="pill">
+            <TransportIcon transport={offer.transport} />
+            {transportLabel[offer.transport]}
+          </span>
         </div>
         <h3>
           <Link href={`/offers/${offer.slug}`}>{offer.title}</Link>
@@ -62,10 +67,6 @@ export function OfferCard({ offer }: { offer: Offer }) {
         <p>{offer.summary}</p>
         <div className="offer-actions">
           <span className="offer-price">{priceLabel}</span>
-          <span className="pill">
-            <TransportIcon transport={offer.transport} />
-            {transportLabel[offer.transport]}
-          </span>
         </div>
       </div>
     </article>

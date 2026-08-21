@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { HeroVideo } from "@/components/HeroVideo";
 import { TravelFinder } from "@/components/TravelFinder";
 import { listPublishedPublicOffers } from "@/lib/offerRepository";
+import { MAX_OFFER_CARD_BADGES } from "@/lib/offerPresentation";
 import type { Offer } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ function formatPickDate(offer: Offer) {
 function HomePickTile({ offer }: { offer: Offer }) {
   const title = offer.country || offer.title;
   const subtitle = offer.destinations?.map((item) => item.city).filter(Boolean).slice(0, 3).join(" · ") || offer.region || offer.title;
-  const visibleTags = offer.tags.slice(0, 3);
+  const visibleTags = offer.tags.slice(0, MAX_OFFER_CARD_BADGES);
   const flagUrl = getCountryFlagUrl(title);
 
   return (

@@ -1,8 +1,8 @@
-import { InquiryForm } from "@/components/InquiryForm";
 import { ScrollRevealEffects } from "@/components/ScrollRevealEffects";
 import { CalendarDays, CheckCircle2, Clock3, MapPin, Plane, XCircle } from "lucide-react";
 import type { Offer, OfferSupplierSection } from "@/lib/types";
 import { OfferGalleryLightbox } from "./OfferGalleryLightbox";
+import { OfferInquiryModal } from "./OfferInquiryModal";
 import styles from "./OfferDetailView.module.css";
 
 function repairText(value: string | undefined | null, fallback = "") {
@@ -103,6 +103,25 @@ function primaryDateLabel(offer: Offer) {
   return date ? dateRange(date) : "По запитване";
 }
 
+function dateBadgeParts(date: Offer["dates"][number]) {
+  const source = date.startDate || date.label;
+  const parsed = source ? new Date(`${source.slice(0, 10)}T00:00:00`) : null;
+
+  if (parsed && !Number.isNaN(parsed.getTime())) {
+    return {
+      day: parsed.toLocaleDateString("bg-BG", { day: "2-digit" }),
+      month: parsed.toLocaleDateString("bg-BG", { month: "short" }).replace(".", ""),
+      year: parsed.toLocaleDateString("bg-BG", { year: "numeric" })
+    };
+  }
+
+  return {
+    day: "—",
+    month: "Дата",
+    year: "по запитване"
+  };
+}
+
 function durationLabel(offer: Offer) {
   const days = offer.durationDays || 0;
   const nights = offer.durationNights || 0;
@@ -143,18 +162,8 @@ function supplierPublicSection(section: OfferSupplierSection) {
   return "internal";
 }
 
-function supplierGroupTitle(type: string) {
-  if (type === "service") return "Услуги от доставчика";
-  if (type === "additional_service") return "Допълнителни услуги";
-  if (type === "useful_info") return "Полезна информация";
-  if (type === "payment_policy") return "Условия за плащане";
-  if (type === "cancel_policy") return "Анулационни условия";
-  if (type === "insurance") return "Застраховки";
-  return "Важна информация";
-}
-
 function supplierSectionRows(sections: OfferSupplierSection[]) {
-  return sections.filter((section) => cleanText(section.title) || cleanText(section.body) || cleanText(section.meta));
+  return sections.filter((section) => cleanText(section.title) || cleanText(section.body));
 }
 
 function SupplierSectionCards({ sections }: { sections: OfferSupplierSection[] }) {
@@ -165,15 +174,17 @@ function SupplierSectionCards({ sections }: { sections: OfferSupplierSection[] }
     <div className={styles.supplierCards}>
       {rows.map((section, index) => {
         const body = paragraphs(section.body);
-        const title = repairText(section.title || section.body || section.meta || `Елемент ${index + 1}`);
+        const title = cleanText(section.title || section.body || `Елемент ${index + 1}`).replace(/[;:]\s*$/, "");
+        const titleKey = title.replace(/[;:]\s*$/, "");
 
         return (
           <article key={`${section.type}-${section.title}-${index}`}>
             <header>
               <h3>{title}</h3>
-              {section.meta ? <span>{repairText(section.meta)}</span> : null}
             </header>
-            {body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+            {body
+              .filter((paragraph) => paragraph.replace(/[;:]\s*$/, "") !== titleKey)
+              .map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
             {section.url ? <a href={section.url} target="_blank" rel="noreferrer">Вижте повече</a> : null}
           </article>
         );
@@ -205,13 +216,18 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
   const usefulInfoSections = publicSupplierSections.filter((section) => supplierPublicSection(section) === "conditions");
   const knownPublicSections = ["accommodation", "services", "extras", "conditions"];
   const otherSupplierSections = publicSupplierSections.filter((section) => !knownPublicSections.includes(supplierPublicSection(section)));
-  const conditionTypes = Array.from(new Set([
-    "useful_info",
-    "payment_policy",
-    "cancel_policy",
-    "insurance",
-    ...usefulInfoSections.map((section) => section.type)
-  ]));
+  const dateDepartures = Array.from(new Set(
+    offer.dates
+      .map((date) => cleanText(date.departurePoints) || "по програма")
+      .filter(Boolean)
+  ));
+  const datePrices = Array.from(new Set(
+    offer.dates
+      .map((date) => priceLabel(date.priceFrom || offer.priceFrom, date.currency || offer.currency))
+      .filter(Boolean)
+  ));
+  const hasVariableDepartures = dateDepartures.length > 1;
+  const hasVariablePrices = datePrices.length > 1;
 
   return (
     <main className={styles.page}>
@@ -275,10 +291,16 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
                 <small>на човек</small>
               </div>
             ) : null}
-            <a className={styles.heroInquiry} href="#inquiry-form">
-              Изпратете запитване
-              <span aria-hidden="true">→</span>
-            </a>
+            <OfferInquiryModal
+              title={title}
+              offerSlug={offer.slug}
+              destination={route}
+              departure={primaryDateLabel(offer)}
+              duration={durationLabel(offer)}
+              transport={transportLabel(offer.transport)}
+              image={heroImage}
+              dates={offer.dates.map((date) => ({ label: dateRange(date), startDate: date.startDate }))}
+            />
           </div>
         </div>
         <OfferGalleryLightbox images={images} title={title} />
@@ -440,17 +462,69 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
           ) : null}
 
           {offer.dates.length ? (
-            <section className={styles.section}>
-              <h2>Дати и цени</h2>
+            <section className={`${styles.section} ${styles.dateSection}`}>
+              <div className={styles.dateSectionHeader}>
+                <div>
+                  <span>Отпътувания</span>
+                  <h2>Дати и цени</h2>
+                </div>
+                <dl className={styles.dateSummary}>
+                  <div>
+                    <dt>Маршрут</dt>
+                    <dd>{durationLabel(offer)} · {heroRoute}</dd>
+                  </div>
+                  {!hasVariableDepartures ? (
+                    <div>
+                      <dt>Отпътуване</dt>
+                      <dd>{dateDepartures[0]}</dd>
+                    </div>
+                  ) : null}
+                  {!hasVariablePrices ? (
+                    <div>
+                      <dt>Цена</dt>
+                      <dd>{datePrices[0]}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </div>
               <div className={styles.dateGrid}>
-                {offer.dates.map((date, index) => (
-                  <article key={`${date.startDate}-${date.label}-${index}`}>
-                    <h3>{dateRange(date)}</h3>
-                    <p>{date.departurePoints ? `Отпътуване от: ${cleanText(date.departurePoints)}` : "Отпътуване по програма"}</p>
-                    <strong>{priceLabel(date.priceFrom || offer.priceFrom, date.currency || offer.currency)}</strong>
-                    {date.seatsAvailable !== undefined ? <span>{date.seatsAvailable} свободни места</span> : null}
-                  </article>
-                ))}
+                {offer.dates.map((date, index) => {
+                  const badge = dateBadgeParts(date);
+                  const departure = date.departurePoints ? cleanText(date.departurePoints) : "по програма";
+                  const price = priceLabel(date.priceFrom || offer.priceFrom, date.currency || offer.currency);
+
+                  return (
+                    <article className={styles.dateCard} key={`${date.startDate}-${date.label}-${index}`}>
+                      <div className={styles.dateCardMain}>
+                        <time className={styles.dateBadgeBlock} dateTime={date.startDate || undefined}>
+                          <span>{badge.month}</span>
+                          <strong>{badge.day}</strong>
+                          <small>{badge.year}</small>
+                        </time>
+                        <div className={styles.dateCardCopy}>
+                          <h3>{dateRange(date)}</h3>
+                          {hasVariableDepartures ? (
+                            <p>
+                              <MapPin size={16} aria-hidden="true" />
+                              Отпътуване от {departure}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                      {(hasVariablePrices || date.seatsAvailable !== undefined) ? (
+                        <div className={styles.dateCardMeta}>
+                          {hasVariablePrices ? (
+                            <div>
+                              <small>Цена</small>
+                              <strong>{price}</strong>
+                            </div>
+                          ) : null}
+                          {date.seatsAvailable !== undefined ? <span>{date.seatsAvailable} свободни места</span> : null}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
               </div>
             </section>
           ) : null}
@@ -502,21 +576,9 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
           ) : null}
 
           {supplierSectionRows(usefulInfoSections).length ? (
-            <section className={styles.section}>
+            <section className={`${styles.section} ${styles.importantSection}`}>
               <h2>Важна информация</h2>
-              <div className={styles.conditions}>
-                {conditionTypes.map((type) => {
-                  const sections = usefulInfoSections.filter((section) => section.type === type);
-                  if (!supplierSectionRows(sections).length) return null;
-
-                  return (
-                    <article key={type}>
-                      <h3>{supplierGroupTitle(type)}</h3>
-                      <SupplierSectionCards sections={sections} />
-                    </article>
-                  );
-                })}
-              </div>
+              <SupplierSectionCards sections={usefulInfoSections} />
             </section>
           ) : null}
 
@@ -527,15 +589,6 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
             </section>
           ) : null}
 
-          <section className={styles.inquiryCard} id="inquiry-form">
-            <h2>Запитване</h2>
-            <InquiryForm
-              offerTitle={title}
-              offerSlug={offer.slug}
-              destination={route}
-              dates={offer.dates.map((date) => ({ label: dateRange(date), startDate: date.startDate }))}
-            />
-          </section>
         </div>
       </div>
     </main>

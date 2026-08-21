@@ -602,6 +602,7 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
   })) ?? [];
   const taxonomyTerms = row.taxonomy_terms ?? [];
   const termsByType = (type: string) => taxonomyTerms.filter((term) => term.type === type);
+  const termLabel = (term: { name: string; publicLabel: string | null }) => term.publicLabel || term.name;
 
   return {
     slug: row.slug,
@@ -651,13 +652,21 @@ function mapPublicOffer(row: PublicOfferRow): Offer {
     taxonomyTerms: taxonomyTerms.map((term) => ({
       termSlug: term.slug,
       termType: term.type as TaxonomyTermType,
-      source: "manual"
+      source: "manual",
+      name: term.name,
+      publicLabel: term.publicLabel || undefined
     })),
     taxonomyTermSlugs: taxonomyTerms.map((term) => term.slug),
+    taxonomyTermLabels: taxonomyTerms.map(termLabel),
     badgeSlugs: termsByType("badge").map((term) => term.slug),
     audienceSlugs: termsByType("audience").map((term) => term.slug),
+    audienceLabels: termsByType("audience").map(termLabel),
     categorySlugs: termsByType("category").map((term) => term.slug),
+    categoryLabels: termsByType("category").map(termLabel),
     themeSlugs: termsByType("theme").map((term) => term.slug),
+    themeLabels: termsByType("theme").map(termLabel),
+    moodSlugs: termsByType("mood").map((term) => term.slug),
+    moodLabels: termsByType("mood").map(termLabel),
     visibilityPlacements: (row.visibility_placements ?? []) as Offer["visibilityPlacements"],
     highlights: row.highlights ?? [],
     included: row.included_services ?? [],
@@ -872,6 +881,18 @@ export async function listPublishedPublicOffers() {
 }
 
 export async function getPublishedPublicOfferBySlug(slug: string) {
+  const slugCandidates = Array.from(
+    new Set([
+      slug,
+      (() => {
+        try {
+          return decodeURIComponent(slug);
+        } catch {
+          return slug;
+        }
+      })()
+    ].filter(Boolean))
+  );
   const result = await dbQuery<PublicOfferRow>(
     `
       select
@@ -1063,11 +1084,11 @@ export async function getPublishedPublicOfferBySlug(slug: string) {
         created_at::text,
         updated_at::text
       from offers
-      where slug = $1
+      where slug = any($1::text[])
         and status = 'published'
       limit 1
     `,
-    [slug]
+    [slugCandidates]
   );
 
   if (result.rows[0]) {

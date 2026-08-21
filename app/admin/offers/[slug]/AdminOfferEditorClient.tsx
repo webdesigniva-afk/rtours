@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { AdminWorkspace } from "@/components/AdminWorkspace";
 import { formatDisplayDate, formatDisplayDateRange, normalizeDateLabel } from "@/lib/dateFormat";
+import { MAX_OFFER_CARD_BADGES } from "@/lib/offerPresentation";
 import { OfferContentForm, type OfferContentDraftSummary } from "../OfferContentForm";
 import { cancelNewOfferDraft, createOfferBadge, publishOfferChanges, updateOfferContent, updateOfferDatesPrices, updateOfferPublishing, updateOfferSeo, updateOfferSupplierApiReview } from "./actions";
 
@@ -369,12 +370,13 @@ const audience: ChoiceItem[] = [
   { label: "Семейства с тийнейджъри", icon: Users },
   { label: "Приятели", icon: Users },
   { label: "Соло пътешественици", icon: Users },
-  { label: "Корпоративни клиенти", icon: Archive },
   { label: "Малки групи", icon: Users },
   { label: "Големи групи", icon: Users },
+  { label: "Корпоративни клиенти", icon: Archive },
+  { label: "Ученици и студенти", icon: Users },
+  { label: "55+ пътешественици", icon: Users },
   { label: "Премиум клиенти", icon: Sparkles },
-  { label: "Възрастни пътешественици", icon: Users },
-  { label: "Ученици / студенти", icon: Users }
+  { label: "Младоженци", icon: Heart }
 ];
 
 const experience: ChoiceItem[] = [
@@ -383,7 +385,7 @@ const experience: ChoiceItem[] = [
   { label: "Приключение", icon: Plane },
   { label: "Култура", icon: Landmark },
   { label: "Нови вкусове", icon: Sparkles },
-  { label: "Да открия нов свят", icon: Globe2 },
+  { label: "Нов свят", icon: Globe2 },
   { label: "Лукс и комфорт", icon: Sparkles },
   { label: "Активна почивка", icon: Plane },
   { label: "Бавно пътуване", icon: Sparkles },
@@ -392,48 +394,67 @@ const experience: ChoiceItem[] = [
   { label: "Планина и природа", icon: Globe2 },
   { label: "Екзотика", icon: Globe2 },
   { label: "Уикенд бягство", icon: Plane },
-  { label: "Празнично пътуване", icon: Sparkles }
+  { label: "Празнично пътуване", icon: Sparkles },
+  { label: "Семейно преживяване", icon: Users },
+  { label: "Авторско пътуване", icon: Sparkles },
+  { label: "Специален повод", icon: Heart },
+  { label: "Wellness и възстановяване", icon: Heart },
+  { label: "Пътешествие с кауза", icon: Globe2 }
 ];
 
 const interests: ChoiceItem[] = [
   { label: "История", icon: Heart },
   { label: "Природа", icon: Sparkles },
   { label: "Гастрономия", icon: Heart },
+  { label: "Вино", icon: Sparkles },
   { label: "Фотография", icon: Camera },
   { label: "Шопинг", icon: Archive },
-  { label: "Вино", icon: Sparkles },
-  { label: "Спорт", icon: Plane },
+  { label: "Спа и уелнес", icon: Heart },
+  { label: "Плаж", icon: Globe2 },
+  { label: "Сафари", icon: Globe2 },
   { label: "Архитектура", icon: Landmark },
   { label: "Музеи", icon: Landmark },
   { label: "Изкуство", icon: Sparkles },
   { label: "Фестивали", icon: Sparkles },
-  { label: "Спа и уелнес", icon: Heart },
-  { label: "Плаж", icon: Globe2 },
   { label: "Пешеходни маршрути", icon: Plane },
-  { label: "Сафари", icon: Globe2 },
   { label: "Круизни преживявания", icon: Archive },
   { label: "Местен живот", icon: Users },
   { label: "Нощен живот", icon: Sparkles },
   { label: "Забележителности", icon: Landmark },
+  { label: "ЮНЕСКО", icon: Landmark },
+  { label: "Антични цивилизации", icon: Landmark },
+  { label: "Коледни базари", icon: Sparkles },
+  { label: "Острови", icon: Globe2 },
+  { label: "Пустиня", icon: Globe2 },
+  { label: "Джунгла", icon: Globe2 },
+  { label: "Театър и музика", icon: Sparkles },
+  { label: "Дизайн и стил", icon: Sparkles },
   { label: "Друго", icon: MoreHorizontal }
 ];
 
 const travelType: ChoiceItem[] = [
   { label: "Екскурзия", icon: Landmark },
   { label: "Почивка", icon: Sparkles },
+  { label: "Уикенд", icon: CalendarDays },
   { label: "Групово", icon: Users },
   { label: "Индивидуално", icon: Users },
   { label: "Самолет", icon: Plane },
   { label: "Автобус", icon: Archive },
+  { label: "Собствен транспорт", icon: Archive },
+  { label: "Комбинирано", icon: Share2 },
   { label: "Круиз", icon: Archive },
   { label: "Хотел", icon: Archive },
   { label: "Самолетен билет", icon: Plane },
-  { label: "Уикенд", icon: CalendarDays },
   { label: "Пакет", icon: Archive },
-  { label: "Комбинирано", icon: Share2 },
-  { label: "Собствен транспорт", icon: Archive },
   { label: "Чартър", icon: Plane },
-  { label: "Ранни записвания", icon: CalendarDays }
+  { label: "Ранни записвания", icon: CalendarDays },
+  { label: "Last Minute", icon: CalendarDays },
+  { label: "All Inclusive", icon: Archive },
+  { label: "City Break", icon: Landmark },
+  { label: "Обиколна програма", icon: Plane },
+  { label: "Почивка на море", icon: Sparkles },
+  { label: "Планинска почивка", icon: Globe2 },
+  { label: "Празнична програма", icon: Sparkles }
 ];
 
 function statusLabel(status?: string) {
@@ -658,6 +679,13 @@ function supplierEntityPublicSection(entity: AdminOfferEditorInitialOffer["suppl
   return "internal";
 }
 
+function supplierEntitiesForContent(offer: AdminOfferEditorInitialOffer, type: string, publicSection: string) {
+  return offer.supplierEntities
+    .filter((entity) => entity.isEnabled && entity.type === type && supplierEntityPublicSection(entity) === publicSection)
+    .map((entity) => supplierEntityEditableText(entity).replace(/[;:]\s*$/, ""))
+    .filter(Boolean);
+}
+
 function supplierPublicSectionLabel(value: string) {
   if (value === "overview") return "Представяне";
   if (value === "itinerary") return "Програма";
@@ -788,7 +816,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       .map((label) => ({ label, tone: "red" as const }))
   ];
   const [tagOptions, setTagOptions] = useState<TagItem[]>(initialTagOptions);
-  const [activeTagLabels, setActiveTagLabels] = useState<string[]>(initialBadgeLabels);
+  const [activeTagLabels, setActiveTagLabels] = useState<string[]>(initialBadgeLabels.slice(0, MAX_OFFER_CARD_BADGES));
   const [collections, setCollections] = useState<string[]>(initialCollectionLabels);
   const [showTagMenu, setShowTagMenu] = useState(false);
   const [newTagLabel, setNewTagLabel] = useState("");
@@ -1013,12 +1041,19 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   }
 
   function addTag(tag: TagItem) {
-    setActiveTagLabels((current) => current.includes(tag.label) ? current : [...current, tag.label]);
+    setActiveTagLabels((current) => {
+      if (current.includes(tag.label) || current.length >= MAX_OFFER_CARD_BADGES) return current;
+      return [...current, tag.label];
+    });
     setShowTagMenu(false);
   }
 
   function toggleTag(tag: TagItem) {
-    setActiveTagLabels((current) => current.includes(tag.label) ? current.filter((tagLabel) => tagLabel !== tag.label) : [...current, tag.label]);
+    setActiveTagLabels((current) => {
+      if (current.includes(tag.label)) return current.filter((tagLabel) => tagLabel !== tag.label);
+      if (current.length >= MAX_OFFER_CARD_BADGES) return current;
+      return [...current, tag.label];
+    });
   }
 
   function saveNewTag() {
@@ -1029,7 +1064,10 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       const result = await createOfferBadge(offer.slug, label);
       if (result.ok && result.label) {
         setTagOptions((current) => current.some((tag) => tag.label === result.label) ? current : [...current, { label: result.label, tone: "red" }]);
-        setActiveTagLabels((current) => current.includes(result.label) ? current : [...current, result.label]);
+        setActiveTagLabels((current) => {
+          if (current.includes(result.label) || current.length >= MAX_OFFER_CARD_BADGES) return current;
+          return [...current, result.label];
+        });
         setNewTagLabel("");
         setShowTagMenu(false);
         setMessage(result.message);
@@ -1040,7 +1078,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   }
 
   async function savePublishingSettingsNow() {
-    const badgeLabels = Array.from(new Set(activeTagLabels));
+    const badgeLabels = Array.from(new Set(activeTagLabels)).slice(0, MAX_OFFER_CARD_BADGES);
     const collectionLabels = Array.from(new Set(collections));
     const travelTypeLabels = selectedTravelType.length ? selectedTravelType : [productTypeLabel(offer.productType)].filter(Boolean);
 
@@ -1231,14 +1269,15 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                 <section className="offer-editor-card">
                   <header>
                     <h2>Етикети</h2>
-                    <span>изберете кой етикет да се показва върху офертата</span>
+                    <span>изберете до {MAX_OFFER_CARD_BADGES} етикета - толкова се показват върху картите в сайта</span>
                   </header>
                   <div className="offer-chip-row">
                     {tagOptions.map((tag) => {
                       const isActive = activeTagLabels.includes(tag.label);
+                      const isDisabled = !isActive && activeTagLabels.length >= MAX_OFFER_CARD_BADGES;
 
                       return (
-                      <button className={isActive ? `offer-chip offer-chip-${tag.tone} is-active` : `offer-chip offer-chip-${tag.tone} is-inactive`} type="button" key={tag.label} onClick={() => toggleTag(tag)} aria-pressed={isActive}>
+                      <button className={isActive ? `offer-chip offer-chip-${tag.tone} is-active` : `offer-chip offer-chip-${tag.tone} is-inactive`} type="button" key={tag.label} onClick={() => toggleTag(tag)} aria-pressed={isActive} disabled={isDisabled} title={isDisabled ? `Показват се до ${MAX_OFFER_CARD_BADGES} етикета` : undefined}>
                         {tag.label}
                         {isActive ? <CircleDot size={12} aria-hidden="true" /> : null}
                       </button>
@@ -1694,7 +1733,9 @@ function OfferContentWorkspace({
         itinerary: offer.itinerary,
         highlights: forceEmptyNewOffer ? [] : offer.highlights,
         included: offer.included,
-        excluded: offer.excluded
+        excluded: offer.excluded,
+        supplierServices: forceEmptyNewOffer ? [] : supplierEntitiesForContent(offer, "service", "services"),
+        importantInfo: forceEmptyNewOffer ? [] : supplierEntitiesForContent(offer, "useful_info", "conditions")
       }}
     />
   );
@@ -3095,11 +3136,23 @@ function ChoiceSection({
   onToggle: (label: string) => void;
   audience?: boolean;
 }) {
+  const selectedSet = new Set(selected);
+  const allSelected = items.length > 0 && items.every((item) => selectedSet.has(item.label));
+  const toggleAll = () => {
+    const labels = allSelected ? selected : items.map((item) => item.label).filter((label) => !selectedSet.has(label));
+    labels.forEach((label) => onToggle(label));
+  };
+
   return (
     <section className="offer-editor-card">
       <header>
-        <h2>{title}</h2>
-        {subtitle ? <span>{subtitle}</span> : null}
+        <div>
+          <h2>{title}</h2>
+          {subtitle ? <span>{subtitle}</span> : null}
+        </div>
+        <button className="offer-choice-select-all" type="button" onClick={toggleAll}>
+          {allSelected ? "Изчисти" : "Маркирай всички"}
+        </button>
       </header>
       <div className={audience ? "offer-choice-grid offer-choice-audience" : "offer-choice-grid"}>
         {items.map((item) => (

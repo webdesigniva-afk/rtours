@@ -244,6 +244,7 @@ export type OfferPublishingSettingsInput = {
 
 export async function updateOfferPublishing(slug: string, input: OfferPublishingSettingsInput) {
   await requireAdminSession(slug);
+  await ensurePublicShowcaseVisibilityPlacements();
 
   const offerResult = await dbQuery<{ id: string }>("select id from offers where slug = $1 limit 1", [slug]);
   const offerId = offerResult.rows[0]?.id;
@@ -423,6 +424,90 @@ function readStringList(formData: FormData, key: string) {
   return formData.getAll(key).map((value) => (typeof value === "string" ? value.trim() : ""));
 }
 
+async function saveManualSupplierSections(offerId: string, title: string, services: string[], importantInfo: string[]) {
+  await dbQuery(
+    `
+      delete from supplier_import_entities
+      where offer_id = $1
+        and provider = 'redtours-manual'
+        and entity_type in ('service', 'useful_info')
+    `,
+    [offerId]
+  );
+
+  const rows = [
+    ...services.map((label, index) => ({
+      type: "service",
+      publicSection: "services",
+      key: `manual-service-${index + 1}`,
+      label,
+      sortOrder: index
+    })),
+    ...importantInfo.map((label, index) => ({
+      type: "useful_info",
+      publicSection: "conditions",
+      key: `manual-important-info-${index + 1}`,
+      label,
+      sortOrder: index
+    }))
+  ];
+
+  if (!rows.length) return;
+
+  const importResult = await dbQuery<{ id: string }>(
+    `
+      insert into offer_imports (offer_id, provider, external_id, source, change_state, checksum, raw_payload, last_synced_at)
+      values ($1, 'redtours-manual', $1::text, 'manual', 'unchanged', $2, $3::jsonb, now())
+      on conflict (provider, external_id) do update
+        set offer_id = excluded.offer_id,
+            checksum = excluded.checksum,
+            raw_payload = excluded.raw_payload,
+            last_synced_at = now()
+      returning id
+    `,
+    [offerId, `manual-public-sections-${rows.length}`, JSON.stringify({ title, services, importantInfo })]
+  );
+  const importId = importResult.rows[0].id;
+
+  for (const row of rows) {
+    await dbQuery(
+      `
+        insert into supplier_import_entities (
+          import_id,
+          offer_id,
+          provider,
+          external_id,
+          entity_type,
+          entity_key,
+          title,
+          sort_order,
+          raw_data,
+          is_enabled,
+          editorial_title,
+          editorial_data
+        )
+        values ($1, $2, 'redtours-manual', $2::text, $3, $4, $5, $6, $7::jsonb, true, $5, $8::jsonb)
+      `,
+      [
+        importId,
+        offerId,
+        row.type,
+        row.key,
+        row.label,
+        row.sortOrder,
+        JSON.stringify({ label: row.label, source: "manual" }),
+        JSON.stringify({
+          title: row.label,
+          text: row.label,
+          description: row.label,
+          publicSection: row.publicSection,
+          source: "manual"
+        })
+      ]
+    );
+  }
+}
+
 function itineraryTitleIfSpecific(title: string, dayNumber: number) {
   const text = title.trim();
   if (!text) return "";
@@ -476,6 +561,11 @@ const priceStatusValues = new Set(["fixed", "option_until", "dynamic", "budgetar
 const taxonomyTermTypeValues = new Set(["category", "theme", "audience", "mood", "badge", "collection", "transport", "service_type", "destination_style", "season"]);
 const visibilityPlacementValues = new Set(["homepage", "offers_index", "author_programs", "exotics", "collection_page", "destination_page", "search", "promo_section", "private_link", "hidden"]);
 
+async function ensurePublicShowcaseVisibilityPlacements() {
+  await dbQuery("alter type offer_visibility_placement add value if not exists 'author_programs'");
+  await dbQuery("alter type offer_visibility_placement add value if not exists 'exotics'");
+}
+
 export async function updateOfferContent(_state: OfferContentActionState, formData: FormData): Promise<OfferContentActionState> {
   const offerIdInput = readString(formData, "offer_id");
   const slug = readString(formData, "slug");
@@ -522,6 +612,8 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
   const highlights = readStringList(formData, "highlights").filter(Boolean).slice(0, 5);
   const includedServices = readStringList(formData, "included_services").filter(Boolean);
   const excludedServices = readStringList(formData, "excluded_services").filter(Boolean);
+  const supplierServices = readStringList(formData, "supplier_services").filter(Boolean);
+  const importantInfo = readStringList(formData, "supplier_important_info").filter(Boolean);
   const description = readString(formData, "description");
   const submittedCountry = primaryDestination?.country || readString(formData, "country");
   const submittedRegion = primaryDestination?.region || primaryDestination?.city || readString(formData, "region");
@@ -542,7 +634,9 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
       galleryImageUrls.length ||
       itineraryRows.length ||
       includedServices.length ||
-      excludedServices.length
+      excludedServices.length ||
+      supplierServices.length ||
+      importantInfo.length
   );
 
   await dbQuery(
@@ -582,11 +676,12 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
     ]
   );
 
-  const offerResult = await dbQuery<{ id: string }>(
-    "select id from offers where id = nullif($1, '')::uuid or ($1 = '' and slug = $2) limit 1",
+  const offerResult = await dbQuery<{ id: string; source: string }>(
+    "select id, source::text from offers where id = nullif($1, '')::uuid or ($1 = '' and slug = $2) limit 1",
     [offerIdInput, slug]
   );
   const offerId = offerResult.rows[0]?.id;
+  const offerSource = offerResult.rows[0]?.source;
 
   if (offerId) {
     await dbQuery("delete from offer_itinerary_days where offer_id = $1", [offerId]);
@@ -666,6 +761,10 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
         `,
         [offerId, service.type, service.label, service.sortOrder]
       );
+    }
+
+    if (offerSource === "manual") {
+      await saveManualSupplierSections(offerId, title, supplierServices, importantInfo);
     }
   }
 

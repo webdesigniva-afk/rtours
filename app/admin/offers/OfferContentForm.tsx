@@ -55,6 +55,8 @@ export type OfferContentInitialData = {
   highlights: string[];
   included: string[];
   excluded: string[];
+  supplierServices?: string[];
+  importantInfo?: string[];
 };
 
 export type OfferContentDraftSummary = {
@@ -505,6 +507,8 @@ export function OfferContentForm({
   );
   const [includedServicesText, setIncludedServicesText] = useState(getInitialServices(initial.included).join("\n"));
   const [excludedServicesText, setExcludedServicesText] = useState(getInitialServices(initial.excluded).join("\n"));
+  const [supplierServicesText, setSupplierServicesText] = useState(getInitialServices(initial.supplierServices ?? []).join("\n"));
+  const [importantInfoText, setImportantInfoText] = useState(getInitialServices(initial.importantInfo ?? []).join("\n"));
   const heroImageInputRef = useRef<HTMLInputElement>(null);
   const galleryInputsRef = useRef<HTMLDivElement>(null);
   const latestHeroImageUrlRef = useRef(initial.heroImageUrl);
@@ -533,6 +537,8 @@ export function OfferContentForm({
   const derivedSummary = createSummaryFromDescription(description) || summary;
   const includedServices = splitServiceText(includedServicesText);
   const excludedServices = splitServiceText(excludedServicesText);
+  const supplierServices = splitServiceText(supplierServicesText);
+  const importantInfo = splitServiceText(importantInfoText);
   const allImageUrls = [heroImageUrl, ...galleryImageUrls].filter(Boolean).filter((url, index, list) => list.indexOf(url) === index);
   const [highlights, setHighlights] = useState<HighlightRow[]>(() =>
     initial.highlights.length
@@ -569,6 +575,8 @@ export function OfferContentForm({
     );
     setIncludedServicesText(getInitialServices(initial.included).join("\n"));
     setExcludedServicesText(getInitialServices(initial.excluded).join("\n"));
+    setSupplierServicesText(getInitialServices(initial.supplierServices ?? []).join("\n"));
+    setImportantInfoText(getInitialServices(initial.importantInfo ?? []).join("\n"));
     setHeroImageUrl(initial.heroImageUrl);
     setHeroPreview(initial.heroImageUrl);
     setGalleryImageUrls(initial.galleryImageUrls ?? []);
@@ -1132,6 +1140,45 @@ export function OfferContentForm({
                   rows={7}
                 />
                 {excludedServices.map((item, index) => <input type="hidden" name="excluded_services" value={item} key={`excluded-${index}-${item}`} />)}
+              </label>
+            </div>
+          </section>
+
+          <section className="offer-services-editor">
+            <header>
+              <div>
+                <h3>Публични детайли</h3>
+                <p>Тези полета се показват в страницата на офертата като отделни секции. Всяка нова линия става отделна точка.</p>
+              </div>
+            </header>
+            <div className="offer-services-columns">
+              <label className="offer-service-list">
+                <header>
+                  <strong>Услуги</strong>
+                  <span>{supplierServices.length} точки</span>
+                </header>
+                <textarea
+                  className="offer-service-textarea"
+                  value={supplierServicesText}
+                  onChange={(event) => setSupplierServicesText(event.target.value)}
+                  placeholder={"Пример:\nСамолетен билет с директен полет\nТрансфер летище - хотел - летище\nПредставител на туроператора"}
+                  rows={7}
+                />
+                {supplierServices.map((item, index) => <input type="hidden" name="supplier_services" value={item} key={`supplier-service-${index}-${item}`} />)}
+              </label>
+              <label className="offer-service-list">
+                <header>
+                  <strong>Важна информация</strong>
+                  <span>{importantInfo.length} точки</span>
+                </header>
+                <textarea
+                  className="offer-service-textarea"
+                  value={importantInfoText}
+                  onChange={(event) => setImportantInfoText(event.target.value)}
+                  placeholder={"Пример:\nДепозит 30% при резервация\nДоплащане до 21 дни преди отпътуване\nМинимален брой туристи: 20"}
+                  rows={7}
+                />
+                {importantInfo.map((item, index) => <input type="hidden" name="supplier_important_info" value={item} key={`important-info-${index}-${item}`} />)}
               </label>
             </div>
           </section>

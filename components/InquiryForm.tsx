@@ -108,6 +108,13 @@ export function InquiryForm({ offerTitle, offerSlug, destination, dates = [] }: 
         </label>
       </div>
 
+      <label className="inquiry-form-privacy">
+        <input name="privacy_policy" required type="checkbox" value="accepted" />
+        <span>
+          Съгласен/на съм с <strong>Политиката за поверителност</strong> и обработка на лични данни.
+        </span>
+      </label>
+
       {state.message ? <p className={state.ok ? "inquiry-form-message is-ok" : "inquiry-form-message is-error"}>{state.message}</p> : null}
 
       <button className="button inquiry-submit" type="submit" disabled={isPending}>

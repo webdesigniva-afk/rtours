@@ -2,40 +2,49 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { travelTypeTaxonomyLabels } from "@/lib/offerTaxonomy";
 import { CalendarDays, ChevronDown, MapPin, Search, SlidersHorizontal, Sparkles, UsersRound } from "lucide-react";
 
 const moods = [
   {
     label: "Култура и история",
+    params: { experience: "Култура", interest: "История" },
     description: "Маршрути, които разказват за цивилизации, градове, изкуство и хора.",
     image: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?auto=format&fit=crop&w=320&q=80"
   },
   {
     label: "Природа и приключения",
+    params: { experience: "Приключение", interest: "Природа" },
     description: "Впечатляващи пейзажи, диви места и преживявания извън обичайното.",
     image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=320&q=80"
   },
   {
     label: "Гастрономия и вино",
+    params: { experience: "Нови вкусове", interest: "Гастрономия" },
     description: "Дестинации, които се опознават чрез местната кухня, традициите и вкусовете.",
     image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=320&q=80"
   },
   {
     label: "Музика и събития",
+    params: { interest: "Театър и музика" },
     description: "Концерти, фестивали и специални поводи, превърнати в цялостно пътуване.",
     image: "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=320&q=80"
   },
   {
     label: "Luxury Escapes",
+    params: { experience: "Лукс и комфорт" },
     description: "Внимателно подбрани хотели, лично обслужване и повече пространство за удоволствие.",
     image: "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=320&q=80"
   },
   {
     label: "Малки групи",
+    params: { audience: "Малки групи" },
     description: "Споделено пътуване с повече гъвкавост, лично внимание и пълноценно преживяване.",
     image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=320&q=80"
   }
 ];
+
+const finderTravelTypes = ["Всички", ...travelTypeTaxonomyLabels.filter((label) => ["Почивка", "Екскурзия", "Уикенд", "Групово", "Индивидуално"].includes(label))];
 
 export function TravelFinder() {
   const router = useRouter();
@@ -45,7 +54,7 @@ export function TravelFinder() {
   const [departureDate, setDepartureDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [travelers, setTravelers] = useState("2");
-  const [tripType, setTripType] = useState("Всички");
+  const [tripType, setTripType] = useState(finderTravelTypes[0]);
   const [budget, setBudget] = useState("");
   const [pace, setPace] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -58,8 +67,13 @@ export function TravelFinder() {
     if (departureDate) params.set("from", departureDate);
     if (returnDate) params.set("to", returnDate);
     if (travelers) params.set("travelers", travelers);
-    if (tripType !== "Всички") params.set("type", tripType);
-    if (selectedMood) params.set("mood", selectedMood);
+    if (tripType !== finderTravelTypes[0]) params.set("travelType", tripType);
+    const selectedMoodConfig = moods.find((mood) => mood.label === selectedMood);
+    if (selectedMoodConfig) {
+      for (const [key, value] of Object.entries(selectedMoodConfig.params)) {
+        params.set(key, value);
+      }
+    }
     if (budget) params.set("budget", budget);
     if (pace) params.set("pace", pace);
 
@@ -179,11 +193,9 @@ export function TravelFinder() {
                 <span>
                   <strong>Вид пътуване</strong>
                   <select value={tripType} onChange={(event) => setTripType(event.target.value)}>
-                    <option>Всички</option>
-                    <option>Почивка</option>
-                    <option>Екскурзия</option>
-                    <option>Корпоративно</option>
-                    <option>Индивидуално</option>
+                    {finderTravelTypes.map((label) => (
+                      <option key={label}>{label}</option>
+                    ))}
                   </select>
                 </span>
               </label>
