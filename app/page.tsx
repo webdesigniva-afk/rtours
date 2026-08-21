@@ -261,7 +261,7 @@ export default async function Home() {
               <div className="signature-photo" aria-hidden="true">
                 <img src="/images/destinations/mauritius.avif" alt="" />
               </div>
-              <Link className="signature-link" href="/offers?collection=red-escape">
+              <Link className="signature-link" href="/exotics">
                 Разгледайте екзотиките
                 <ArrowRight size={16} aria-hidden="true" />
               </Link>

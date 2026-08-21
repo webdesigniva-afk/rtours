@@ -13,6 +13,7 @@ const travelMenuItems = [
     icon: Compass
   },
   {
+    href: "/exotics",
     label: "Екзотики",
     text: "Далечни посоки, ярки култури и внимателно темпо.",
     icon: Plane
@@ -51,6 +52,7 @@ export function SiteHeader() {
   const isTravelActive =
     pathname.startsWith("/offers") ||
     pathname.startsWith("/author-programs") ||
+    pathname.startsWith("/exotics") ||
     pathname.startsWith("/destinations") ||
     pathname.startsWith("/tailor-made");
 

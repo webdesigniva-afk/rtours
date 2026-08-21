@@ -14,7 +14,7 @@ import {
 const footerLinks = [
   { href: "/offers", label: "Пътувания" },
   { href: "/author-programs", label: "Авторски програми" },
-  { href: "/destinations?type=exotic", label: "Екзотики" },
+  { href: "/exotics", label: "Екзотики" },
   { href: "/offers?collection=red-private", label: "Специални преживявания" },
   { href: "/about", label: "За Red Tours" },
   { href: "/contacts", label: "Контакти" },

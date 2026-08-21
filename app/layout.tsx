@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
+import { BackToTopButton } from "@/components/BackToTopButton";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -25,7 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="bg">
-      <body className={manrope.variable}>{children}</body>
+      <body className={manrope.variable}>
+        {children}
+        <BackToTopButton />
+      </body>
     </html>
   );
 }
