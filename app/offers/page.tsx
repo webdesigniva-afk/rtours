@@ -121,8 +121,7 @@ function offerMatchesCollection(offer: Offer, collection: string) {
 function offerMatchesFeatured(offer: Offer, featured: string) {
   if (!featured) return true;
   if (featured !== "red tours" && featured !== "redtours") return true;
-  const tags = normalizeSearch([...(offer.tags ?? []), ...(offer.badgeSlugs ?? [])].join(" "));
-  return (offer.visibilityPlacements ?? []).includes("homepage") || tags.includes("наш избор") || tags.includes("nash izbor");
+  return (offer.visibilityPlacements ?? []).includes("homepage");
 }
 
 function offerMatchesType(offer: Offer, type: string) {

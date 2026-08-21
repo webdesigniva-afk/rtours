@@ -1,5 +1,6 @@
 import type { AdminSupplierImportDetail } from "@/lib/adminImportRepository";
 import { normalizeDateLabel } from "@/lib/dateFormat";
+import { SupplierReviewEntityControls } from "./SupplierReviewEntityControls";
 
 type SupplierEntity = AdminSupplierImportDetail["entities"][number];
 
@@ -37,8 +38,7 @@ function availabilityValue(value: unknown) {
 }
 
 function entityPreview(raw: unknown) {
-  const text = JSON.stringify(raw, null, 2) || "{}";
-  return text.length > 1400 ? `${text.slice(0, 1400)}...` : text;
+  return JSON.stringify(raw, null, 2) || "{}";
 }
 
 export function SupplierDeparturesReviewList({ entities }: { entities: SupplierEntity[] }) {
@@ -102,6 +102,7 @@ export function SupplierDeparturesReviewList({ entities }: { entities: SupplierE
                   ))}
                 </select>
               </label>
+              <SupplierReviewEntityControls entity={entity} showNotes={false} />
               <label className="is-wide">
                 <span>Отпътуване от</span>
                 <input name={`entity_departure_points_${entity.id}`} defaultValue={textValue(editorial.departurePoints) || textValue(raw.departurePoints)} />

@@ -21,6 +21,18 @@ function inferDurationNights(days: number | null | undefined, nights: number | n
   return "";
 }
 
+function itineraryTitleIfSpecific(title: string | null | undefined, dayNumber: number) {
+  const text = (title || "").trim();
+  if (!text) return "";
+  const normalized = text
+    .toLocaleLowerCase("bg-BG")
+    .replace(/\s+/g, " ")
+    .replace(/[–—]/g, "-")
+    .trim();
+  const genericPattern = new RegExp(`^(ден|day)\\s*[-:.#№]?\\s*0*${dayNumber}\\.?$`, "iu");
+  return genericPattern.test(normalized) ? "" : text;
+}
+
 export default async function AdminOfferEditorPage({ params, searchParams }: AdminOfferEditorPageProps) {
   const { slug } = await params;
   const { tab, new: newMode } = (await searchParams) ?? {};
@@ -89,7 +101,7 @@ export default async function AdminOfferEditorPage({ params, searchParams }: Adm
     isAuthorProgram: offer.is_author_program ?? false,
     itinerary: offer.itinerary_days?.map((day) => ({
       day: day.day,
-      title: day.title,
+      title: itineraryTitleIfSpecific(day.title, day.day),
       description: day.description,
       accommodation: day.accommodation ?? "",
       meals: day.meals ?? "",

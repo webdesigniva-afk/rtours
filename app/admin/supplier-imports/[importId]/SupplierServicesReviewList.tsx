@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AdminSupplierImportDetail } from "@/lib/adminImportRepository";
+import { SupplierReviewEntityControls } from "./SupplierReviewEntityControls";
 
 type SupplierEntity = AdminSupplierImportDetail["entities"][number];
 type ServiceKind = "included" | "excluded";
@@ -35,8 +36,7 @@ function serviceKind(value: unknown): ServiceKind {
 }
 
 function entityPreview(raw: unknown) {
-  const text = JSON.stringify(raw, null, 2) || "{}";
-  return text.length > 520 ? `${text.slice(0, 520)}...` : text;
+  return JSON.stringify(raw, null, 2) || "{}";
 }
 
 export function SupplierServicesReviewList({ entities }: { entities: SupplierEntity[] }) {
@@ -89,6 +89,7 @@ export function SupplierServicesReviewList({ entities }: { entities: SupplierEnt
                       onChange={(event) => updateLabel(entity.id, event.target.value)}
                     />
                   </label>
+                  <SupplierReviewEntityControls entity={entity} />
                   <details>
                     <summary>Raw данни</summary>
                     <pre>{entityPreview(entity.rawData)}</pre>

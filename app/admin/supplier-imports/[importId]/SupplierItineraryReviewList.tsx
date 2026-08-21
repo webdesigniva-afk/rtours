@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AdminSupplierImportDetail } from "@/lib/adminImportRepository";
+import { SupplierReviewEntityControls } from "./SupplierReviewEntityControls";
 
 type SupplierEntity = AdminSupplierImportDetail["entities"][number];
 type DescriptionMode = "text" | "html";
@@ -44,8 +45,7 @@ function textFromHtml(value: unknown) {
 }
 
 function entityPreview(raw: unknown) {
-  const text = JSON.stringify(raw, null, 2) || "{}";
-  return text.length > 520 ? `${text.slice(0, 520)}...` : text;
+  return JSON.stringify(raw, null, 2) || "{}";
 }
 
 function initialMode(value: unknown): DescriptionMode {
@@ -139,6 +139,7 @@ export function SupplierItineraryReviewList({ entities }: { entities: SupplierEn
                   <input name={`entity_transport_${entity.id}`} defaultValue={day.transport} placeholder="вид транспорт" />
                 </label>
               </div>
+              <SupplierReviewEntityControls entity={entity} />
               <details>
                 <summary>Raw данни</summary>
                 <pre>{entityPreview(entity.rawData)}</pre>

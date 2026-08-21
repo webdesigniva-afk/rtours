@@ -125,8 +125,7 @@ function isTechnicalEntity(type: string) {
 }
 
 function entityPreview(raw: unknown) {
-  const text = JSON.stringify(raw, null, 2) || "{}";
-  return text.length > 520 ? `${text.slice(0, 520)}...` : text;
+  return JSON.stringify(raw, null, 2) || "{}";
 }
 
 function dataObject(value: unknown) {

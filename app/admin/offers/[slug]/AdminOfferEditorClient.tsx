@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type MouseEvent, useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, type ChangeEvent, type MouseEvent, useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Archive,
@@ -269,6 +269,24 @@ type DraftDestination = {
   city: string;
 };
 
+function comparableDestinationPart(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("bg-BG");
+}
+
+function cityIfDifferentFromRegion(region: string, city: string) {
+  return comparableDestinationPart(region) && comparableDestinationPart(region) === comparableDestinationPart(city) ? "" : city;
+}
+
+function uniqueDestinationParts(...parts: string[]) {
+  const seen = new Set<string>();
+  return parts.filter((part) => {
+    const normalized = comparableDestinationPart(part);
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
 type ChoiceItem = {
   label: string;
   icon: typeof Heart;
@@ -342,7 +360,7 @@ const availableTags: TagItem[] = [
   { label: "ПРОМО ОФЕРТА", tone: "blue" }
 ];
 
-const availableCollections = ["Red Signature", "Red Moments", "Red Escape", "Red Family", "Red Private"];
+const availableCollections = ["Red Icons", "Red Hidden", "Red Taste", "Red Wild", "Red Live", "Red Circle"];
 
 const audience: ChoiceItem[] = [
   { label: "Двойки", icon: Heart },
@@ -496,9 +514,8 @@ function supplierEntityIcon(type: string) {
   return Code2;
 }
 
-function supplierEntityPreview(value: unknown, limit = 900) {
-  const text = JSON.stringify(value, null, 2) || "{}";
-  return text.length > limit ? `${text.slice(0, limit)}...` : text;
+function supplierEntityPreview(value: unknown) {
+  return JSON.stringify(value, null, 2) || "{}";
 }
 
 function supplierEntityText(value: unknown) {
@@ -641,13 +658,26 @@ function supplierEntityPublicSection(entity: AdminOfferEditorInitialOffer["suppl
   return "internal";
 }
 
+function supplierPublicSectionLabel(value: string) {
+  if (value === "overview") return "Представяне";
+  if (value === "itinerary") return "Програма";
+  if (value === "dates") return "Дати и цени";
+  if (value === "accommodation") return "Настаняване / хотели";
+  if (value === "services") return "Услуги";
+  if (value === "extras") return "Допълнителни услуги";
+  if (value === "conditions") return "Условия и важно";
+  if (value === "media") return "Снимки";
+  if (value === "internal") return "Само вътрешно";
+  return value.replace(/[_-]+/g, " ");
+}
+
 function supplierEntityNotes(entity: AdminOfferEditorInitialOffer["supplierEntities"][number]) {
   const editorial = supplierEntityObject(entity.editorialData);
   return supplierEntityText(editorial.notes);
 }
 
 function supplierRawPayloadSize(payload: unknown) {
-  return supplierEntityPreview(payload, 100000).length;
+  return supplierEntityPreview(payload).length;
 }
 
 function labelsForTaxonomyType(offer: AdminOfferEditorInitialOffer, type: string) {
@@ -750,7 +780,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   );
   const [status, setStatus] = useState<OfferStatus>(offer.status);
   const initialBadgeLabels = labelsForTaxonomyType(offer, "badge");
-  const initialCollectionLabels = labelsForTaxonomyType(offer, "collection");
+  const initialCollectionLabels = labelsForTaxonomyType(offer, "collection").filter((label) => availableCollections.includes(label));
   const initialTagOptions = [
     ...availableTags,
     ...initialBadgeLabels
@@ -767,9 +797,8 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   const [selectedInterests, setSelectedInterests] = useState<string[]>(labelsForTaxonomyType(offer, "theme"));
   const [selectedTravelType, setSelectedTravelType] = useState<string[]>(labelsForTaxonomyType(offer, "category"));
   const [showOnHome, setShowOnHome] = useState(isVisibilityEnabled(offer, "homepage", false));
-  const [featuredByRedTours, setFeaturedByRedTours] = useState(initialBadgeLabels.includes("Наш избор"));
-  const [showInSignature, setShowInSignature] = useState(isVisibilityEnabled(offer, "collection_page", initialCollectionLabels.includes("Red Signature")));
-  const [showInExotic, setShowInExotic] = useState(initialCollectionLabels.includes("Red Escape"));
+  const [showInAuthorPrograms, setShowInAuthorPrograms] = useState(isVisibilityEnabled(offer, "author_programs", false));
+  const [showInExotics, setShowInExotics] = useState(isVisibilityEnabled(offer, "exotics", false));
   const [priority, setPriority] = useState(visibilityPriority(offer, 10));
   const [seoTitle, setSeoTitle] = useState(offer.seoMetaTitle || offer.title);
   const [seoDescription, setSeoDescription] = useState(() => initialSeoDescription(offer));
@@ -874,13 +903,13 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         missing: ["Ключови думи", "Canonical URL", "Preview за Google"]
       },
       "Показване в сайта": {
-        status: showOnHome || featuredByRedTours || showInSignature || showInExotic ? "partial" : "missing",
+        status: showOnHome || showInAuthorPrograms || showInExotics || collections.length > 0 ? "partial" : "missing",
         percent: 60,
         filled: [
-          showOnHome ? "Показване на начална страница" : "",
-          featuredByRedTours ? "Подбрано от RedTours" : "",
-          showInSignature ? "Авторски пътувания" : "",
-          showInExotic ? "Екзотични пътувания" : "",
+          showOnHome ? "Подбрано от Red Tours" : "",
+          showInAuthorPrograms ? "Авторски програми" : "",
+          showInExotics ? "Екзотики" : "",
+          collections.length ? "Страници на колекции" : "",
           `Приоритет: ${priority}`
         ].filter(Boolean),
         missing: ["Период на показване", "Финални правила за колекции"]
@@ -904,7 +933,7 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         missing: []
       }
     }),
-    [collections, currentHeroImageUrl, featuredByRedTours, offer, priority, selectedTags, selectedTravelType, showInExotic, showInSignature, showOnHome]
+    [collections, currentHeroImageUrl, offer, priority, selectedTags, selectedTravelType, showInAuthorPrograms, showInExotics, showOnHome]
   );
 
   const workflowStatus: Record<string, { status: SectionStatus; percent: number; filled: string[]; missing: string[] }> = {
@@ -954,16 +983,16 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
       ].filter(Boolean)
     },
     "Публикуване": {
-      status: selectedTags.length && (showOnHome || featuredByRedTours || showInSignature || showInExotic) ? "partial" : "missing",
+      status: selectedTags.length && (showOnHome || showInAuthorPrograms || showInExotics || collections.length > 0) ? "partial" : "missing",
       percent: Math.min(95, selectedTags.length * 10 + collections.length * 8 + selectedTravelType.length * 6),
       filled: [
         selectedTags.length ? `Етикети: ${selectedTags.map((tag) => tag.label).join(", ")}` : "",
         collections.length ? `Колекции: ${collections.join(", ")}` : "",
         selectedTravelType.length ? `Типове: ${selectedTravelType.join(", ")}` : "",
-        showOnHome ? "Показване на начална страница" : "",
-        featuredByRedTours ? "Подбрано от RedTours" : "",
-        showInSignature ? "Авторски пътувания" : "",
-        showInExotic ? "Екзотични пътувания" : "",
+          showOnHome ? "Подбрано от Red Tours" : "",
+        showInAuthorPrograms ? "Авторски програми" : "",
+        showInExotics ? "Екзотики" : "",
+        collections.length ? "Страници на колекции" : "",
         `Приоритет: ${priority}`
       ].filter(Boolean),
       missing: ["Период на акцентиране", "SEO описание", "URL slug проверка", "Social image"]
@@ -1011,15 +1040,8 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
   }
 
   async function savePublishingSettingsNow() {
-    const badgeLabels = Array.from(new Set([
-      ...activeTagLabels,
-      featuredByRedTours || showOnHome ? "Наш избор" : ""
-    ].filter(Boolean)));
-    const collectionLabels = Array.from(new Set([
-      ...collections,
-      showInSignature ? "Red Signature" : "",
-      showInExotic ? "Red Escape" : ""
-    ].filter(Boolean)));
+    const badgeLabels = Array.from(new Set(activeTagLabels));
+    const collectionLabels = Array.from(new Set(collections));
     const travelTypeLabels = selectedTravelType.length ? selectedTravelType : [productTypeLabel(offer.productType)].filter(Boolean);
 
     return updateOfferPublishing(offer.slug, {
@@ -1035,7 +1057,9 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
         { placement: "offers_index", isEnabled: true, priority },
         { placement: "search", isEnabled: true, priority },
         { placement: "homepage", isEnabled: showOnHome, priority },
-        { placement: "collection_page", isEnabled: showInSignature || showInExotic || collectionLabels.length > 0, priority }
+        { placement: "author_programs", isEnabled: showInAuthorPrograms, priority },
+        { placement: "exotics", isEnabled: showInExotics, priority },
+        { placement: "collection_page", isEnabled: collectionLabels.length > 0, priority }
       ]
     });
   }
@@ -1278,20 +1302,17 @@ export function AdminOfferEditorClient({ offer, initialTabKey }: { offer: AdminO
                       <input
                         type="checkbox"
                         checked={showOnHome}
-                        onChange={(event) => {
-                          setShowOnHome(event.target.checked);
-                          setFeaturedByRedTours(event.target.checked);
-                        }}
+                        onChange={(event) => setShowOnHome(event.target.checked)}
                       />
                       <span>Подбрано от Red Tours</span>
                     </label>
                     <label>
-                      <input type="checkbox" checked={showInSignature} onChange={(event) => setShowInSignature(event.target.checked)} />
-                      <span>Авторски пътувания</span>
+                      <input type="checkbox" checked={showInAuthorPrograms} onChange={(event) => setShowInAuthorPrograms(event.target.checked)} />
+                      <span>Авторски програми</span>
                     </label>
                     <label>
-                      <input type="checkbox" checked={showInExotic} onChange={(event) => setShowInExotic(event.target.checked)} />
-                      <span>Екзотични пътувания</span>
+                      <input type="checkbox" checked={showInExotics} onChange={(event) => setShowInExotics(event.target.checked)} />
+                      <span>Екзотики</span>
                     </label>
                     <div className="offer-priority">
                       <span>Приоритет</span>
@@ -1689,7 +1710,7 @@ function OfferContentWorkspace({
   const [productTypeError, setProductTypeError] = useState("");
   const [title, setTitle] = useState(offer.title);
   const [destinations, setDestinations] = useState<DraftDestination[]>([
-    { id: "primary", country: offer.country, region: offer.region, city: "" }
+    { id: "primary", country: offer.country, region: offer.region, city: cityIfDifferentFromRegion(offer.region, "") }
   ]);
   const [durationDays, setDurationDays] = useState(String(offer.durationDays || 6));
   const [durationNights, setDurationNights] = useState(String(offer.durationNights || 5));
@@ -1754,7 +1775,7 @@ function OfferContentWorkspace({
   const region = primaryDestination.region || primaryDestination.city;
   const derivedSummary = createSummaryFromDescription(description) || summary;
   const routeLabel = destinations
-    .map((destination) => [destination.city, destination.region, destination.country].filter(Boolean).join(", "))
+    .map((destination) => uniqueDestinationParts(destination.city, destination.region, destination.country).join(", "))
     .filter(Boolean)
     .join(" -> ");
 
@@ -1872,7 +1893,11 @@ function OfferContentWorkspace({
   };
 
   const updateDestination = (id: string, field: keyof Omit<DraftDestination, "id">, value: string) => {
-    setDestinations((current) => current.map((destination) => (destination.id === id ? { ...destination, [field]: value } : destination)));
+    setDestinations((current) => current.map((destination) => {
+      if (destination.id !== id) return destination;
+      const next = { ...destination, [field]: value };
+      return { ...next, city: cityIfDifferentFromRegion(next.region, next.city) };
+    }));
   };
   const addDestination = () => setDestinations((current) => [...current, { id: crypto.randomUUID(), country: "", region: "", city: "" }]);
   const removeDestination = (id: string) => setDestinations((current) => (current.length === 1 ? current : current.filter((destination) => destination.id !== id)));
@@ -2318,8 +2343,10 @@ function SupplierQuickReviewPanel({ offer }: { offer: AdminOfferEditorInitialOff
       items: offer.supplierEntities.filter((entity) => entity.type === type)
     }))
     .filter((group) => group.items.length > 0);
-  const visibleItems = groups.flatMap((group) => group.items.slice(0, 8));
+  const allItems = groups.flatMap((group) => group.items);
   const totalCount = groups.reduce((sum, group) => sum + group.items.length, 0);
+  const enabledCount = allItems.filter((entity) => entity.isEnabled).length;
+  const publicCount = allItems.filter((entity) => supplierEntityPublicSection(entity) !== "internal").length;
 
   if (!groups.length) return null;
 
@@ -2329,86 +2356,133 @@ function SupplierQuickReviewPanel({ offer }: { offer: AdminOfferEditorInitialOff
       <input type="hidden" name="import_id" value={offer.importId || ""} />
       <header>
         <div>
-          <h2>Още от доставчика</h2>
-          <span>Хотели, допълнителни услуги, условия и пояснения, които са част от офертата и трябва да се прегледат.</span>
+          <h2>Преглед на данните от доставчика</h2>
+          <span>Редакция на хотелите, услугите и важните условия преди публикуване. Всички блокове остават налични и могат да се показват или скриват.</span>
         </div>
-        <a href={`/admin/offers/${offer.slug}?tab=api-data`}>Пълен списък</a>
+        <a href={`/admin/supplier-imports/${offer.importId}`}>Пълен преглед</a>
       </header>
 
       <div className="offer-supplier-quick-summary">
-        {groups.map((group) => (
-          <span key={group.type}>
-            <strong>{group.items.length}</strong>
-            {supplierEntityTypeLabel(group.type)}
-          </span>
-        ))}
+        <span>
+          <strong>{totalCount}</strong>
+          блока за преглед
+        </span>
+        <span>
+          <strong>{enabledCount}</strong>
+          включени
+        </span>
+        <span>
+          <strong>{publicCount}</strong>
+          публични
+        </span>
+        <span>
+          <strong>{groups.length}</strong>
+          групи
+        </span>
       </div>
 
       <div className="offer-supplier-quick-list">
-        {groups.map((group) => (
-          <section key={group.type}>
-            <h3>{supplierEntityTypeLabel(group.type)}</h3>
-            <div>
-              {group.items.slice(0, 8).map((entity) => {
-                const hotelMeta = supplierEntityHotelMeta(entity);
-                const hotelFacts = supplierEntityHotelFacts(entity);
+        {groups.map((group, groupIndex) => {
+          const groupEnabledCount = group.items.filter((entity) => entity.isEnabled).length;
 
-                return (
-                <article className={entity.isEnabled ? "is-enabled" : ""} key={entity.id}>
-                  <input type="hidden" name="entity_ids" value={entity.id} />
-                  <input type="hidden" name={`entity_public_section_${entity.id}`} value={supplierEntityPublicSection(entity)} />
-                  <input type="hidden" name={`entity_url_${entity.id}`} value={supplierEntityEditableUrl(entity)} />
-                  <input type="hidden" name={`entity_notes_${entity.id}`} value={supplierEntityNotes(entity)} />
-                  <div className="offer-supplier-quick-row">
-                    <label className="offer-api-entity-toggle">
-                      <input name="enabled_entity_ids" type="checkbox" value={entity.id} defaultChecked={entity.isEnabled} />
-                      <span>Използвай</span>
-                    </label>
-                    <div>
-                      <strong>{supplierEntityMainText(entity)}</strong>
-                      {hotelMeta.length ? (
-                        <div className="offer-supplier-quick-meta">
-                          {hotelMeta.map((item) => <span key={item}>{item}</span>)}
+          return (
+            <details className="offer-supplier-quick-group" key={group.type} open={groupIndex === 0}>
+              <summary>
+                <span>
+                  <strong>{supplierEntityTypeLabel(group.type)}</strong>
+                  <small>{groupEnabledCount} от {group.items.length} включени</small>
+                </span>
+                <em>{group.items.length}</em>
+              </summary>
+
+              <div>
+                {group.items.map((entity) => {
+                  const hotelMeta = supplierEntityHotelMeta(entity);
+                  const hotelFacts = supplierEntityHotelFacts(entity);
+                  const publicSection = supplierEntityPublicSection(entity);
+
+                  return (
+                    <article className={entity.isEnabled ? "is-enabled" : ""} key={entity.id}>
+                      <input type="hidden" name="entity_ids" value={entity.id} />
+                      <div className="offer-supplier-quick-row">
+                        <label className="offer-api-entity-toggle">
+                          <input name="enabled_entity_ids" type="checkbox" value={entity.id} defaultChecked={entity.isEnabled} />
+                          <span>Показвай</span>
+                        </label>
+                        <div>
+                          <small>{supplierEntityTypeLabel(entity.type)} · {supplierPublicSectionLabel(publicSection)}</small>
+                          <strong>{supplierEntityMainText(entity)}</strong>
+                          {hotelMeta.length ? (
+                            <div className="offer-supplier-quick-meta">
+                              {hotelMeta.map((item) => <span key={item}>{item}</span>)}
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
-                      <span>{supplierEntityEditableText(entity) || "Няма допълнителен текст."}</span>
-                    </div>
-                  </div>
-                  <details>
-                    <summary>Редактирай</summary>
-                    <div className="offer-supplier-quick-edit">
-                      <input name={`entity_title_${entity.id}`} defaultValue={supplierEntityMainText(entity)} aria-label="Заглавие" />
-                      <textarea name={`entity_text_${entity.id}`} defaultValue={supplierEntityEditableText(entity)} rows={3} aria-label="Текст" />
-                      {hotelFacts.length ? (
-                        <div className="offer-supplier-quick-facts">
-                          {hotelFacts.map((item) => (
-                            <span key={item.label}>
-                              <strong>{item.label}</strong>
-                              {item.value}
-                            </span>
-                          ))}
+                      </div>
+
+                      <details className="offer-supplier-quick-edit">
+                        <summary>Редакция</summary>
+                        <div className="offer-supplier-quick-edit-grid">
+                          <label>
+                            <span>Публична секция</span>
+                            <select name={`entity_public_section_${entity.id}`} defaultValue={publicSection}>
+                              <option value="overview">Представяне</option>
+                              <option value="itinerary">Програма</option>
+                              <option value="dates">Дати и цени</option>
+                              <option value="accommodation">Настаняване / хотели</option>
+                              <option value="services">Услуги</option>
+                              <option value="extras">Допълнителни услуги</option>
+                              <option value="conditions">Условия и важно</option>
+                              <option value="media">Снимки</option>
+                              <option value="internal">Само вътрешно</option>
+                            </select>
+                          </label>
+                          <label className="is-wide">
+                            <span>Заглавие</span>
+                            <input name={`entity_title_${entity.id}`} defaultValue={supplierEntityMainText(entity)} />
+                          </label>
+                          <label className="is-wide">
+                            <span>Текст</span>
+                            <textarea name={`entity_text_${entity.id}`} defaultValue={supplierEntityEditableText(entity)} rows={4} />
+                          </label>
+                          <label>
+                            <span>URL / снимка</span>
+                            <input name={`entity_url_${entity.id}`} defaultValue={supplierEntityEditableUrl(entity)} />
+                          </label>
+                          <label>
+                            <span>Вътрешна бележка</span>
+                            <input name={`entity_notes_${entity.id}`} defaultValue={supplierEntityNotes(entity)} />
+                          </label>
                         </div>
-                      ) : null}
-                    </div>
-                  </details>
-                  <details className="offer-supplier-quick-raw">
-                    <summary>Raw данни</summary>
-                    <pre>{supplierEntityPreview(entity.rawData, 1400)}</pre>
-                  </details>
-                </article>
-                );
-              })}
-              {group.items.length > 8 ? (
-                <p>Има още {group.items.length - 8} елемента в тази група. Отвори пълния списък за преглед на всички.</p>
-              ) : null}
-            </div>
-          </section>
-        ))}
+
+                        {hotelFacts.length ? (
+                          <div className="offer-supplier-quick-facts">
+                            {hotelFacts.map((item) => (
+                              <span key={item.label}>
+                                <strong>{item.label}</strong>
+                                {item.value}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </details>
+
+                      <details className="offer-supplier-quick-raw">
+                        <summary>Raw данни</summary>
+                        <pre>{supplierEntityPreview(entity.rawData)}</pre>
+                      </details>
+                    </article>
+                  );
+                })}
+              </div>
+            </details>
+          );
+        })}
       </div>
 
       {state.message ? <p className={state.ok ? "offer-editor-feedback" : "offer-editor-feedback is-error"}>{state.message}</p> : null}
       <footer>
-        <span>{visibleItems.length} от {totalCount} показани тук</span>
+        <span>{totalCount} блока от доставчика са налични тук</span>
         <button type="submit" disabled={isPending}>
           <Save size={16} aria-hidden="true" />
           {isPending ? "Запазване..." : "Запази прегледа"}
@@ -2431,7 +2505,7 @@ function SupplierApiDataWorkspace({ offer }: { offer: AdminOfferEditorInitialOff
     ...Object.keys(groupedEntities).filter((type) => !preferredOrder.includes(type)).sort()
   ];
   const enabledCount = offer.supplierEntities.filter((entity) => entity.isEnabled).length;
-  const rawPayloadPreview = supplierEntityPreview(offer.importRawPayload, 1800);
+  const rawPayloadPreview = supplierEntityPreview(offer.importRawPayload);
 
   return (
     <form className="offer-workflow-stack" action={formAction}>

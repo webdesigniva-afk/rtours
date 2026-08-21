@@ -1,4 +1,5 @@
 import type { AdminSupplierImportDetail } from "@/lib/adminImportRepository";
+import { SupplierReviewEntityControls } from "./SupplierReviewEntityControls";
 
 type SupplierEntity = AdminSupplierImportDetail["entities"][number];
 
@@ -83,8 +84,7 @@ function hotelTitle(entity: SupplierEntity, raw: Record<string, unknown>, index:
 }
 
 function entityPreview(raw: unknown) {
-  const text = JSON.stringify(raw, null, 2) || "{}";
-  return text.length > 1600 ? `${text.slice(0, 1600)}...` : text;
+  return JSON.stringify(raw, null, 2) || "{}";
 }
 
 function hotelFactRows(entity: SupplierEntity, raw: Record<string, unknown>, category: string, rooms: string) {
@@ -128,6 +128,7 @@ export function SupplierHotelsReviewList({ entities }: { entities: SupplierEntit
                 <span>Категория</span>
                 <input name={`entity_category_${entity.id}`} defaultValue={category} placeholder="напр. 4*" />
               </label>
+              <SupplierReviewEntityControls entity={entity} />
               {facts.length ? (
                 <div className="supplier-review-hotel-facts">
                   {facts.map((item) => (

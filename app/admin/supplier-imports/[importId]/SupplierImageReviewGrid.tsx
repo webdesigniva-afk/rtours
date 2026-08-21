@@ -3,12 +3,12 @@
 import { useMemo, useState } from "react";
 import { GripVertical } from "lucide-react";
 import type { AdminSupplierImportDetail } from "@/lib/adminImportRepository";
+import { SupplierReviewEntityControls } from "./SupplierReviewEntityControls";
 
 type SupplierImageEntity = AdminSupplierImportDetail["entities"][number];
 
 function entityPreview(raw: unknown) {
-  const text = JSON.stringify(raw, null, 2) || "{}";
-  return text.length > 520 ? `${text.slice(0, 520)}...` : text;
+  return JSON.stringify(raw, null, 2) || "{}";
 }
 
 export function SupplierImageReviewGrid({ entities }: { entities: SupplierImageEntity[] }) {
@@ -100,6 +100,7 @@ export function SupplierImageReviewGrid({ entities }: { entities: SupplierImageE
                 <input name={`entity_url_${entity.id}`} defaultValue={entity.editorialUrl || entity.url || ""} />
               </label>
             </div>
+            <SupplierReviewEntityControls entity={entity} />
             <details>
               <summary>Raw данни</summary>
               <pre>{entityPreview(entity.rawData)}</pre>

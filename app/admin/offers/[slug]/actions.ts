@@ -301,7 +301,7 @@ export async function updateOfferPublishing(slug: string, input: OfferPublishing
     }
   }
 
-  const controlledPlacements = ["homepage", "offers_index", "collection_page", "destination_page", "search", "promo_section", "private_link", "hidden"];
+  const controlledPlacements = ["homepage", "offers_index", "author_programs", "exotics", "collection_page", "destination_page", "search", "promo_section", "private_link", "hidden"];
   const visibilityRules = input.visibilityRules
     .map((rule) => ({
       placement: visibilityPlacementValues.has(rule.placement) ? rule.placement : "",
@@ -339,6 +339,8 @@ export async function updateOfferPublishing(slug: string, input: OfferPublishing
   revalidatePath("/admin/offers");
   revalidatePath("/offers");
   revalidatePath(`/offers/${slug}`);
+  revalidatePath("/author-programs");
+  revalidatePath("/exotics");
   revalidatePath("/");
 
   return { ok: true, message: "Публикуването, taxonomy етикетите и показването в сайта са записани." };
@@ -421,6 +423,26 @@ function readStringList(formData: FormData, key: string) {
   return formData.getAll(key).map((value) => (typeof value === "string" ? value.trim() : ""));
 }
 
+function itineraryTitleIfSpecific(title: string, dayNumber: number) {
+  const text = title.trim();
+  if (!text) return "";
+  const normalized = text
+    .toLocaleLowerCase("bg-BG")
+    .replace(/\s+/g, " ")
+    .replace(/[–—]/g, "-")
+    .trim();
+  const genericPattern = new RegExp(`^(ден|day)\\s*[-:.#№]?\\s*0*${dayNumber}\\.?$`, "iu");
+  return genericPattern.test(normalized) ? "" : text;
+}
+
+function comparableDestinationPart(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("bg-BG");
+}
+
+function cityIfDifferentFromRegion(region: string, city: string) {
+  return comparableDestinationPart(region) && comparableDestinationPart(region) === comparableDestinationPart(city) ? "" : city;
+}
+
 function readDestinations(formData: FormData): OfferDestinationInput[] {
   const countries = readStringList(formData, "destination_country");
   const regions = readStringList(formData, "destination_region");
@@ -431,7 +453,7 @@ function readDestinations(formData: FormData): OfferDestinationInput[] {
   for (let index = 0; index < rowCount; index += 1) {
     const country = countries[index] ?? "";
     const region = regions[index] ?? "";
-    const city = cities[index] ?? "";
+    const city = cityIfDifferentFromRegion(region, cities[index] ?? "");
 
     if (!country && !region && !city) {
       continue;
@@ -452,7 +474,7 @@ const transportValues = new Set(["flight", "bus", "own_transport", "mixed"]);
 const availabilityValues = new Set(["available", "limited", "on_request", "sold_out"]);
 const priceStatusValues = new Set(["fixed", "option_until", "dynamic", "budgetary"]);
 const taxonomyTermTypeValues = new Set(["category", "theme", "audience", "mood", "badge", "collection", "transport", "service_type", "destination_style", "season"]);
-const visibilityPlacementValues = new Set(["homepage", "offers_index", "collection_page", "destination_page", "search", "promo_section", "private_link", "hidden"]);
+const visibilityPlacementValues = new Set(["homepage", "offers_index", "author_programs", "exotics", "collection_page", "destination_page", "search", "promo_section", "private_link", "hidden"]);
 
 export async function updateOfferContent(_state: OfferContentActionState, formData: FormData): Promise<OfferContentActionState> {
   const offerIdInput = readString(formData, "offer_id");
@@ -485,14 +507,17 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
   const galleryImageUrls = readStringList(formData, "gallery_image_urls").filter(Boolean).slice(0, 20);
   const imageAltTexts = readStringList(formData, "image_alt_texts");
   const itineraryRows = itineraryTitles
-    .map((dayTitle, index) => ({
-      dayNumber: Number.parseInt(itineraryDayNumbers[index] || `${index + 1}`, 10),
-      title: dayTitle,
-      description: itineraryDescriptions[index] || "",
-      accommodation: itineraryAccommodations[index] || "",
-      meals: itineraryMeals[index] || "",
-      transport: itineraryTransports[index] || ""
-    }))
+    .map((dayTitle, index) => {
+      const dayNumber = Number.parseInt(itineraryDayNumbers[index] || `${index + 1}`, 10);
+      return {
+        dayNumber,
+        title: itineraryTitleIfSpecific(dayTitle, Number.isFinite(dayNumber) && dayNumber > 0 ? dayNumber : index + 1),
+        description: itineraryDescriptions[index] || "",
+        accommodation: itineraryAccommodations[index] || "",
+        meals: itineraryMeals[index] || "",
+        transport: itineraryTransports[index] || ""
+      };
+    })
     .filter((day) => day.title || day.description || day.accommodation || day.meals || day.transport);
   const highlights = readStringList(formData, "highlights").filter(Boolean).slice(0, 5);
   const includedServices = readStringList(formData, "included_services").filter(Boolean);
@@ -614,7 +639,7 @@ export async function updateOfferContent(_state: OfferContentActionState, formDa
           insert into offer_itinerary_days (offer_id, day_number, title, description, accommodation, meals, transport, sort_order)
           values ($1, $2, $3, nullif($4, ''), nullif($5, ''), nullif($6, ''), nullif($7, ''), $8)
         `,
-        [offerId, Number.isFinite(day.dayNumber) && day.dayNumber > 0 ? day.dayNumber : index + 1, day.title || `Ден ${index + 1}`, day.description, day.accommodation, day.meals, day.transport, index]
+        [offerId, Number.isFinite(day.dayNumber) && day.dayNumber > 0 ? day.dayNumber : index + 1, day.title, day.description, day.accommodation, day.meals, day.transport, index]
       );
     }
 

@@ -115,6 +115,26 @@ function readStringList(formData: FormData, key: string) {
   return formData.getAll(key).map((value) => (typeof value === "string" ? value.trim() : ""));
 }
 
+function itineraryTitleIfSpecific(title: string, dayNumber: number) {
+  const text = title.trim();
+  if (!text) return "";
+  const normalized = text
+    .toLocaleLowerCase("bg-BG")
+    .replace(/\s+/g, " ")
+    .replace(/[–—]/g, "-")
+    .trim();
+  const genericPattern = new RegExp(`^(ден|day)\\s*[-:.#№]?\\s*0*${dayNumber}\\.?$`, "iu");
+  return genericPattern.test(normalized) ? "" : text;
+}
+
+function comparableDestinationPart(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("bg-BG");
+}
+
+function cityIfDifferentFromRegion(region: string, city: string) {
+  return comparableDestinationPart(region) && comparableDestinationPart(region) === comparableDestinationPart(city) ? "" : city;
+}
+
 function readDestinations(formData: FormData): OfferDestinationInput[] {
   const countries = readStringList(formData, "destination_country");
   const regions = readStringList(formData, "destination_region");
@@ -125,7 +145,7 @@ function readDestinations(formData: FormData): OfferDestinationInput[] {
   for (let index = 0; index < rowCount; index += 1) {
     const country = countries[index] ?? "";
     const region = regions[index] ?? "";
-    const city = cities[index] ?? "";
+    const city = cityIfDifferentFromRegion(region, cities[index] ?? "");
 
     if (!country && !region && !city) {
       continue;
@@ -150,14 +170,17 @@ function readItinerary(formData: FormData): OfferItineraryInput[] {
   const transports = readStringList(formData, "itinerary_transport");
 
   return titles
-    .map((title, index) => ({
-      dayNumber: Number.parseInt(dayNumbers[index] || `${index + 1}`, 10),
-      title,
-      description: descriptions[index] || "",
-      accommodation: accommodations[index] || "",
-      meals: meals[index] || "",
-      transport: transports[index] || ""
-    }))
+    .map((title, index) => {
+      const dayNumber = Number.parseInt(dayNumbers[index] || `${index + 1}`, 10);
+      return {
+        dayNumber,
+        title: itineraryTitleIfSpecific(title, Number.isFinite(dayNumber) && dayNumber > 0 ? dayNumber : index + 1),
+        description: descriptions[index] || "",
+        accommodation: accommodations[index] || "",
+        meals: meals[index] || "",
+        transport: transports[index] || ""
+      };
+    })
     .filter((day) => day.title || day.description || day.accommodation || day.meals || day.transport);
 }
 
@@ -870,7 +893,7 @@ export async function createAdminOffer(formData: FormData) {
         insert into offer_itinerary_days (offer_id, day_number, title, description, accommodation, meals, transport, sort_order)
         values ($1, $2, $3, nullif($4, ''), nullif($5, ''), nullif($6, ''), nullif($7, ''), $8)
       `,
-      [offerId, Number.isFinite(day.dayNumber) && day.dayNumber > 0 ? day.dayNumber : index + 1, day.title || `Ден ${index + 1}`, day.description, day.accommodation, day.meals, day.transport, index]
+      [offerId, Number.isFinite(day.dayNumber) && day.dayNumber > 0 ? day.dayNumber : index + 1, day.title, day.description, day.accommodation, day.meals, day.transport, index]
     );
   }
 

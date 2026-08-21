@@ -75,6 +75,18 @@ function textFromHtml(value: unknown) {
     .trim();
 }
 
+function itineraryTitleIfSpecific(title: string, dayNumber: number) {
+  const text = title.trim();
+  if (!text) return "";
+  const normalized = text
+    .toLocaleLowerCase("bg-BG")
+    .replace(/\s+/g, " ")
+    .replace(/[–—]/g, "-")
+    .trim();
+  const genericPattern = new RegExp(`^(ден|day)\\s*[-:.#№]?\\s*0*${dayNumber}\\.?$`, "iu");
+  return genericPattern.test(normalized) ? "" : text;
+}
+
 function numberValue(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
@@ -168,7 +180,7 @@ async function applyEnabledItineraryToOffer(client: DbClient, importId: string, 
     const raw = objectValue(row.raw_data);
     const editorial = objectValue(row.editorial_data);
     const dayNumber = numberValue(editorial.dayNumber) || numberValue(raw.dayNumber) || index + 1;
-    const title = textFromHtml(row.editorial_title) || textFromHtml(editorial.title) || textFromHtml(raw.title) || `Ден ${dayNumber}`;
+    const title = itineraryTitleIfSpecific(textFromHtml(row.editorial_title) || textFromHtml(editorial.title) || textFromHtml(raw.title), dayNumber);
     const description = textFromHtml(editorial.description) || textFromHtml(editorial.descriptionHtml) || textFromHtml(raw.description);
 
     await client.query(
@@ -346,10 +358,12 @@ export async function saveSupplierImportReview(importId: string, formData: FormD
       const descriptionInput = readString(formData, `entity_description_${entityId}`);
       const serviceType = readString(formData, `entity_service_type_${entityId}`) === "excluded" ? "excluded" : "included";
       const entityTitle = textFromHtml(readString(formData, `entity_title_${entityId}`));
+      const publicSection = readString(formData, `entity_public_section_${entityId}`) || "internal";
       const editorialData = {
         title: entityTitle,
         text: entityTitle,
         url: readString(formData, `entity_url_${entityId}`),
+        publicSection,
         dayNumber: readInteger(formData, `entity_day_number_${entityId}`, index + 1),
         description: textFromHtml(descriptionInput),
         descriptionHtml: descriptionMode === "html" ? descriptionInput : "",
@@ -380,7 +394,7 @@ export async function saveSupplierImportReview(importId: string, formData: FormD
               sort_order = $6,
               editorial_data = case
                 when entity_type in (
-                  'itinerary_day', 'service', 'departure', 'hotel',
+                  'image', 'itinerary_day', 'service', 'departure', 'hotel',
                   'additional_service', 'useful_info', 'payment_policy', 'cancel_policy', 'insurance'
                 ) then $7::jsonb
                 else editorial_data

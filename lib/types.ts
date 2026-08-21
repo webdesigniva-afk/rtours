@@ -21,6 +21,8 @@ export type TaxonomyTermType =
 export type OfferVisibilityPlacement =
   | "homepage"
   | "offers_index"
+  | "author_programs"
+  | "exotics"
   | "collection_page"
   | "destination_page"
   | "search"
@@ -157,10 +159,43 @@ export interface ItineraryDay {
 }
 
 export interface OfferSupplierSection {
-  type: "hotel" | "additional_service" | "useful_info" | "payment_policy" | "cancel_policy" | "insurance";
+  type: string;
   title: string;
   body?: string;
   meta?: string;
+  url?: string;
+  price?: number;
+  currency?: "EUR" | "BGN" | string;
+  provider?: string;
+  entityKey?: string;
+  startDate?: string;
+  endDate?: string;
+  publicSection?: string;
+}
+
+export interface OfferPriceMatrix {
+  title: string;
+  hotel?: string;
+  room?: string;
+  note?: string;
+  columns: Array<{ key: string; label: string }>;
+  rows: Array<{
+    date: string;
+    cells: Record<string, string>;
+  }>;
+}
+
+export interface OfferHotelOption {
+  key: string;
+  title: string;
+  category?: string;
+  destination?: string;
+  imageUrl?: string;
+  priceFrom?: number;
+  currency?: "EUR" | "BGN" | string;
+  rooms: string[];
+  dates: string[];
+  source?: string;
 }
 
 export interface Offer {
@@ -205,6 +240,8 @@ export interface Offer {
   excluded: string[];
   itinerary: ItineraryDay[];
   supplierSections?: OfferSupplierSection[];
+  priceMatrices?: OfferPriceMatrix[];
+  hotelOptions?: OfferHotelOption[];
   seo: SeoFields;
   externalSync?: ExternalOfferSync;
   review?: OfferReviewState;

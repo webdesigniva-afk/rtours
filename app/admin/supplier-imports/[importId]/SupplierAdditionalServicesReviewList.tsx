@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { AdminSupplierImportDetail } from "@/lib/adminImportRepository";
+import { SupplierReviewEntityControls } from "./SupplierReviewEntityControls";
 
 type SupplierEntity = AdminSupplierImportDetail["entities"][number];
 
@@ -40,8 +41,7 @@ function splitPrice(label: string) {
 }
 
 function entityPreview(raw: unknown) {
-  const text = JSON.stringify(raw, null, 2) || "{}";
-  return text.length > 520 ? `${text.slice(0, 520)}...` : text;
+  return JSON.stringify(raw, null, 2) || "{}";
 }
 
 export function SupplierAdditionalServicesReviewList({ entities }: { entities: SupplierEntity[] }) {
@@ -85,6 +85,7 @@ export function SupplierAdditionalServicesReviewList({ entities }: { entities: S
                 <span>Цена</span>
                 <input value={item.price} placeholder="напр. 28 EUR" onChange={(event) => updateItem(item.entity.id, { price: event.target.value })} />
               </label>
+              <SupplierReviewEntityControls entity={item.entity} />
               <details>
                 <summary>Raw данни</summary>
                 <pre>{entityPreview(item.entity.rawData)}</pre>

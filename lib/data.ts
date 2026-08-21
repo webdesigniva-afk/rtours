@@ -29,39 +29,46 @@ export const destinations: Destination[] = [
 
 export const collections: Collection[] = [
   {
-    slug: "red-signature",
-    name: "Red Signature",
-    summary: "Авторски програми с внимателно подбрани маршрути, хотели и преживявания.",
+    slug: "red-icons",
+    name: "Red Icons",
+    summary: "Емблематични маршрути и преживявания, които поне веднъж си заслужава да бъдат изживени.",
     mood: "signature",
     image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=82"
   },
   {
-    slug: "red-moments",
-    name: "Red Moments",
-    summary: "Кратки бягства и силни поводи, създадени за споделяне.",
-    mood: "romance",
+    slug: "red-hidden",
+    name: "Red Hidden",
+    summary: "По-малко познати места, истории и кътчета на Европа извън утъпканите маршрути.",
+    mood: "calm",
     image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=1200&q=82"
   },
   {
-    slug: "red-escape",
-    name: "Red Escape",
-    summary: "Почивки и маршрути за хора, които искат да излязат от обичайния ритъм.",
-    mood: "calm",
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=82"
+    slug: "red-taste",
+    name: "Red Taste",
+    summary: "Пътувания през местната кухня, виното и вкусовете, които разказват една дестинация.",
+    mood: "food",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=82"
   },
   {
-    slug: "red-family",
-    name: "Red Family",
-    summary: "Пътувания за цялото семейство с удобен ритъм и грижа за детайлите.",
-    mood: "family",
-    image: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=82"
+    slug: "red-wild",
+    name: "Red Wild",
+    summary: "Впечатляващи пейзажи, природни феномени и срещи с дивия свят.",
+    mood: "adventure",
+    image: "https://images.unsplash.com/photo-1456926631375-92c8ce872def?auto=format&fit=crop&w=1200&q=82"
   },
   {
-    slug: "red-private",
-    name: "Red Private",
-    summary: "Индивидуални и VIP преживявания с максимално персонален подход.",
+    slug: "red-live",
+    name: "Red Live",
+    summary: "Концерти, фестивали и културни събития, около които си заслужава да построите цяло пътуване.",
+    mood: "culture",
+    image: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=82"
+  },
+  {
+    slug: "red-circle",
+    name: "Red Circle",
+    summary: "Внимателно подбрани маршрути за малки групи и по-личен начин на пътуване.",
     mood: "private",
-    image: "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1200&q=82"
+    image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=82"
   }
 ];
 
@@ -73,7 +80,7 @@ export const offers: Offer[] = [
     description:
       "Програма за пътешественици, които искат да усетят Виетнам отвъд стандартния маршрут: пазари, малки ресторанти, градски разходки и спокойни дни край водата.",
     destinationSlug: "vietnam",
-    collectionSlugs: ["red-signature"],
+    collectionSlugs: ["red-icons", "red-taste"],
     country: "Виетнам",
     region: "Югоизточна Азия",
     durationDays: 12,
@@ -126,7 +133,7 @@ export const offers: Offer[] = [
     description:
       "Тоскана в компактен, но балансиран формат: градчета, пейзажи, кухня и места, които оставят усещане за лекота.",
     destinationSlug: "italy",
-    collectionSlugs: ["red-moments", "red-escape"],
+    collectionSlugs: ["red-taste", "red-hidden"],
     country: "Италия",
     region: "Южна Европа",
     durationDays: 4,
@@ -173,7 +180,7 @@ export const offers: Offer[] = [
     description:
       "Класическа, но внимателно подредена програма за Йордания: Петра, Вади Рум, Мъртво море и културни спирки по маршрута.",
     destinationSlug: "jordan",
-    collectionSlugs: ["red-signature", "red-escape"],
+    collectionSlugs: ["red-icons", "red-wild"],
     country: "Йордания",
     region: "Близък Изток",
     durationDays: 8,

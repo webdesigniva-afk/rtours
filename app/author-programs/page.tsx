@@ -58,11 +58,7 @@ const processRouteStops = [
 ];
 
 function isSignatureOffer(offer: Offer) {
-  return Boolean(
-    offer.isAuthorProgram ||
-    (offer.collectionSlugs ?? []).includes("red-signature") ||
-    ((offer.visibilityPlacements ?? []).includes("collection_page") && (offer.collectionSlugs ?? []).includes("red-signature"))
-  );
+  return (offer.visibilityPlacements ?? []).includes("author_programs");
 }
 
 function priceLabel(offer: Offer) {

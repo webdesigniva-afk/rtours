@@ -111,7 +111,7 @@ function HomePickTile({ offer }: { offer: Offer }) {
 export default async function Home() {
   const featuredOffers = await listPublishedPublicOffers();
   const redToursPicks = featuredOffers
-    .filter((offer) => (offer.visibilityPlacements ?? []).includes("homepage") || offer.tags.includes("Наш избор") || (offer.badgeSlugs ?? []).includes("nash-izbor"))
+    .filter((offer) => (offer.visibilityPlacements ?? []).includes("homepage"))
     .slice(0, 6);
   const redCollections = [
     {

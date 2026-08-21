@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 const exoticTabs = ["Всички", "Азия", "Африка", "Латинска Америка", "Острови"];
 
 function isExoticOffer(offer: Offer) {
-  return (offer.collectionSlugs ?? []).some((slug) => slug.toLowerCase() === "red-escape");
+  return (offer.visibilityPlacements ?? []).includes("exotics");
 }
 
 function priceLabel(offer: Offer) {

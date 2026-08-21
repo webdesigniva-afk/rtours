@@ -1,4 +1,5 @@
 import type { AdminSupplierImportDetail } from "@/lib/adminImportRepository";
+import { SupplierReviewEntityControls } from "./SupplierReviewEntityControls";
 
 type SupplierEntity = AdminSupplierImportDetail["entities"][number];
 
@@ -102,8 +103,7 @@ function metaText(entity: SupplierEntity) {
 }
 
 function entityPreview(raw: unknown) {
-  const text = JSON.stringify(raw, null, 2) || "{}";
-  return text.length > 1800 ? `${text.slice(0, 1800)}...` : text;
+  return JSON.stringify(raw, null, 2) || "{}";
 }
 
 export function SupplierTextBlocksReviewList({ entities }: { entities: SupplierEntity[] }) {
@@ -127,6 +127,7 @@ export function SupplierTextBlocksReviewList({ entities }: { entities: SupplierE
               <span>Текст в сайта</span>
               <textarea name={`entity_title_${entity.id}`} defaultValue={entityText(entity)} rows={4} />
             </label>
+            <SupplierReviewEntityControls entity={entity} />
             <details>
               <summary>Raw данни</summary>
               <pre>{entityPreview(entity.rawData)}</pre>

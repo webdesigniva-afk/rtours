@@ -29,7 +29,7 @@ import type { LucideIcon } from "lucide-react";
 import { logoutAdmin } from "@/app/admin/actions";
 
 type AdminWorkspaceProps = {
-  active: "dashboard" | "offers" | "imports" | "suppliers" | "inquiries";
+  active: "dashboard" | "offers" | "imports" | "suppliers" | "inquiries" | "coming-soon";
   children: React.ReactNode;
 };
 
@@ -44,32 +44,36 @@ type AdminNavItem = {
   dot?: boolean;
 };
 
+function comingSoonHref(section: string) {
+  return `/admin/coming-soon?section=${encodeURIComponent(section)}`;
+}
+
 const groups: Array<{ label: string; items: AdminNavItem[] }> = [
   {
     label: "Операции",
     items: [
       { href: "/admin", label: "Начало", icon: Home, id: "dashboard" },
-      { href: "/admin/offers", label: "Резервации", icon: CalendarDays },
-      { href: "/admin/offers", label: "Клиенти", icon: Users },
+      { href: comingSoonHref("Резервации"), label: "Резервации", icon: CalendarDays },
+      { href: comingSoonHref("Клиенти"), label: "Клиенти", icon: Users },
       { href: "/admin/offers", label: "Пътувания / програми", icon: Plane },
-      { href: "/admin/offers", label: "Услуги", icon: BriefcaseBusiness },
-      { href: "/admin/offers", label: "Групи и автобуси", icon: Bus }
+      { href: comingSoonHref("Услуги"), label: "Услуги", icon: BriefcaseBusiness },
+      { href: comingSoonHref("Групи и автобуси"), label: "Групи и автобуси", icon: Bus }
     ]
   },
   {
     label: "Финанси",
     items: [
-      { href: "/admin/offers", label: "Плащания", icon: WalletCards },
-      { href: "/admin/offers", label: "Доставчици", icon: Archive },
-      { href: "/admin/offers", label: "Документи", icon: FileText },
-      { href: "/admin/offers", label: "Справки", icon: BarChart3 }
+      { href: comingSoonHref("Плащания"), label: "Плащания", icon: WalletCards },
+      { href: comingSoonHref("Финанси / доставчици"), label: "Доставчици", icon: Archive },
+      { href: comingSoonHref("Документи"), label: "Документи", icon: FileText },
+      { href: comingSoonHref("Справки"), label: "Справки", icon: BarChart3 }
     ]
   },
   {
     label: "Комуникация",
     items: [
       { href: "/admin/inquiries", label: "Запитвания", icon: Mail, id: "inquiries" },
-      { href: "/admin/offers", label: "Известия", icon: Bell, badge: "5" }
+      { href: comingSoonHref("Известия"), label: "Известия", icon: Bell }
     ]
   },
   {
@@ -83,9 +87,9 @@ const groups: Array<{ label: string; items: AdminNavItem[] }> = [
   {
     label: "Система",
     items: [
-      { href: "/admin/offers", label: "Настройки", icon: Settings },
-      { href: "/admin/offers", label: "Потребители", icon: Users },
-      { href: "/admin/offers", label: "Дневник на дейности", icon: ShieldCheck }
+      { href: comingSoonHref("Настройки"), label: "Настройки", icon: Settings },
+      { href: comingSoonHref("Потребители"), label: "Потребители", icon: Users },
+      { href: comingSoonHref("Дневник на дейности"), label: "Дневник на дейности", icon: ShieldCheck }
     ]
   }
 ];
@@ -196,7 +200,7 @@ export function AdminWorkspace({ active, children }: AdminWorkspaceProps) {
           </label>
           <div className="erp-topbar-actions">
             <span>{today}</span>
-            <Link href="/admin/offers">
+            <Link href={comingSoonHref("Календар")}>
               <CalendarDays size={17} aria-hidden="true" />
               Календар
             </Link>

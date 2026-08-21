@@ -84,6 +84,31 @@ type DestinationRow = {
   city: string;
 };
 
+function comparableDestinationPart(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("bg-BG");
+}
+
+function cityIfDifferentFromRegion(region: string, city: string) {
+  return comparableDestinationPart(region) && comparableDestinationPart(region) === comparableDestinationPart(city) ? "" : city;
+}
+
+function normalizeDestinationRow(destination: Omit<DestinationRow, "id">): Omit<DestinationRow, "id"> {
+  return {
+    ...destination,
+    city: cityIfDifferentFromRegion(destination.region, destination.city)
+  };
+}
+
+function uniqueDestinationParts(...parts: string[]) {
+  const seen = new Set<string>();
+  return parts.filter((part) => {
+    const normalized = comparableDestinationPart(part);
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
 type ItineraryRow = {
   id: string;
   day: number;
@@ -453,9 +478,11 @@ export function OfferContentForm({
   const [destinations, setDestinations] = useState<DestinationRow[]>(
     initialDestinations.map((destination, index) => ({
       id: index === 0 ? "primary" : crypto.randomUUID(),
-      country: destination.country,
-      region: destination.region,
-      city: destination.city
+      ...normalizeDestinationRow({
+        country: destination.country,
+        region: destination.region,
+        city: destination.city
+      })
     }))
   );
   const [durationDays, setDurationDays] = useState(String(initial.durationDays ?? ""));
@@ -502,7 +529,7 @@ export function OfferContentForm({
   const primaryDestination = destinations[0] ?? { id: "primary", country: "", region: "", city: "" };
   const country = primaryDestination.country;
   const region = primaryDestination.region || primaryDestination.city;
-  const routeLabel = destinations.map((destination) => [destination.city, destination.region, destination.country].filter(Boolean).join(", ")).filter(Boolean).join(" -> ");
+  const routeLabel = destinations.map((destination) => uniqueDestinationParts(destination.city, destination.region, destination.country).join(", ")).filter(Boolean).join(" -> ");
   const derivedSummary = createSummaryFromDescription(description) || summary;
   const includedServices = splitServiceText(includedServicesText);
   const excludedServices = splitServiceText(excludedServicesText);
@@ -533,9 +560,11 @@ export function OfferContentForm({
     setDestinations(
       nextDestinations.map((destination, index) => ({
         id: index === 0 ? "primary" : crypto.randomUUID(),
-        country: destination.country,
-        region: destination.region,
-        city: destination.city
+        ...normalizeDestinationRow({
+          country: destination.country,
+          region: destination.region,
+          city: destination.city
+        })
       }))
     );
     setIncludedServicesText(getInitialServices(initial.included).join("\n"));
@@ -815,7 +844,11 @@ export function OfferContentForm({
   };
 
   const updateDestination = (id: string, field: keyof Omit<DestinationRow, "id">, value: string) => {
-    setDestinations((current) => current.map((destination) => (destination.id === id ? { ...destination, [field]: value } : destination)));
+    setDestinations((current) => current.map((destination) => {
+      if (destination.id !== id) return destination;
+      const next = { ...destination, [field]: value };
+      return { ...next, city: cityIfDifferentFromRegion(next.region, next.city) };
+    }));
   };
   const addDestination = () => setDestinations((current) => [...current, { id: crypto.randomUUID(), country: "", region: "", city: "" }]);
   const removeDestination = (id: string) => setDestinations((current) => (current.length === 1 ? current : current.filter((destination) => destination.id !== id)));
