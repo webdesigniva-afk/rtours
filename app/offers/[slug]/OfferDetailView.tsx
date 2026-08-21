@@ -1,6 +1,8 @@
 import { InquiryForm } from "@/components/InquiryForm";
+import { ScrollRevealEffects } from "@/components/ScrollRevealEffects";
 import { CalendarDays, CheckCircle2, Clock3, MapPin, Plane, XCircle } from "lucide-react";
 import type { Offer, OfferSupplierSection } from "@/lib/types";
+import { OfferGalleryLightbox } from "./OfferGalleryLightbox";
 import styles from "./OfferDetailView.module.css";
 
 function repairText(value: string | undefined | null, fallback = "") {
@@ -186,14 +188,14 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
   const heroRoute = compactDestinationLabel(offer);
   const images = Array.from(new Set([offer.heroImage, ...(offer.gallery || [])].filter(Boolean)));
   const heroImage = images[0];
-  const galleryImages = images.slice(1).length ? images.slice(1) : images;
-  const galleryPreviewImages = galleryImages.slice(0, 6);
-  const galleryExtraImages = galleryImages.slice(6);
+  const galleryPreviewImages: string[] = [];
+  const galleryExtraImages: string[] = [];
   const description = paragraphs(offer.description || offer.summary);
   const highlights = (offer.highlights || []).map((highlight) => repairText(highlight).trim()).filter(Boolean);
   const includedItems = (offer.included || []).map((item) => cleanText(item)).filter(Boolean);
   const excludedItems = (offer.excluded || []).map((item) => cleanText(item)).filter(Boolean);
   const redCollectionBadge = collectionBadgeLabel(offer.collectionSlugs || []);
+  const redCollectionBadgeRest = redCollectionBadge.replace(/^RED\s*/i, "").trim();
   const hasPrice = Boolean(offer.priceFrom && offer.priceFrom > 0);
   const supplierSections = offer.supplierSections || [];
   const publicSupplierSections = supplierSections.filter((section) => !["internal", "media"].includes(supplierPublicSection(section)));
@@ -213,6 +215,7 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
 
   return (
     <main className={styles.page}>
+      <ScrollRevealEffects />
       <section className={styles.hero}>
         <div className={styles.heroBackdrop} aria-hidden="true">
           {heroImage ? <img src={heroImage} alt="" /> : null}
@@ -225,7 +228,12 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
             <span>/</span>
             <span title={route}>{heroRoute}</span>
           </nav>
-          {redCollectionBadge ? <span className={styles.heroBadge}>{redCollectionBadge}</span> : null}
+          {redCollectionBadge ? (
+            <span className={styles.heroBadge}>
+              <span>RED</span>
+              {redCollectionBadgeRest ? ` ${redCollectionBadgeRest}` : null}
+            </span>
+          ) : null}
           <h1>{title}</h1>
 
           <div className={styles.heroFacts} aria-label="Основна информация">
@@ -273,9 +281,10 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
             </a>
           </div>
         </div>
+        <OfferGalleryLightbox images={images} title={title} />
       </section>
 
-      {(description.length || galleryPreviewImages.length) ? (
+      {description.length ? (
         <section className={styles.intro}>
           {galleryPreviewImages.length ? (
             <details className={styles.introGallery}>
@@ -303,7 +312,9 @@ export function OfferDetailView({ offer }: { offer: Offer }) {
 
           {description.length ? (
             <div className={styles.introCopy}>
-              <h2>За пътуването</h2>
+              <h2 className={`${styles.introHeading} offer-intro-ink-title`}>
+                За <em>пътуването</em>
+              </h2>
               {description.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
             </div>
           ) : null}

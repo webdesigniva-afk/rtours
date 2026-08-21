@@ -19,6 +19,7 @@ const revealSelectors = [
   ".review-featured",
   ".review-mini",
   ".section-header",
+  ".offer-intro-ink-title",
   ".offer-card"
 ].join(",");
 
