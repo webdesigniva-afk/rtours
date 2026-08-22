@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { CalendarDays, ChevronDown, Heart, SlidersHorizontal } from "lucide-react";
+import { ExoticOffersBrowser } from "./ExoticOffersBrowser";
 import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -14,45 +13,12 @@ export const metadata: Metadata = {
   description: "Екзотични пътувания на Red Tours към далечни посоки, ярки култури и внимателно подбрани преживявания."
 };
 
-const exoticTabs = ["Всички", "Азия", "Африка", "Латинска Америка", "Острови"];
-
 function isExoticOffer(offer: Offer) {
   return (offer.visibilityPlacements ?? []).includes("exotics");
 }
 
-function priceLabel(offer: Offer) {
-  return offer.priceFrom > 0 ? `от ${offer.priceFrom.toLocaleString("bg-BG")} ${offer.currency === "EUR" ? "EUR" : "лв."}` : "Цена при запитване";
-}
-
-function durationLabel(offer: Offer) {
-  return offer.durationNights ? `${offer.durationDays} дни / ${offer.durationNights} нощувки` : `${offer.durationDays} дни`;
-}
-
-function ExoticOfferCard({ offer, featured = false }: { offer: Offer; featured?: boolean }) {
-  return (
-    <Link className={featured ? "exotic-offer-card is-featured" : "exotic-offer-card"} href={`/offers/${offer.slug}`}>
-      <img src={offer.heroImage} alt={offer.title} />
-      <span className="exotic-offer-shade" aria-hidden="true" />
-      {featured ? <span className="exotic-offer-badge">Препоръчано</span> : null}
-      <span className="exotic-offer-heart" aria-hidden="true">
-        <Heart size={24} />
-      </span>
-      <span className="exotic-offer-content">
-        <strong>{offer.title}</strong>
-        <span className="exotic-offer-bottom">
-          <span>
-            <CalendarDays size={16} aria-hidden="true" />
-            {durationLabel(offer)}
-          </span>
-          <b>{priceLabel(offer)}</b>
-        </span>
-      </span>
-    </Link>
-  );
-}
-
 export default async function ExoticsPage() {
-  const exoticOffers = (await listPublishedPublicOffers()).filter(isExoticOffer).slice(0, 5);
+  const exoticOffers = (await listPublishedPublicOffers()).filter(isExoticOffer);
 
   return (
     <>
@@ -109,40 +75,7 @@ export default async function ExoticsPage() {
 
         <section className="exotic-offers-section">
           <div className="container">
-            <nav className="exotic-offer-tabs" aria-label="Екзотични региони">
-              {exoticTabs.map((tab, index) => (
-                <button className={index === 0 ? "is-active" : ""} key={tab} type="button">
-                  {tab}
-                </button>
-              ))}
-            </nav>
-
-            <header className="exotic-offers-header">
-              <h2>Екзотични пътувания</h2>
-              <div className="exotic-offer-tools" aria-label="Инструменти за оферти">
-                <button type="button">
-                  Филтри
-                  <SlidersHorizontal size={18} aria-hidden="true" />
-                </button>
-                <button type="button">
-                  Препоръчани
-                  <ChevronDown size={18} aria-hidden="true" />
-                </button>
-              </div>
-            </header>
-
-            {exoticOffers.length ? (
-              <div className="exotic-offers-grid">
-                {exoticOffers.map((offer, index) => (
-                  <ExoticOfferCard featured={index === 0} key={offer.slug} offer={offer} />
-                ))}
-              </div>
-            ) : (
-              <div className="exotic-offers-empty">
-                <strong>Скоро тук ще се появят екзотичните пътувания.</strong>
-                <p>Когато оферта бъде отбелязана като „Екзотични пътувания“ в админ панела, тя ще се покаже автоматично в тази секция.</p>
-              </div>
-            )}
+            <ExoticOffersBrowser offers={exoticOffers} />
           </div>
         </section>
       </main>

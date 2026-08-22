@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { DestinationGlobe } from "@/components/DestinationGlobe";
 import { OfferCard } from "@/components/OfferCard";
 import { OfferSortSelect } from "@/components/OfferSortSelect";
 import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { collections, destinations } from "@/lib/data";
+import { destinationSlug } from "@/lib/destinationSlug";
 import { listPublishedPublicOffers } from "@/lib/offerRepository";
 import { experienceTaxonomyLabels, travelTypeTaxonomyLabels } from "@/lib/offerTaxonomy";
 import type { Offer } from "@/lib/types";
@@ -476,6 +478,24 @@ function destinationOptionsFromOffers(offers: Offer[]) {
   return Array.from(options.values()).sort((first, second) => first.localeCompare(second, "bg"));
 }
 
+function globeDestinationsFromOffers(offers: Offer[]) {
+  return Array.from(
+    offers.reduce((items, offer) => {
+      for (const country of offerDestinationCountries(offer)) {
+        const slug = destinationSlug(country);
+        const current = items.get(slug);
+        items.set(slug, {
+          country: current?.country || country,
+          offerCount: (current?.offerCount || 0) + 1,
+          slug
+        });
+      }
+
+      return items;
+    }, new Map<string, { country: string; offerCount: number; slug: string }>())
+  ).map(([, item]) => item);
+}
+
 function labelsFromPublishedOffers(offers: Offer[], preferredOrder: readonly string[], readLabels: (offer: Offer) => Array<string | undefined>) {
   const labels = new Map<string, string>();
   for (const offer of offers) {
@@ -576,6 +596,7 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
   const params = (await searchParams) ?? {};
   const publishedOffers = await listPublishedPublicOffers();
   const destinationOptions = destinationOptionsFromOffers(publishedOffers);
+  const globeDestinations = globeDestinationsFromOffers(publishedOffers);
   const periodOptions = periodOptionsFromOffers(publishedOffers);
   const experienceOptions = labelsFromPublishedOffers(publishedOffers, experienceTaxonomyLabels, (offer) => offer.moodLabels ?? []);
   const travelTypeOptions = travelTypeOptionsFromOffers(publishedOffers);
@@ -626,6 +647,7 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
     !params.period && (params.from || params.to) ? `Дати: ${[params.from, params.to].filter(Boolean).join(" - ")}` : ""
   ].filter(Boolean);
   const popularSearches = ["Япония", "Италия", "Малдиви", "Перу", "Уикенд пътувания"];
+  const selectedDestinationLabel = params.destination ? destinationLabel(params.destination) : "";
   const totalPages = Math.max(1, Math.ceil(filteredOffers.length / offersPerPage));
   const currentPage = Math.min(pageNumber(params.page), totalPages);
   const pageStartIndex = (currentPage - 1) * offersPerPage;
@@ -799,20 +821,6 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
             </div>
           ) : null}
 
-          {filteredOffers.length ? (
-            <section className="offers-tailor-banner">
-              <span aria-hidden="true"><Sparkles size={34} /></span>
-              <div>
-                <h2>Не намирате точно това, което търсите?</h2>
-                <p>Създаваме пътувания по мярка - изцяло според вашите желания.</p>
-              </div>
-              <a href="/contacts#inquiry">
-                Изпратете запитване
-                <span aria-hidden="true">→</span>
-              </a>
-            </section>
-          ) : null}
-
           {totalPages > 1 ? (
             <nav className="offers-pagination-preview" aria-label="Страници">
               {currentPage > 1 ? (
@@ -834,6 +842,32 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
               )}
             </nav>
           ) : null}
+
+          {filteredOffers.length ? (
+            <section className="offers-map-strip" aria-label="Карта на пътуванията">
+              <div className="offers-map-strip-copy">
+                <span className="eyebrow">Карта на пътуванията</span>
+                <h2>Изберете посока от глобуса.</h2>
+              </div>
+              <div className="offers-map-strip-globe">
+                <DestinationGlobe country={selectedDestinationLabel} destinations={globeDestinations} highlightSelectedCountry={Boolean(params.destination)} />
+              </div>
+            </section>
+          ) : null}
+
+          {filteredOffers.length ? (
+            <section className="offers-tailor-banner">
+              <div>
+                <h2>Не намирате точното пътуване?</h2>
+                <p>Разкажете ни какво търсите и ще подготвим предложение по вашите дати, бюджет и стил.</p>
+              </div>
+              <a href="/contacts#inquiry">
+                Запитване
+                <span aria-hidden="true">→</span>
+              </a>
+            </section>
+          ) : null}
+
         </section>
       </main>
       <SiteFooter />

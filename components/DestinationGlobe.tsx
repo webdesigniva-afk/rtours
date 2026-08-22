@@ -236,15 +236,17 @@ function offerCountLabel(count: number) {
 
 export function DestinationGlobe({
   country,
-  destinations = []
+  destinations = [],
+  highlightSelectedCountry = true
 }: {
   country: string;
   destinations?: GlobeDestination[];
+  highlightSelectedCountry?: boolean;
 }) {
   const [hoveredCountryId, setHoveredCountryId] = useState<string | undefined>();
   const [hoveredCountryInfo, setHoveredCountryInfo] = useState<HoveredCountryInfo | undefined>();
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const selectedCountry = findCountry(country);
+  const selectedCountry = highlightSelectedCountry && country.trim() ? findCountry(country) : undefined;
   const center = selectedCountry ? geoCentroid(selectedCountry as never) : [22, 36];
   const initialRotation = useMemo<[number, number]>(() => [-center[0], -center[1]], [center[0], center[1]]);
   const [rotation, setRotation] = useState<[number, number]>(initialRotation);

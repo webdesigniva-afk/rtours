@@ -70,10 +70,10 @@ export default async function DestinationDetailPage({ params }: DestinationPageP
             <DestinationGlobe country={country} destinations={globeDestinations} />
           </div>
           <div className="container destination-landing-content">
-            <PublicBreadcrumbs items={[{ label: "Пътувания", href: "/offers" }, { label: "Дестинации", href: "/destinations" }, { label: country }]} />
-            <Link className="destination-back-link" href="/destinations">
+            <PublicBreadcrumbs items={[{ label: "Пътувания", href: "/offers" }, { label: country }]} />
+            <Link className="destination-back-link" href="/offers">
               <ArrowLeft size={17} aria-hidden="true" />
-              Всички дестинации
+              Всички пътувания
             </Link>
             <span className="eyebrow">Дестинация</span>
             <h1>{country}</h1>
@@ -94,7 +94,7 @@ export default async function DestinationDetailPage({ params }: DestinationPageP
             <p>Публикуваните оферти за тази държава се събират автоматично тук, независимо дали са въведени ръчно или са дошли от доставчик.</p>
           </div>
           {destinationOffers.length ? (
-            <div className="offers-grid">
+            <div className="offers-grid offers-results-grid">
               {destinationOffers.map((offer) => (
                 <OfferCard key={offer.slug} offer={offer} />
               ))}
