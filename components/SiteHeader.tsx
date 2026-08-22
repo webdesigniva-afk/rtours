@@ -3,40 +3,46 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown, Compass, Mountain, Music2, Plane, Route, Sparkles, Utensils, UsersRound, UserRound } from "lucide-react";
+import { ArrowRight, ChevronDown, Gem, KeyRound, Landmark, Map, PenLine, Telescope, Ticket, Trees, UserRound, UsersRound, WandSparkles, Wine } from "lucide-react";
 
 const travelMenuItems = [
+  {
+    href: "/offers",
+    label: "Всички пътувания",
+    text: "Разгледайте всички публикувани оферти и програми.",
+    icon: Map
+  },
   {
     href: "/author-programs",
     label: "Авторски програми",
     text: "Маршрути, създадени от Red Tours с личен почерк.",
-    icon: Compass
+    icon: PenLine
   },
   {
     href: "/exotics",
     label: "Екзотики",
     text: "Далечни посоки, ярки култури и внимателно темпо.",
-    icon: Plane
+    icon: Telescope
   },
   {
     label: "Специални преживявания",
     text: "Пътувания с повече лично отношение и детайл.",
-    icon: Sparkles
+    icon: Gem
   },
   {
     href: "/tailor-made",
     label: "Tailor-made",
     text: "Вашата идея, превърната в цялостен маршрут.",
-    icon: Route
+    icon: WandSparkles
   }
 ];
 
 const collectionMenuItems = [
-  { href: "/offers?collection=red-icons", label: "Red Icons", text: "Места, които остават.", icon: Mountain },
-  { href: "/offers?collection=red-hidden", label: "Red Hidden", text: "Отвъд очевидното.", icon: Compass },
-  { href: "/offers?collection=red-taste", label: "Red Taste", text: "Светът има вкус.", icon: Utensils },
-  { href: "/offers?collection=red-wild", label: "Red Wild", text: "По-близо до дивото.", icon: Mountain },
-  { href: "/offers?collection=red-live", label: "Red Live", text: "Бъдете там, когато се случва.", icon: Music2 },
+  { href: "/offers?collection=red-icons", label: "Red Icons", text: "Места, които остават.", icon: Landmark },
+  { href: "/offers?collection=red-hidden", label: "Red Hidden", text: "Отвъд очевидното.", icon: KeyRound },
+  { href: "/offers?collection=red-taste", label: "Red Taste", text: "Светът има вкус.", icon: Wine },
+  { href: "/offers?collection=red-wild", label: "Red Wild", text: "По-близо до дивото.", icon: Trees },
+  { href: "/offers?collection=red-live", label: "Red Live", text: "Бъдете там, когато се случва.", icon: Ticket },
   { href: "/offers?collection=red-circle", label: "Red Circle", text: "По-малко хора. Повече преживяване.", icon: UsersRound }
 ];
 
@@ -76,13 +82,14 @@ export function SiteHeader() {
           </Link>
           <nav className="nav-menu" aria-label="Основна навигация">
             <div className="nav-dropdown">
-              <Link
+              <button
                 className={isTravelActive ? "nav-link nav-dropdown-trigger is-active" : "nav-link nav-dropdown-trigger"}
-                href="/offers"
+                type="button"
+                aria-haspopup="true"
               >
                 Пътувания
                 <ChevronDown size={14} aria-hidden="true" />
-              </Link>
+              </button>
               <div className="nav-submenu" role="menu">
                 {travelMenuItems.map((item) => {
                   const Icon = item.icon;

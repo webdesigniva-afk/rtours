@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { NewsletterForm } from "@/components/NewsletterForm";
 import {
   ArrowUpRight,
   CircleHelp,
   Cookie,
+  Mail,
   Facebook,
   FileText,
   Instagram,
@@ -11,11 +13,14 @@ import {
   Twitter
 } from "lucide-react";
 
-const footerLinks = [
+const travelLinks = [
   { href: "/offers", label: "Пътувания" },
   { href: "/author-programs", label: "Авторски програми" },
   { href: "/exotics", label: "Екзотики" },
-  { href: "/offers?collection=red-private", label: "Специални преживявания" },
+  { href: "/tailor-made", label: "Пътуване по мярка" }
+];
+
+const companyLinks = [
   { href: "/about", label: "За Red Tours" },
   { href: "/contacts", label: "Контакти" },
   { href: "/blog", label: "Блог" }
@@ -40,6 +45,15 @@ export function SiteFooter() {
   return (
     <footer className="footer">
       <div className="container footer-inner">
+        <section className="footer-cta footer-newsletter-hero" aria-label="Newsletter">
+          <div>
+            <span>Newsletter</span>
+            <strong>Искате още идеи за пътуване?</strong>
+            <p>Абонирайте се за нови програми, подбрани предложения и истории от Red tours.</p>
+          </div>
+          <NewsletterForm />
+        </section>
+
         <div className="footer-brand">
           <img src="/brand/logo.png" alt="RedTours travel & events" />
           <p>
@@ -49,11 +63,16 @@ export function SiteFooter() {
         </div>
 
         <nav className="footer-nav" aria-label="Footer navigation">
-          <span>Навигация</span>
-          {footerLinks.map((link) => (
-            <Link key={link.href} href={link.href}>
-              {link.label}
-            </Link>
+          <span>Пътувания</span>
+          {travelLinks.map((link) => (
+            <Link key={link.href} href={link.href}>{link.label}</Link>
+          ))}
+        </nav>
+
+        <nav className="footer-nav" aria-label="Red Tours">
+          <span>Red Tours</span>
+          {companyLinks.map((link) => (
+            <Link key={link.href} href={link.href}>{link.label}</Link>
           ))}
         </nav>
 
@@ -64,6 +83,10 @@ export function SiteFooter() {
           <a className="footer-phone" href="tel:070010775">
             <Phone size={18} aria-hidden="true" />
             0700 10 775
+          </a>
+          <a className="footer-mail" href="mailto:info@redtours.bg">
+            <Mail size={16} aria-hidden="true" />
+            info@redtours.bg
           </a>
         </div>
 
