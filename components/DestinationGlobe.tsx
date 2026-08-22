@@ -1,6 +1,6 @@
 "use client";
 
-import { PointerEvent, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardEvent, PointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { geoCentroid, geoGraticule10, geoOrthographic, geoPath } from "d3-geo";
 import { feature } from "topojson-client";
 import worldAtlas from "world-atlas/countries-110m.json";
@@ -169,6 +169,39 @@ const bulgarianCountryNames: Record<string, string> = {
   Yemen: "Йемен"
 };
 
+const numericRegionCodes: Record<string, string> = {
+  "004": "AF", "008": "AL", "010": "AQ", "012": "DZ", "024": "AO", "032": "AR", "036": "AU", "040": "AT",
+  "044": "BS", "050": "BD", "051": "AM", "056": "BE", "064": "BT", "068": "BO", "070": "BA", "072": "BW",
+  "076": "BR", "084": "BZ", "090": "SB", "096": "BN", "100": "BG", "104": "MM", "108": "BI", "116": "KH",
+  "120": "CM", "124": "CA", "140": "CF", "144": "LK", "148": "TD", "152": "CL", "156": "CN", "158": "TW",
+  "170": "CO", "178": "CG", "180": "CD", "188": "CR", "191": "HR", "192": "CU", "196": "CY", "203": "CZ",
+  "204": "BJ", "208": "DK", "214": "DO", "218": "EC", "222": "SV", "226": "GQ", "231": "ET", "232": "ER",
+  "233": "EE", "238": "FK", "242": "FJ", "246": "FI", "250": "FR", "260": "TF", "262": "DJ", "266": "GA",
+  "268": "GE", "270": "GM", "275": "PS", "276": "DE", "288": "GH", "300": "GR", "304": "GL", "320": "GT",
+  "324": "GN", "328": "GY", "332": "HT", "340": "HN", "348": "HU", "352": "IS", "356": "IN", "360": "ID",
+  "364": "IR", "368": "IQ", "372": "IE", "376": "IL", "380": "IT", "384": "CI", "388": "JM", "392": "JP",
+  "398": "KZ", "400": "JO", "404": "KE", "408": "KP", "410": "KR", "414": "KW", "417": "KG", "418": "LA",
+  "422": "LB", "426": "LS", "428": "LV", "430": "LR", "434": "LY", "440": "LT", "442": "LU", "450": "MG",
+  "454": "MW", "458": "MY", "466": "ML", "478": "MR", "484": "MX", "496": "MN", "498": "MD", "499": "ME",
+  "504": "MA", "508": "MZ", "512": "OM", "516": "NA", "524": "NP", "528": "NL", "540": "NC", "548": "VU",
+  "554": "NZ", "558": "NI", "562": "NE", "566": "NG", "578": "NO", "586": "PK", "591": "PA", "598": "PG",
+  "600": "PY", "604": "PE", "608": "PH", "616": "PL", "620": "PT", "630": "PR", "634": "QA", "642": "RO",
+  "643": "RU", "646": "RW", "682": "SA", "686": "SN", "688": "RS", "694": "SL", "703": "SK", "704": "VN",
+  "705": "SI", "706": "SO", "710": "ZA", "716": "ZW", "724": "ES", "728": "SS", "729": "SD", "732": "EH",
+  "740": "SR", "748": "SZ", "752": "SE", "756": "CH", "760": "SY", "762": "TJ", "764": "TH", "768": "TG",
+  "780": "TT", "788": "TN", "792": "TR", "795": "TM", "800": "UG", "804": "UA", "807": "MK", "818": "EG",
+  "826": "GB", "834": "TZ", "840": "US", "854": "BF", "858": "UY", "860": "UZ", "862": "VE", "887": "YE",
+  "894": "ZM"
+};
+
+const countryNameOverrides: Record<string, string> = {
+  Kosovo: "Косово",
+  "N. Cyprus": "Северен Кипър",
+  Somaliland: "Сомалиленд"
+};
+
+const bulgarianRegionNames = new Intl.DisplayNames(["bg"], { type: "region" });
+
 type CountryFeature = {
   id?: string;
   properties?: {
@@ -222,9 +255,19 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
-function getBulgarianCountryName(countryName: string | undefined) {
+function getBulgarianCountryName(country: CountryFeature | undefined) {
+  const countryName = country?.properties?.name;
   if (!countryName) {
     return "Държава";
+  }
+
+  const regionCode = country?.id ? numericRegionCodes[country.id] : undefined;
+  if (regionCode) {
+    return bulgarianRegionNames.of(regionCode) || countryName;
+  }
+
+  if (countryNameOverrides[countryName]) {
+    return countryNameOverrides[countryName];
   }
 
   return bulgarianCountryNames[countryName] ?? countryName;
@@ -237,11 +280,15 @@ function offerCountLabel(count: number) {
 export function DestinationGlobe({
   country,
   destinations = [],
-  highlightSelectedCountry = true
+  highlightSelectedCountry = true,
+  initialZoom = 1.34,
+  maxZoom = 3.25
 }: {
   country: string;
   destinations?: GlobeDestination[];
   highlightSelectedCountry?: boolean;
+  initialZoom?: number;
+  maxZoom?: number;
 }) {
   const [hoveredCountryId, setHoveredCountryId] = useState<string | undefined>();
   const [hoveredCountryInfo, setHoveredCountryInfo] = useState<HoveredCountryInfo | undefined>();
@@ -250,9 +297,9 @@ export function DestinationGlobe({
   const center = selectedCountry ? geoCentroid(selectedCountry as never) : [22, 36];
   const initialRotation = useMemo<[number, number]>(() => [-center[0], -center[1]], [center[0], center[1]]);
   const [rotation, setRotation] = useState<[number, number]>(initialRotation);
-  const [zoom, setZoom] = useState(1.34);
+  const [zoom, setZoom] = useState(initialZoom);
   const rotationRef = useRef<[number, number]>(initialRotation);
-  const zoomRef = useRef(1.34);
+  const zoomRef = useRef(initialZoom);
   const globeRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragStart = useRef<{ x: number; y: number; rotation: [number, number]; moved: boolean } | null>(null);
@@ -261,9 +308,9 @@ export function DestinationGlobe({
   useEffect(() => {
     setRotation(initialRotation);
     rotationRef.current = initialRotation;
-    setZoom(1.34);
-    zoomRef.current = 1.34;
-  }, [initialRotation]);
+    setZoom(initialZoom);
+    zoomRef.current = initialZoom;
+  }, [initialRotation, initialZoom]);
 
   useEffect(() => {
     const globeElement = globeRef.current;
@@ -273,7 +320,7 @@ export function DestinationGlobe({
 
     function handleNativeWheel(event: WheelEvent) {
       event.preventDefault();
-      const nextZoom = clamp(zoomRef.current - event.deltaY * 0.00145, 1, 3.25);
+      const nextZoom = clamp(zoomRef.current - event.deltaY * 0.00145, 1, maxZoom);
       zoomRef.current = nextZoom;
       setZoom(nextZoom);
     }
@@ -406,6 +453,19 @@ export function DestinationGlobe({
     }
   }
 
+  function openDestination(destination: GlobeDestination) {
+    window.location.href = `/destinations/${destination.slug}`;
+  }
+
+  function handleDestinationKeyDown(event: KeyboardEvent<SVGGElement>, destination: GlobeDestination) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    openDestination(destination);
+  }
+
   return (
     <div className="destination-globe" ref={globeRef}>
       <div className="destination-globe-sphere">
@@ -436,7 +496,7 @@ export function DestinationGlobe({
                 return null;
               }
 
-              const isSelected = selectedCountry?.id === item.id;
+              const isSelected = selectedCountry ? (selectedCountry.id ? selectedCountry.id === item.id : selectedCountry === item) : false;
               const linkedDestination = item.id ? destinationsByCountryId.get(item.id) : undefined;
               const className = [
                 "real-globe-country",
@@ -457,7 +517,7 @@ export function DestinationGlobe({
                       updateTooltipPosition(event);
                       setHoveredCountryId(item.id);
                       setHoveredCountryInfo({
-                        country: linkedDestination?.country || getBulgarianCountryName(item.properties?.name),
+                        country: linkedDestination?.country || getBulgarianCountryName(item),
                         offerCount: linkedDestination?.offerCount || 0
                       });
                     }
@@ -468,7 +528,6 @@ export function DestinationGlobe({
                       setHoveredCountryInfo(undefined);
                     }
                   }}
-                  tabIndex={linkedDestination ? 0 : -1}
                 />
               );
 
@@ -477,18 +536,23 @@ export function DestinationGlobe({
               }
 
               return (
-                <a
-                  href={`/destinations/${linkedDestination.slug}`}
+                <g
                   key={item.id ?? item.properties?.name}
+                  role="link"
+                  tabIndex={0}
                   onClick={(event) => {
                     if (draggedLink.current) {
                       event.preventDefault();
+                      return;
                     }
+
+                    openDestination(linkedDestination);
                   }}
+                  onKeyDown={(event) => handleDestinationKeyDown(event, linkedDestination)}
                 >
                   <title>{`${linkedDestination.country}: ${offerCountLabel(linkedDestination.offerCount)}`}</title>
                   {countryShape}
-                </a>
+                </g>
               );
             })}
           </g>

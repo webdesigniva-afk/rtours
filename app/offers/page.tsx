@@ -43,7 +43,7 @@ type OffersPageProps = {
   }>;
 };
 
-const offersPerPage = 6;
+const offersPerPage = 9;
 
 type PeriodOption = {
   value: string;
@@ -672,7 +672,8 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
               Открийте своето следващо <span>пътуване</span>
             </h1>
             <p>
-              Разгледайте нашата селекция от авторски програми, екзотични дестинации и специални преживявания. Използвайте филтрите, за да намерите точното пътуване за вас.
+              Разгледайте нашата селекция от авторски програми, екзотични дестинации и специални преживявания.
+              Използвайте филтрите, за да намерите подходящото предложение, или ни изпратете запитване, ако търсите маршрут, създаден специално за вас.
             </p>
             <form className="offers-hero-search" action="/offers#results" method="get">
               <Search size={24} aria-hidden="true" />
@@ -850,7 +851,13 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
                 <h2>Изберете посока от глобуса.</h2>
               </div>
               <div className="offers-map-strip-globe">
-                <DestinationGlobe country={selectedDestinationLabel} destinations={globeDestinations} highlightSelectedCountry={Boolean(params.destination)} />
+                <DestinationGlobe
+                  country={selectedDestinationLabel}
+                  destinations={globeDestinations}
+                  highlightSelectedCountry={Boolean(params.destination)}
+                  initialZoom={1.52}
+                  maxZoom={10}
+                />
               </div>
             </section>
           ) : null}

@@ -4904,9 +4904,20 @@ img {
 
 .card-body h3 {
   margin: 0;
+  color: #15181f;
   font-size: 1.12rem;
   font-weight: 900;
   line-height: 1.18;
+}
+
+.card-body h3 a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.card-body h3 a:hover {
+  color: var(--red);
 }
 
 .card-body p {
@@ -7840,7 +7851,7 @@ img {
   margin: 0;
   color: #111318;
   font-family: var(--font-playfair), Georgia, serif;
-  font-size: clamp(2.45rem, 4.8vw, 4.75rem);
+  font-size: clamp(2.3rem, 4.45vw, 4.45rem);
   font-weight: 850;
   line-height: 1.02;
   letter-spacing: 0;
@@ -8180,8 +8191,12 @@ img {
 }
 
 .offers-results-grid .card-body h3 a {
-  color: var(--red);
+  color: #15181f;
   text-decoration: none;
+}
+
+.offers-results-grid .card-body h3 a:hover {
+  color: var(--red);
 }
 
 .offers-results-grid .card-body p {
