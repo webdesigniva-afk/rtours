@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown, Gem, KeyRound, Landmark, Map, PenLine, Telescope, Ticket, Trees, UserRound, UsersRound, WandSparkles, Wine } from "lucide-react";
+import { ArrowRight, ChevronDown, Gem, Gift, KeyRound, Landmark, Map, PenLine, Telescope, Ticket, Trees, UserRound, UsersRound, WandSparkles, Wine } from "lucide-react";
 
 const travelMenuItems = [
   {
@@ -34,6 +34,12 @@ const travelMenuItems = [
     label: "Tailor-made",
     text: "Вашата идея, превърната в цялостен маршрут.",
     icon: WandSparkles
+  },
+  {
+    href: "/gift-vouchers",
+    label: "Подаръчни ваучери",
+    text: "Ваучери за бъдещи пътувания и преживявания.",
+    icon: Gift
   }
 ];
 
@@ -60,7 +66,8 @@ export function SiteHeader() {
     pathname.startsWith("/author-programs") ||
     pathname.startsWith("/exotics") ||
     pathname.startsWith("/destinations") ||
-    pathname.startsWith("/tailor-made");
+    pathname.startsWith("/tailor-made") ||
+    pathname.startsWith("/gift-vouchers");
 
   useEffect(() => {
     const updateScrollState = () => setIsScrolled(window.scrollY > 18);

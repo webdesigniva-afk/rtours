@@ -532,6 +532,1028 @@ textarea {
   animation: exoticHeroVideoSecond 24s ease-in-out infinite;
 }
 
+.gift-vouchers-hero .author-hero-video-item {
+  object-position: 72% center;
+}
+
+.gift-vouchers-hero {
+  min-height: clamp(620px, 74svh, 740px);
+  padding-bottom: 118px;
+}
+
+.gift-vouchers-hero .author-hero-grid {
+  min-height: calc(clamp(620px, 74svh, 740px) - var(--public-page-start) - 118px);
+}
+
+.gift-vouchers-page .author-hero::after {
+  background:
+    linear-gradient(90deg, rgba(251, 252, 253, 0.99) 0%, rgba(251, 252, 253, 0.91) 25%, rgba(251, 252, 253, 0.34) 43%, rgba(251, 252, 253, 0) 60%),
+    linear-gradient(180deg, rgba(251, 252, 253, 0.02) 0%, rgba(251, 252, 253, 0) 44%, rgba(251, 252, 253, 0.82) 84%, #fbfcfd 100%),
+    radial-gradient(ellipse at 22% 52%, rgba(255, 255, 255, 0.9), transparent 42%);
+}
+
+.gift-builder-section {
+  position: relative;
+  z-index: 5;
+  margin-top: -74px;
+  padding: 0 0 clamp(46px, 6vw, 78px);
+  background:
+    linear-gradient(180deg, rgba(251, 252, 253, 0) 0%, rgba(251, 252, 253, 0.96) 54px, #fbfcfd 132px),
+    radial-gradient(ellipse at 18% 0%, rgba(238, 51, 56, 0.026), transparent 34%),
+    radial-gradient(ellipse at 92% 10%, rgba(213, 177, 113, 0.055), transparent 38%),
+    #fbfcfd;
+}
+
+.gift-builder-section::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -160px;
+  right: 0;
+  left: 0;
+  height: 230px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 58%, rgba(255, 255, 255, 0.86) 0%, rgba(255, 255, 255, 0.58) 34%, rgba(255, 255, 255, 0) 72%),
+    linear-gradient(180deg, rgba(251, 252, 253, 0) 0%, rgba(251, 252, 253, 0.74) 58%, #fbfcfd 100%);
+}
+
+.gift-builder-section .container {
+  position: relative;
+  z-index: 1;
+  max-width: 1160px;
+}
+
+.gift-builder-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.82fr);
+  gap: clamp(24px, 3vw, 42px);
+  align-items: start;
+  padding: clamp(22px, 2.6vw, 32px);
+  border: 1px solid rgba(216, 220, 222, 0.34);
+  border-radius: var(--radius-small);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.9)),
+    radial-gradient(ellipse at 84% 8%, rgba(238, 51, 56, 0.025), transparent 42%);
+  box-shadow:
+    0 16px 46px rgba(37, 31, 24, 0.062),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.gift-builder-shell::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.84);
+  border-radius: calc(var(--radius-small) - 1px);
+  pointer-events: none;
+}
+
+.gift-builder-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(238, 51, 56, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(238, 51, 56, 0.025) 1px, transparent 1px);
+  background-size: 128px 128px;
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 0 28%, transparent 70%);
+  opacity: 0.24;
+}
+
+.gift-builder-form,
+.gift-builder-preview,
+.gift-builder-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.gift-builder-form h2 {
+  margin: 0 0 clamp(18px, 2.4vw, 26px);
+  color: var(--ink);
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: 720;
+  line-height: 1.1;
+}
+
+.gift-step {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.gift-step + .gift-step {
+  margin-top: clamp(20px, 2.5vw, 30px);
+}
+
+.gift-step-number {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #c83a3e, var(--red));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 850;
+  box-shadow: 0 10px 22px rgba(238, 51, 56, 0.2);
+}
+
+.gift-step-content h3 {
+  margin: 1px 0 12px;
+  color: rgba(23, 20, 18, 0.88);
+  font-size: clamp(14px, 1vw, 16px);
+  font-weight: 780;
+}
+
+.gift-amount-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(74px, 1fr)) minmax(112px, 1.18fr);
+  gap: 9px;
+}
+
+.gift-amount-grid button,
+.gift-custom-amount {
+  min-height: 38px;
+  border: 1px solid rgba(216, 220, 222, 0.88);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.86);
+  color: rgba(23, 20, 18, 0.78);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 760;
+  transition: border-color 180ms var(--ease-luxury), box-shadow 180ms var(--ease-luxury), color 180ms var(--ease-luxury), background 180ms var(--ease-luxury);
+}
+
+.gift-amount-grid button:hover,
+.gift-custom-amount:hover,
+.gift-amount-grid .is-selected,
+.gift-custom-amount.is-selected {
+  border-color: rgba(238, 51, 56, 0.52);
+  background: rgba(238, 51, 56, 0.055);
+  color: var(--red);
+  box-shadow: 0 10px 24px rgba(238, 51, 56, 0.09);
+}
+
+.gift-custom-amount {
+  display: flex;
+  align-items: center;
+  min-width: 112px;
+  padding: 0 16px;
+}
+
+.gift-custom-amount input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  text-overflow: ellipsis;
+}
+
+.gift-custom-amount input::placeholder {
+  color: rgba(23, 20, 18, 0.68);
+  opacity: 1;
+}
+
+.gift-design-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.gift-design-option {
+  position: relative;
+  min-height: 68px;
+  padding: 9px;
+  border: 1px solid rgba(216, 220, 222, 0.86);
+  border-radius: 7px;
+  overflow: hidden;
+  background-image:
+    linear-gradient(90deg, rgba(251, 252, 253, 0.88) 0%, rgba(251, 252, 253, 0.48) 48%, rgba(23, 20, 18, 0.2) 100%),
+    var(--voucher-image);
+  background-position: center, var(--voucher-position);
+  background-size: cover;
+  color: rgba(23, 20, 18, 0.88);
+  text-align: left;
+  box-shadow: 0 14px 30px rgba(37, 31, 24, 0.08);
+}
+
+.gift-design-option::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.gift-design-option span {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 82px;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.gift-design-option svg {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  color: rgba(255, 255, 255, 0.82);
+  filter: drop-shadow(0 2px 5px rgba(23, 20, 18, 0.28));
+}
+
+.gift-design-option.is-selected::before {
+  border-color: rgba(238, 51, 56, 0.62);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.76);
+}
+
+.gift-design-editorial {
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.72) 46%, rgba(238, 51, 56, 0.16) 47%, rgba(238, 51, 56, 0.02) 68%),
+    var(--voucher-image);
+}
+
+.gift-design-noir {
+  background-image:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0 48%, rgba(238, 51, 56, 0.34) 48.4% 100%),
+    var(--voucher-image);
+  color: rgba(23, 20, 18, 0.88);
+}
+
+.gift-design-noir span {
+  color: rgba(23, 20, 18, 0.88);
+}
+
+.gift-design-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--red);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.gift-upload-panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 13px 14px;
+  border: 1px dashed rgba(238, 51, 56, 0.34);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.68);
+  color: rgba(23, 20, 18, 0.7);
+  cursor: pointer;
+  transition: border-color 180ms var(--ease-luxury), background 180ms var(--ease-luxury), box-shadow 180ms var(--ease-luxury);
+}
+
+.gift-upload-panel:hover,
+.gift-upload-panel:focus-within {
+  border-color: rgba(238, 51, 56, 0.58);
+  background: rgba(238, 51, 56, 0.035);
+  box-shadow: 0 12px 28px rgba(238, 51, 56, 0.07);
+}
+
+.gift-upload-panel.has-custom-image {
+  border-style: solid;
+  border-color: rgba(80, 99, 75, 0.28);
+  background: rgba(80, 99, 75, 0.045);
+}
+
+.gift-upload-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(238, 51, 56, 0.08);
+  color: var(--red);
+}
+
+.gift-upload-panel strong,
+.gift-upload-panel em {
+  display: block;
+}
+
+.gift-upload-panel strong {
+  color: rgba(23, 20, 18, 0.82);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.gift-upload-panel em {
+  margin-top: 4px;
+  color: rgba(23, 20, 18, 0.52);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.gift-upload-panel input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.gift-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 9px;
+  color: rgba(23, 20, 18, 0.54);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gift-upload-actions span,
+.gift-upload-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gift-upload-actions span svg {
+  color: var(--olive);
+}
+
+.gift-upload-actions button {
+  border: 0;
+  background: transparent;
+  color: var(--red);
+  font: inherit;
+  font-weight: 800;
+}
+
+.gift-upload-actions button:hover {
+  text-decoration: underline;
+}
+
+.gift-upload-error {
+  margin: 8px 0 0;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gift-input,
+.gift-textarea {
+  display: block;
+}
+
+.gift-input {
+  position: relative;
+}
+
+.gift-input input,
+.gift-textarea textarea,
+.gift-payment-fields input {
+  width: 100%;
+  border: 1px solid rgba(216, 220, 222, 0.92);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  outline: 0;
+  transition: border-color 180ms var(--ease-luxury), box-shadow 180ms var(--ease-luxury);
+}
+
+.gift-input input,
+.gift-payment-fields input {
+  height: 40px;
+  padding: 0 38px 0 13px;
+}
+
+.gift-input svg {
+  position: absolute;
+  right: 14px;
+  top: 11px;
+  color: rgba(23, 20, 18, 0.44);
+}
+
+.gift-input input:focus,
+.gift-textarea textarea:focus,
+.gift-payment-fields input:focus {
+  border-color: rgba(238, 51, 56, 0.5);
+  box-shadow: 0 0 0 4px rgba(238, 51, 56, 0.08);
+}
+
+.gift-textarea {
+  margin-top: 13px;
+}
+
+.gift-textarea span,
+.gift-payment-fields label > span {
+  display: block;
+  margin-bottom: 7px;
+  color: rgba(23, 20, 18, 0.76);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.gift-textarea em,
+.gift-payment-fields em {
+  color: rgba(23, 20, 18, 0.48);
+  font-style: normal;
+  font-weight: 650;
+}
+
+.gift-textarea textarea {
+  min-height: 96px;
+  resize: vertical;
+  padding: 12px 14px 26px;
+  line-height: 1.58;
+}
+
+.gift-textarea small {
+  display: block;
+  margin: -25px 14px 0 0;
+  color: rgba(23, 20, 18, 0.48);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  pointer-events: none;
+}
+
+.gift-delivery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.gift-delivery-card {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 30px;
+  gap: 10px;
+  align-items: center;
+  min-height: 86px;
+  padding: 14px;
+  border: 1px solid rgba(216, 220, 222, 0.9);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--ink);
+  text-align: left;
+  transition: border-color 180ms var(--ease-luxury), background 180ms var(--ease-luxury), box-shadow 180ms var(--ease-luxury);
+}
+
+.gift-delivery-card.is-selected {
+  border-color: rgba(238, 51, 56, 0.5);
+  background: linear-gradient(135deg, rgba(238, 51, 56, 0.07), rgba(255, 255, 255, 0.94));
+  box-shadow: 0 18px 36px rgba(238, 51, 56, 0.09);
+}
+
+.gift-radio-dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(23, 20, 18, 0.26);
+  border-radius: 50%;
+}
+
+.gift-delivery-card.is-selected .gift-radio-dot {
+  border: 4px solid var(--red);
+}
+
+.gift-delivery-card strong,
+.gift-delivery-card em {
+  display: block;
+}
+
+.gift-delivery-card strong {
+  font-size: 13px;
+  font-weight: 820;
+  line-height: 1.25;
+}
+
+.gift-delivery-card em {
+  margin-top: 6px;
+  color: rgba(23, 20, 18, 0.58);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.gift-delivery-card svg {
+  color: rgba(238, 51, 56, 0.6);
+  justify-self: end;
+}
+
+.gift-builder-preview {
+  position: relative;
+  top: auto;
+  padding-top: 0;
+}
+
+.gift-voucher-preview-card {
+  --voucher-safe-x: clamp(18px, 2.35vw, 30px);
+  --voucher-safe-y: clamp(17px, 2vw, 26px);
+  position: relative;
+  aspect-ratio: 297 / 210;
+  padding: var(--voucher-safe-y) var(--voucher-safe-x);
+  border-radius: 7px;
+  overflow: hidden;
+  background-image:
+    linear-gradient(90deg, rgba(251, 252, 253, 0.96) 0%, rgba(251, 252, 253, 0.82) 34%, rgba(251, 252, 253, 0.14) 68%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(7, 15, 20, 0.18)),
+    var(--voucher-image);
+  background-position: center, center, var(--voucher-position);
+  background-size: cover;
+  box-shadow: 0 18px 42px rgba(23, 20, 18, 0.14);
+  color: var(--ink);
+}
+
+.gift-voucher-signature {
+  background-image:
+    radial-gradient(circle at 76% 18%, rgba(255, 255, 255, 0.92) 0 9%, transparent 28%),
+    linear-gradient(90deg, rgba(251, 252, 253, 0.96) 0%, rgba(251, 252, 253, 0.76) 38%, rgba(251, 252, 253, 0.08) 72%),
+    linear-gradient(135deg, rgba(238, 51, 56, 0) 0 58%, rgba(238, 51, 56, 0.16) 58.2% 59%, transparent 59.2%),
+    var(--voucher-image);
+}
+
+.gift-voucher-editorial {
+  background-image:
+    linear-gradient(90deg, rgba(251, 252, 253, 0.08) 0%, rgba(251, 252, 253, 0.14) 46%, rgba(251, 252, 253, 0.98) 46.2%, rgba(251, 252, 253, 0.96) 100%),
+    linear-gradient(118deg, transparent 0 50%, rgba(238, 51, 56, 0.18) 50.2% 50.8%, transparent 51%),
+    var(--voucher-image);
+}
+
+.gift-voucher-noir {
+  background-image:
+    radial-gradient(circle at 82% 18%, rgba(238, 51, 56, 0.16), transparent 28%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(251, 247, 244, 0.96) 54%, rgba(240, 221, 215, 0.96) 100%),
+    var(--voucher-image);
+  color: var(--ink);
+}
+
+.gift-voucher-signature.has-custom-image {
+  background-image:
+    linear-gradient(90deg, rgba(251, 252, 253, 0.96) 0%, rgba(251, 252, 253, 0.74) 40%, rgba(251, 252, 253, 0.1) 74%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(10, 10, 10, 0.16)),
+    var(--voucher-image);
+}
+
+.gift-voucher-editorial.has-custom-image {
+  background-image:
+    linear-gradient(90deg, rgba(251, 252, 253, 0.04) 0%, rgba(251, 252, 253, 0.08) 44%, rgba(251, 252, 253, 0.98) 44.2%, rgba(251, 252, 253, 0.96) 100%),
+    var(--voucher-image);
+}
+
+.gift-voucher-noir.has-custom-image {
+  background-image:
+    linear-gradient(90deg, rgba(251, 252, 253, 0.96) 0%, rgba(251, 252, 253, 0.82) 42%, rgba(251, 252, 253, 0.18) 74%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.12)),
+    var(--voucher-image);
+}
+
+.gift-voucher-preview-card::before {
+  content: "";
+  position: absolute;
+  inset: clamp(10px, 1.2vw, 16px);
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 5px;
+  box-shadow: 0 0 0 1px rgba(23, 20, 18, 0.035) inset;
+  pointer-events: none;
+}
+
+.gift-voucher-preview-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.gift-voucher-signature::after {
+  background:
+    linear-gradient(90deg, transparent 0%, transparent 50%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0.22) 50.4%, transparent 50.8%),
+    radial-gradient(circle at 82% 76%, rgba(238, 51, 56, 0.22), transparent 24%);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+}
+
+.gift-voucher-editorial::after {
+  inset: 14px;
+  border-color: rgba(238, 51, 56, 0.22);
+  background:
+    linear-gradient(90deg, transparent 0 44%, rgba(183, 138, 69, 0.14) 44.2% 44.6%, transparent 44.8%),
+    radial-gradient(ellipse at 23% 84%, rgba(183, 138, 69, 0.16), transparent 26%);
+}
+
+.gift-voucher-noir::after {
+  border-color: rgba(255, 255, 255, 0.62);
+  background:
+    linear-gradient(90deg, rgba(238, 51, 56, 0.58) 0 4px, transparent 4px),
+    radial-gradient(circle at 84% 18%, rgba(238, 51, 56, 0.08), transparent 28%);
+}
+
+.gift-preview-ribbon {
+  position: absolute;
+  z-index: 2;
+  top: clamp(19px, 2vw, 27px);
+  right: clamp(18px, 2.35vw, 30px);
+  width: clamp(94px, 9vw, 132px);
+  height: clamp(18px, 1.7vw, 24px);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(238, 51, 56, 0.78), rgba(153, 30, 36, 0.9)),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  box-shadow: 0 8px 18px rgba(112, 22, 26, 0.16);
+  transform: rotate(-5deg) translateY(6px);
+  transform-origin: right center;
+}
+
+.gift-preview-ribbon::after {
+  display: none;
+}
+
+.gift-preview-logo {
+  position: absolute;
+  z-index: 3;
+  top: clamp(18px, 2vw, 26px);
+  right: clamp(18px, 2.35vw, 30px);
+  width: clamp(74px, 7.4vw, 104px);
+  height: auto;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 8px 18px rgba(23, 20, 18, 0.06);
+}
+
+.gift-voucher-noir .gift-preview-logo {
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.gift-preview-content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: min(52%, 286px);
+  min-height: auto;
+  grid-template-rows: auto auto auto minmax(28px, auto) auto auto;
+  align-content: start;
+  margin-top: clamp(48px, 5.7vw, 72px);
+}
+
+.gift-voucher-editorial .gift-preview-content {
+  width: min(44%, 250px);
+  margin-left: auto;
+  margin-top: clamp(58px, 6.5vw, 82px);
+}
+
+.gift-voucher-noir .gift-preview-content {
+  width: min(48%, 270px);
+  justify-items: start;
+  margin-top: clamp(52px, 6vw, 76px);
+}
+
+.gift-voucher-preview-card.has-custom-image .gift-preview-content {
+  min-height: auto;
+  padding: clamp(12px, 1.4vw, 18px);
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.gift-voucher-signature.has-custom-image .gift-preview-content {
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 18px 34px rgba(23, 20, 18, 0.08);
+}
+
+.gift-voucher-editorial.has-custom-image .gift-preview-content {
+  width: min(46%, 270px);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: -18px 0 38px rgba(23, 20, 18, 0.08);
+}
+
+.gift-voucher-noir.has-custom-image .gift-preview-content {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.54);
+  box-shadow: 0 18px 34px rgba(23, 20, 18, 0.1);
+}
+
+.gift-preview-content span {
+  display: block;
+  color: rgba(23, 20, 18, 0.62);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(12px, 0.78vw, 14px);
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gift-voucher-noir .gift-preview-content span,
+.gift-voucher-noir .gift-preview-recipient {
+  color: rgba(23, 20, 18, 0.68);
+}
+
+.gift-preview-content h3 {
+  max-width: 100%;
+  margin: 2px 0 9px;
+  color: var(--voucher-accent);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: clamp(23px, 2vw, 32px);
+  font-weight: 780;
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+
+.gift-voucher-editorial .gift-preview-content h3 {
+  font-size: clamp(21px, 1.82vw, 29px);
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.gift-voucher-noir .gift-preview-content h3 {
+  color: var(--voucher-accent);
+  font-size: clamp(22px, 1.9vw, 30px);
+  letter-spacing: 0.02em;
+}
+
+.gift-preview-recipient {
+  display: flex;
+  max-width: 100%;
+  min-height: 28px;
+  align-items: baseline;
+  gap: 4px;
+  margin: 0 0 6px;
+  color: rgba(23, 20, 18, 0.72);
+  font-size: clamp(12px, 0.9vw, 15px);
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.gift-preview-recipient strong {
+  display: -webkit-box;
+  max-width: 210px;
+  overflow: hidden;
+  color: var(--voucher-accent);
+  font-family: "Segoe Print", "Segoe Script", "Bradley Hand ITC", cursive;
+  font-size: 1.25em;
+  font-weight: 500;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.gift-voucher-noir .gift-preview-recipient strong,
+.gift-voucher-noir .gift-preview-amount {
+  color: var(--voucher-accent);
+}
+
+.gift-preview-recipient.is-long strong {
+  font-size: 1.06em;
+  line-height: 1.12;
+}
+
+.gift-preview-amount {
+  margin: 0 0 7px;
+  color: var(--voucher-accent);
+  font-size: clamp(26px, 2.55vw, 40px);
+  font-weight: 760;
+  line-height: 1;
+}
+
+.gift-preview-message {
+  display: -webkit-box;
+  max-width: 236px;
+  max-height: 4.05em;
+  overflow: hidden;
+  margin: 0;
+  white-space: pre-line;
+  color: rgba(23, 20, 18, 0.76);
+  font-size: clamp(11px, 0.82vw, 13px);
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.gift-voucher-noir .gift-preview-message {
+  color: rgba(23, 20, 18, 0.76);
+}
+
+.gift-preview-message.is-long {
+  font-size: clamp(10px, 0.72vw, 12px);
+  line-height: 1.38;
+}
+
+.gift-preview-note {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 11px 14px;
+  border: 1px solid rgba(216, 220, 222, 0.62);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.76);
+  color: rgba(23, 20, 18, 0.7);
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.gift-preview-note svg {
+  color: var(--red);
+  flex: 0 0 auto;
+}
+
+.gift-payment-fields {
+  display: grid;
+  gap: 12px;
+  margin-top: clamp(16px, 2.4vw, 28px);
+}
+
+.gift-date-field {
+  position: relative;
+  display: block;
+}
+
+.gift-date-field svg {
+  position: absolute;
+  right: 14px;
+  top: 11px;
+  color: rgba(23, 20, 18, 0.44);
+}
+
+.gift-builder-footer {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 320px);
+  gap: 18px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(216, 220, 222, 0.74);
+}
+
+.gift-builder-footer p {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+  color: rgba(23, 20, 18, 0.58);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.gift-builder-footer svg {
+  color: var(--red);
+  flex: 0 0 auto;
+}
+
+.gift-builder-footer button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--red), #cf2d2f);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 820;
+  box-shadow: 0 18px 34px rgba(238, 51, 56, 0.24);
+}
+
+.gift-builder-footer button:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1120px) {
+  .gift-builder-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .gift-builder-preview {
+    position: relative;
+    top: auto;
+  }
+
+  .gift-voucher-preview-card {
+    max-width: 720px;
+  }
+}
+
+@media (max-width: 760px) {
+  .gift-vouchers-hero {
+    min-height: 640px;
+    padding-bottom: 86px;
+  }
+
+  .gift-vouchers-hero .author-hero-grid {
+    min-height: calc(640px - var(--public-page-start-mobile) - 86px);
+  }
+
+  .gift-builder-section {
+    margin-top: -48px;
+    padding-top: 0;
+  }
+
+  .gift-builder-section::before {
+    top: -116px;
+    height: 170px;
+  }
+
+  .gift-builder-shell {
+    padding: 24px 18px;
+  }
+
+  .gift-step {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 13px;
+  }
+
+  .gift-step-number {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
+
+  .gift-amount-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gift-design-grid,
+  .gift-delivery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gift-design-option {
+    min-height: 118px;
+  }
+
+  .gift-voucher-preview-card {
+    aspect-ratio: auto;
+    min-height: 520px;
+    padding: 28px 24px;
+  }
+
+  .gift-preview-ribbon {
+    top: 24px;
+    right: 24px;
+    width: 112px;
+    height: 22px;
+  }
+
+  .gift-preview-logo {
+    top: 22px;
+    right: 24px;
+    width: 92px;
+  }
+
+  .gift-preview-content {
+    width: min(70%, 300px);
+    margin-top: 78px;
+  }
+
+  .gift-voucher-editorial .gift-preview-content,
+  .gift-voucher-noir .gift-preview-content {
+    width: min(70%, 300px);
+    margin-top: 78px;
+    margin-left: 0;
+  }
+
+  .gift-preview-recipient strong {
+    max-width: 230px;
+  }
+
+  .gift-preview-message {
+    max-width: 250px;
+  }
+
+  .gift-builder-footer {
+    grid-template-columns: 1fr;
+  }
+}
+
 .exotic-intro {
   position: relative;
   padding: clamp(68px, 8vw, 112px) 0;
