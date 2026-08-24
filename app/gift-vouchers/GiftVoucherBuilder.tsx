@@ -2,38 +2,42 @@
 
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, CalendarDays, CheckCircle2, Compass, Euro, FileCheck2, ImageUp, LockKeyhole, Mail, PenLine, RotateCcw, Send, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, Compass, Euro, FileCheck2, ImageUp, LockKeyhole, Mail, PenLine, RotateCcw, Send, UserRound } from "lucide-react";
 
 const voucherAmounts = [100, 200, 300, 500];
 const recipientNameMaxLength = 28;
 const messageMaxLength = 90;
 const voucherImageMaxSizeMb = 5;
 const voucherImageMaxSizeBytes = voucherImageMaxSizeMb * 1024 * 1024;
+const defaultVoucherBackground = "url('/images/gift-vouchers/voucher-travel-default.png')";
+const premiumVoucherBackground = "url('/images/gift-vouchers/voucher-premium-gold.png')";
 
 const voucherDesigns = [
   {
-    id: "classic",
-    label: "Red Horizon",
-    background: "radial-gradient(circle at 76% 18%, rgba(255,255,255,0.95) 0 10%, transparent 30%), linear-gradient(135deg, #fff8f6 0%, #ffffff 42%, #f7d8d4 64%, #b92f35 100%)",
-    position: "center",
-    accent: "#bb3334",
-    template: "signature"
-  },
-  {
-    id: "light",
-    label: "Paper Route",
-    background: "linear-gradient(118deg, #ffffff 0%, #ffffff 48%, #f3e7da 48.2%, #dfc8b1 100%)",
-    position: "center",
-    accent: "#a93435",
-    template: "editorial"
-  },
-  {
-    id: "contrast",
-    label: "Ribbon",
-    background: "radial-gradient(circle at 82% 18%, rgba(238,51,56,0.16), transparent 28%), linear-gradient(135deg, #ffffff 0%, #fbf7f4 54%, #f0ddd7 100%)",
+    id: "design-1",
+    label: "Дизайн 1",
+    background: defaultVoucherBackground,
     position: "center",
     accent: "#b23a3b",
-    template: "noir"
+    fadeLeft: true,
+    transparentLogo: true
+  },
+  {
+    id: "design-2",
+    label: "Дизайн 2",
+    background: premiumVoucherBackground,
+    position: "center",
+    accent: "#d7ad63",
+    premiumGold: true
+  },
+  {
+    id: "design-3",
+    label: "Дизайн 3",
+    background: defaultVoucherBackground,
+    position: "center",
+    accent: "#b23a3b",
+    splitImage: true,
+    transparentLogo: true
   }
 ];
 
@@ -116,6 +120,14 @@ export function GiftVoucherBuilder() {
   const displayAmount = customAmount ? Number(customAmount) || amount : amount;
   const messageLength = message.length;
   const hasCustomImage = Boolean(customImages[selectedDesign]);
+  const previewCardClass = [
+    "gift-voucher-preview-card",
+    hasCustomImage ? "has-custom-image" : "",
+    design.fadeLeft ? "has-left-fade" : "",
+    design.premiumGold ? "is-premium-gold" : "",
+    design.splitImage ? "is-split-image" : "",
+    design.transparentLogo ? "has-transparent-logo" : ""
+  ].filter(Boolean).join(" ");
   const recipientPreviewClass = recipientName.length > 22 ? "gift-preview-recipient is-long" : "gift-preview-recipient";
   const messagePreviewClass = message.length > 64 ? "gift-preview-message is-long" : "gift-preview-message";
 
@@ -211,7 +223,12 @@ export function GiftVoucherBuilder() {
                   {voucherDesigns.map((item) => (
                     <button
                       aria-checked={selectedDesign === item.id}
-                      className={selectedDesign === item.id ? `gift-design-option gift-design-${item.template} is-selected` : `gift-design-option gift-design-${item.template}`}
+                      className={[
+                        "gift-design-option",
+                        selectedDesign === item.id ? "is-selected" : "",
+                        item.premiumGold ? "is-premium-gold" : "",
+                        item.splitImage ? "is-split-image" : ""
+                      ].filter(Boolean).join(" ")}
                       key={item.id}
                       onClick={() => setSelectedDesign(item.id)}
                       role="radio"
@@ -318,10 +335,9 @@ export function GiftVoucherBuilder() {
 
           <aside className="gift-builder-preview" aria-label="Преглед на ваучера">
             <div
-              className={hasCustomImage ? `gift-voucher-preview-card gift-voucher-${design.template} has-custom-image` : `gift-voucher-preview-card gift-voucher-${design.template}`}
+              className={previewCardClass}
               style={{ "--voucher-image": previewBackground, "--voucher-position": design.position, "--voucher-accent": design.accent } as CSSProperties}
             >
-              <span className="gift-preview-ribbon" aria-hidden="true" />
               <img className="gift-preview-logo" src="/images/brand/redtours-travel-events-logo.png" alt="Red Tours travel & events" />
               <div className="gift-preview-content">
                 <span>Подарък за</span>
@@ -332,22 +348,23 @@ export function GiftVoucherBuilder() {
               </div>
             </div>
 
-            <div className="gift-preview-note">
-              <CheckCircle2 size={18} aria-hidden="true" />
-              <span>Ще получите PDF ваучера веднага след плащане.</span>
-            </div>
-
             <div className="gift-payment-fields">
               <label>
-                <span>Вашият имейл</span>
-                <input placeholder="email@example.com" type="email" />
+                <span>{deliveryMethod === "self" ? "Вашият имейл" : "Имейл на получател"}</span>
+                <input
+                  autoComplete={deliveryMethod === "self" ? "email" : "off"}
+                  placeholder={deliveryMethod === "self" ? "email@example.com" : "recipient@example.com"}
+                  type="email"
+                />
               </label>
               <label>
                 <span>Дата на изпращане <em>(по желание)</em></span>
                 <span className="gift-date-field">
-                  <input type="text" placeholder="Изберете дата" />
-                  <CalendarDays size={18} aria-hidden="true" />
+                  <input type="date" />
                 </span>
+                <small className="gift-field-hint">
+                  Ако не изберете специфична дата, PDF ваучерът ще бъде изпратен веднага след плащане на избрания имейл.
+                </small>
               </label>
             </div>
           </aside>

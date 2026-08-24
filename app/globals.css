@@ -555,12 +555,12 @@ textarea {
 .gift-builder-section {
   position: relative;
   z-index: 5;
-  margin-top: -74px;
+  margin-top: -92px;
   padding: 0 0 clamp(46px, 6vw, 78px);
   background:
-    linear-gradient(180deg, rgba(251, 252, 253, 0) 0%, rgba(251, 252, 253, 0.96) 54px, #fbfcfd 132px),
-    radial-gradient(ellipse at 18% 0%, rgba(238, 51, 56, 0.026), transparent 34%),
-    radial-gradient(ellipse at 92% 10%, rgba(213, 177, 113, 0.055), transparent 38%),
+    linear-gradient(180deg, rgba(251, 252, 253, 0) 0%, rgba(251, 252, 253, 0.96) 44px, #fbfcfd 116px),
+    radial-gradient(ellipse at 18% 0%, rgba(238, 51, 56, 0.022), transparent 34%),
+    radial-gradient(ellipse at 92% 10%, rgba(213, 177, 113, 0.05), transparent 38%),
     #fbfcfd;
 }
 
@@ -581,23 +581,23 @@ textarea {
 .gift-builder-section .container {
   position: relative;
   z-index: 1;
-  max-width: 1160px;
+  max-width: 1180px;
 }
 
 .gift-builder-shell {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 0.82fr);
-  gap: clamp(24px, 3vw, 42px);
+  grid-template-columns: minmax(0, 0.96fr) minmax(360px, 0.78fr);
+  gap: clamp(28px, 3.8vw, 56px);
   align-items: start;
-  padding: clamp(22px, 2.6vw, 32px);
-  border: 1px solid rgba(216, 220, 222, 0.34);
+  padding: clamp(24px, 3vw, 38px);
+  border: 1px solid rgba(216, 220, 222, 0.46);
   border-radius: var(--radius-small);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.9)),
-    radial-gradient(ellipse at 84% 8%, rgba(238, 51, 56, 0.025), transparent 42%);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.94)),
+    radial-gradient(ellipse at 86% 6%, rgba(213, 177, 113, 0.04), transparent 44%);
   box-shadow:
-    0 16px 46px rgba(37, 31, 24, 0.062),
+    0 22px 60px rgba(37, 31, 24, 0.075),
     0 1px 0 rgba(255, 255, 255, 0.92) inset;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -614,16 +614,7 @@ textarea {
 }
 
 .gift-builder-shell::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(238, 51, 56, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(238, 51, 56, 0.025) 1px, transparent 1px);
-  background-size: 128px 128px;
-  mask-image: radial-gradient(ellipse at 50% 30%, #000 0 28%, transparent 70%);
-  opacity: 0.24;
+  display: none;
 }
 
 .gift-builder-form,
@@ -634,41 +625,41 @@ textarea {
 }
 
 .gift-builder-form h2 {
-  margin: 0 0 clamp(18px, 2.4vw, 26px);
+  margin: 0 0 clamp(20px, 2.6vw, 30px);
   color: var(--ink);
   font-size: clamp(22px, 2vw, 30px);
-  font-weight: 720;
+  font-weight: 760;
   line-height: 1.1;
 }
 
 .gift-step {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 26px minmax(0, 1fr);
+  gap: 14px;
 }
 
 .gift-step + .gift-step {
-  margin-top: clamp(20px, 2.5vw, 30px);
+  margin-top: clamp(18px, 2.3vw, 28px);
 }
 
 .gift-step-number {
   display: grid;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, #c83a3e, var(--red));
+  background: linear-gradient(135deg, rgba(238, 51, 56, 0.95), #c83a3e);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 850;
-  box-shadow: 0 10px 22px rgba(238, 51, 56, 0.2);
+  box-shadow: 0 8px 20px rgba(238, 51, 56, 0.18);
 }
 
 .gift-step-content h3 {
-  margin: 1px 0 12px;
+  margin: 1px 0 11px;
   color: rgba(23, 20, 18, 0.88);
-  font-size: clamp(14px, 1vw, 16px);
-  font-weight: 780;
+  font-size: clamp(13px, 0.96vw, 15px);
+  font-weight: 820;
 }
 
 .gift-amount-grid {
@@ -679,10 +670,10 @@ textarea {
 
 .gift-amount-grid button,
 .gift-custom-amount {
-  min-height: 38px;
-  border: 1px solid rgba(216, 220, 222, 0.88);
+  min-height: 40px;
+  border: 1px solid rgba(216, 220, 222, 0.72);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.92);
   color: rgba(23, 20, 18, 0.78);
   font: inherit;
   font-size: 13px;
@@ -695,9 +686,9 @@ textarea {
 .gift-amount-grid .is-selected,
 .gift-custom-amount.is-selected {
   border-color: rgba(238, 51, 56, 0.52);
-  background: rgba(238, 51, 56, 0.055);
+  background: linear-gradient(180deg, rgba(238, 51, 56, 0.055), rgba(255, 255, 255, 0.94));
   color: var(--red);
-  box-shadow: 0 10px 24px rgba(238, 51, 56, 0.09);
+  box-shadow: 0 10px 24px rgba(238, 51, 56, 0.08);
 }
 
 .gift-custom-amount {
@@ -727,14 +718,14 @@ textarea {
 .gift-design-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(96px, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .gift-design-option {
   position: relative;
-  min-height: 68px;
+  min-height: 82px;
   padding: 9px;
-  border: 1px solid rgba(216, 220, 222, 0.86);
+  border: 1px solid rgba(216, 220, 222, 0.68);
   border-radius: 7px;
   overflow: hidden;
   background-image:
@@ -744,7 +735,7 @@ textarea {
   background-size: cover;
   color: rgba(23, 20, 18, 0.88);
   text-align: left;
-  box-shadow: 0 14px 30px rgba(37, 31, 24, 0.08);
+  box-shadow: 0 12px 26px rgba(37, 31, 24, 0.06);
 }
 
 .gift-design-option::before {
@@ -779,34 +770,31 @@ textarea {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.76);
 }
 
-.gift-design-editorial {
+.gift-design-option.is-premium-gold {
+  border-color: rgba(215, 173, 99, 0.46);
   background-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.72) 46%, rgba(238, 51, 56, 0.16) 47%, rgba(238, 51, 56, 0.02) 68%),
+    linear-gradient(90deg, rgba(16, 15, 14, 0.86) 0%, rgba(34, 28, 20, 0.52) 58%, rgba(215, 173, 99, 0.05) 100%),
     var(--voucher-image);
+  color: rgba(255, 248, 232, 0.92);
 }
 
-.gift-design-noir {
+.gift-design-option.is-premium-gold.is-selected::before {
+  border-color: rgba(215, 173, 99, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 247, 224, 0.38);
+}
+
+.gift-design-option.is-premium-gold svg {
+  color: rgba(247, 222, 171, 0.92);
+}
+
+.gift-design-option.is-split-image {
+  border-color: rgba(178, 58, 59, 0.32);
   background-image:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0 48%, rgba(238, 51, 56, 0.34) 48.4% 100%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 40%, rgba(255, 250, 244, 0.98) 40% 100%),
     var(--voucher-image);
-  color: rgba(23, 20, 18, 0.88);
-}
-
-.gift-design-noir span {
-  color: rgba(23, 20, 18, 0.88);
-}
-
-.gift-design-more {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 10px;
-  border: 0;
-  background: transparent;
-  color: var(--red);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 780;
+  background-position: center, left center;
+  background-size: 100% 100%, 42% 100%;
+  background-repeat: no-repeat;
 }
 
 .gift-upload-panel {
@@ -815,11 +803,11 @@ textarea {
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
-  margin-top: 12px;
-  padding: 13px 14px;
-  border: 1px dashed rgba(238, 51, 56, 0.34);
+  margin-top: 13px;
+  padding: 12px 14px;
+  border: 1px dashed rgba(238, 51, 56, 0.26);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.74);
   color: rgba(23, 20, 18, 0.7);
   cursor: pointer;
   transition: border-color 180ms var(--ease-luxury), background 180ms var(--ease-luxury), box-shadow 180ms var(--ease-luxury);
@@ -1001,7 +989,7 @@ textarea {
 .gift-delivery-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .gift-delivery-card {
@@ -1009,9 +997,9 @@ textarea {
   grid-template-columns: 18px minmax(0, 1fr) 30px;
   gap: 10px;
   align-items: center;
-  min-height: 86px;
-  padding: 14px;
-  border: 1px solid rgba(216, 220, 222, 0.9);
+  min-height: 82px;
+  padding: 13px;
+  border: 1px solid rgba(216, 220, 222, 0.72);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.86);
   color: var(--ink);
@@ -1021,8 +1009,8 @@ textarea {
 
 .gift-delivery-card.is-selected {
   border-color: rgba(238, 51, 56, 0.5);
-  background: linear-gradient(135deg, rgba(238, 51, 56, 0.07), rgba(255, 255, 255, 0.94));
-  box-shadow: 0 18px 36px rgba(238, 51, 56, 0.09);
+  background: linear-gradient(135deg, rgba(238, 51, 56, 0.055), rgba(255, 255, 255, 0.96));
+  box-shadow: 0 12px 30px rgba(238, 51, 56, 0.08);
 }
 
 .gift-radio-dot {
@@ -1076,56 +1064,48 @@ textarea {
   border-radius: 7px;
   overflow: hidden;
   background-image:
-    linear-gradient(90deg, rgba(251, 252, 253, 0.96) 0%, rgba(251, 252, 253, 0.82) 34%, rgba(251, 252, 253, 0.14) 68%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(7, 15, 20, 0.18)),
     var(--voucher-image);
-  background-position: center, center, var(--voucher-position);
+  background-position: center, var(--voucher-position);
   background-size: cover;
   box-shadow: 0 18px 42px rgba(23, 20, 18, 0.14);
   color: var(--ink);
 }
 
-.gift-voucher-signature {
+.gift-voucher-preview-card.has-custom-image {
   background-image:
-    radial-gradient(circle at 76% 18%, rgba(255, 255, 255, 0.92) 0 9%, transparent 28%),
-    linear-gradient(90deg, rgba(251, 252, 253, 0.96) 0%, rgba(251, 252, 253, 0.76) 38%, rgba(251, 252, 253, 0.08) 72%),
-    linear-gradient(135deg, rgba(238, 51, 56, 0) 0 58%, rgba(238, 51, 56, 0.16) 58.2% 59%, transparent 59.2%),
-    var(--voucher-image);
-}
-
-.gift-voucher-editorial {
-  background-image:
-    linear-gradient(90deg, rgba(251, 252, 253, 0.08) 0%, rgba(251, 252, 253, 0.14) 46%, rgba(251, 252, 253, 0.98) 46.2%, rgba(251, 252, 253, 0.96) 100%),
-    linear-gradient(118deg, transparent 0 50%, rgba(238, 51, 56, 0.18) 50.2% 50.8%, transparent 51%),
-    var(--voucher-image);
-}
-
-.gift-voucher-noir {
-  background-image:
-    radial-gradient(circle at 82% 18%, rgba(238, 51, 56, 0.16), transparent 28%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(251, 247, 244, 0.96) 54%, rgba(240, 221, 215, 0.96) 100%),
-    var(--voucher-image);
-  color: var(--ink);
-}
-
-.gift-voucher-signature.has-custom-image {
-  background-image:
-    linear-gradient(90deg, rgba(251, 252, 253, 0.96) 0%, rgba(251, 252, 253, 0.74) 40%, rgba(251, 252, 253, 0.1) 74%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(10, 10, 10, 0.16)),
-    var(--voucher-image);
-}
-
-.gift-voucher-editorial.has-custom-image {
-  background-image:
-    linear-gradient(90deg, rgba(251, 252, 253, 0.04) 0%, rgba(251, 252, 253, 0.08) 44%, rgba(251, 252, 253, 0.98) 44.2%, rgba(251, 252, 253, 0.96) 100%),
-    var(--voucher-image);
-}
-
-.gift-voucher-noir.has-custom-image {
-  background-image:
-    linear-gradient(90deg, rgba(251, 252, 253, 0.96) 0%, rgba(251, 252, 253, 0.82) 42%, rgba(251, 252, 253, 0.18) 74%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.12)),
     var(--voucher-image);
+}
+
+.gift-voucher-preview-card.has-left-fade {
+  background-image:
+    linear-gradient(90deg, rgba(251, 252, 253, 0.99) 0%, rgba(251, 252, 253, 0.96) 26%, rgba(251, 252, 253, 0.7) 46%, rgba(251, 252, 253, 0.2) 63%, rgba(251, 252, 253, 0.02) 78%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(7, 15, 20, 0.1)),
+    var(--voucher-image);
+  background-position: center, center, var(--voucher-position);
+}
+
+.gift-voucher-preview-card.is-premium-gold {
+  background-image:
+    linear-gradient(90deg, rgba(9, 10, 13, 0.82) 0%, rgba(14, 14, 14, 0.64) 38%, rgba(22, 18, 12, 0.26) 62%, rgba(9, 10, 13, 0.06) 100%),
+    linear-gradient(180deg, rgba(7, 10, 15, 0.04), rgba(7, 7, 7, 0.2)),
+    var(--voucher-image);
+  background-position: center, center, var(--voucher-position);
+  color: rgba(255, 249, 236, 0.94);
+  box-shadow: 0 22px 52px rgba(18, 15, 10, 0.24);
+}
+
+.gift-voucher-preview-card.is-split-image {
+  background-color: #fffaf4;
+  background-image:
+    linear-gradient(90deg, rgba(18, 22, 24, 0.1) 0 40%, rgba(255, 250, 244, 0.98) 40% 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(23, 20, 18, 0.04)),
+    var(--voucher-image);
+  background-position: center, center, left center;
+  background-size: 100% 100%, 100% 100%, 40% 100%;
+  background-repeat: no-repeat;
+  color: var(--ink);
 }
 
 .gift-voucher-preview-card::before {
@@ -1148,46 +1128,27 @@ textarea {
   pointer-events: none;
 }
 
-.gift-voucher-signature::after {
-  background:
-    linear-gradient(90deg, transparent 0%, transparent 50%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0.22) 50.4%, transparent 50.8%),
-    radial-gradient(circle at 82% 76%, rgba(238, 51, 56, 0.22), transparent 24%);
-  border: 1px solid rgba(255, 255, 255, 0.62);
+.gift-voucher-preview-card.is-premium-gold::before {
+  border-color: rgba(247, 222, 171, 0.24);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 0 24px rgba(215, 173, 99, 0.05) inset;
 }
 
-.gift-voucher-editorial::after {
-  inset: 14px;
-  border-color: rgba(238, 51, 56, 0.22);
-  background:
-    linear-gradient(90deg, transparent 0 44%, rgba(183, 138, 69, 0.14) 44.2% 44.6%, transparent 44.8%),
-    radial-gradient(ellipse at 23% 84%, rgba(183, 138, 69, 0.16), transparent 26%);
+.gift-voucher-preview-card.is-premium-gold::after {
+  border-color: rgba(215, 173, 99, 0.18);
 }
 
-.gift-voucher-noir::after {
-  border-color: rgba(255, 255, 255, 0.62);
-  background:
-    linear-gradient(90deg, rgba(238, 51, 56, 0.58) 0 4px, transparent 4px),
-    radial-gradient(circle at 84% 18%, rgba(238, 51, 56, 0.08), transparent 28%);
+.gift-voucher-preview-card.is-split-image::before {
+  inset: clamp(12px, 1.35vw, 18px);
+  border-color: rgba(23, 20, 18, 0.08);
+  box-shadow: none;
 }
 
-.gift-preview-ribbon {
-  position: absolute;
-  z-index: 2;
-  top: clamp(19px, 2vw, 27px);
-  right: clamp(18px, 2.35vw, 30px);
-  width: clamp(94px, 9vw, 132px);
-  height: clamp(18px, 1.7vw, 24px);
-  border-radius: 999px;
+.gift-voucher-preview-card.is-split-image::after {
+  border-color: rgba(178, 58, 59, 0.12);
   background:
-    linear-gradient(135deg, rgba(238, 51, 56, 0.78), rgba(153, 30, 36, 0.9)),
-    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
-  box-shadow: 0 8px 18px rgba(112, 22, 26, 0.16);
-  transform: rotate(-5deg) translateY(6px);
-  transform-origin: right center;
-}
-
-.gift-preview-ribbon::after {
-  display: none;
+    linear-gradient(90deg, transparent 0 40%, rgba(178, 58, 59, 0.16) 40%, transparent calc(40% + 1px));
 }
 
 .gift-preview-logo {
@@ -1203,8 +1164,34 @@ textarea {
   box-shadow: 0 8px 18px rgba(23, 20, 18, 0.06);
 }
 
-.gift-voucher-noir .gift-preview-logo {
-  background: rgba(255, 255, 255, 0.84);
+.gift-voucher-preview-card.has-transparent-logo .gift-preview-logo {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 3px rgba(23, 20, 18, 0.22)) drop-shadow(0 12px 18px rgba(255, 255, 255, 0.28));
+}
+
+.gift-voucher-preview-card.is-premium-gold .gift-preview-logo {
+  top: clamp(20px, 2.2vw, 28px);
+  right: auto;
+  left: clamp(22px, 2.7vw, 36px);
+  width: clamp(68px, 6.4vw, 88px);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.24));
+}
+
+.gift-voucher-preview-card.is-split-image .gift-preview-logo {
+  top: clamp(22px, 2.3vw, 30px);
+  right: clamp(24px, 3vw, 38px);
+  left: auto;
+  width: clamp(74px, 7.2vw, 100px);
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 3px rgba(255, 255, 255, 0.64));
 }
 
 .gift-preview-content {
@@ -1218,41 +1205,68 @@ textarea {
   margin-top: clamp(48px, 5.7vw, 72px);
 }
 
-.gift-voucher-editorial .gift-preview-content {
-  width: min(44%, 250px);
-  margin-left: auto;
-  margin-top: clamp(58px, 6.5vw, 82px);
-}
-
-.gift-voucher-noir .gift-preview-content {
-  width: min(48%, 270px);
-  justify-items: start;
-  margin-top: clamp(52px, 6vw, 76px);
-}
-
 .gift-voucher-preview-card.has-custom-image .gift-preview-content {
   min-height: auto;
   padding: clamp(12px, 1.4vw, 18px);
   border-radius: 6px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 18px 34px rgba(23, 20, 18, 0.08);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
-.gift-voucher-signature.has-custom-image .gift-preview-content {
-  background: rgba(255, 255, 255, 0.74);
-  box-shadow: 0 18px 34px rgba(23, 20, 18, 0.08);
+.gift-voucher-preview-card.has-left-fade .gift-preview-content {
+  width: min(49%, 286px);
+  margin-top: clamp(38px, 4.4vw, 56px);
 }
 
-.gift-voucher-editorial.has-custom-image .gift-preview-content {
-  width: min(46%, 270px);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: -18px 0 38px rgba(23, 20, 18, 0.08);
+.gift-voucher-preview-card.has-left-fade.has-custom-image .gift-preview-content {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
-.gift-voucher-noir.has-custom-image .gift-preview-content {
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.54);
-  box-shadow: 0 18px 34px rgba(23, 20, 18, 0.1);
+.gift-voucher-preview-card.is-premium-gold .gift-preview-content {
+  position: absolute;
+  left: clamp(22px, 3.2vw, 42px);
+  top: 29%;
+  bottom: clamp(22px, 2.7vw, 36px);
+  display: block;
+  width: min(48%, 300px);
+  margin-top: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.gift-voucher-preview-card.is-split-image .gift-preview-content {
+  position: absolute;
+  right: clamp(26px, 3vw, 40px);
+  left: calc(40% + clamp(28px, 3.5vw, 48px));
+  top: clamp(82px, 8vw, 106px);
+  bottom: clamp(24px, 2.7vw, 36px);
+  display: block;
+  width: auto;
+  margin-top: 0;
+  padding-left: 0;
+  border-left: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.gift-voucher-preview-card.is-premium-gold .gift-preview-content::before {
+  content: "";
+  display: block;
+  width: clamp(74px, 8vw, 112px);
+  height: 1px;
+  margin-bottom: clamp(8px, 0.8vw, 10px);
+  background: linear-gradient(90deg, rgba(215, 173, 99, 0.95), rgba(215, 173, 99, 0));
 }
 
 .gift-preview-content span {
@@ -1265,32 +1279,48 @@ textarea {
   text-transform: uppercase;
 }
 
-.gift-voucher-noir .gift-preview-content span,
-.gift-voucher-noir .gift-preview-recipient {
-  color: rgba(23, 20, 18, 0.68);
+.gift-voucher-preview-card.is-premium-gold .gift-preview-content span {
+  color: rgba(247, 222, 171, 0.78);
+  font-size: clamp(9px, 0.64vw, 11px);
+  font-weight: 780;
+  letter-spacing: 0.18em;
+}
+
+.gift-voucher-preview-card.is-split-image .gift-preview-content span {
+  color: rgba(23, 20, 18, 0.54);
+  font-size: clamp(9px, 0.62vw, 11px);
+  letter-spacing: 0.2em;
 }
 
 .gift-preview-content h3 {
   max-width: 100%;
-  margin: 2px 0 9px;
+  margin: 2px 0 10px;
   color: var(--voucher-accent);
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: clamp(23px, 2vw, 32px);
+  font-size: clamp(22px, 1.86vw, 30px);
   font-weight: 780;
-  line-height: 0.98;
+  line-height: 1;
   text-transform: uppercase;
 }
 
-.gift-voucher-editorial .gift-preview-content h3 {
-  font-size: clamp(21px, 1.82vw, 29px);
-  letter-spacing: 0.08em;
-  color: var(--ink);
+.gift-voucher-preview-card.is-premium-gold .gift-preview-content h3 {
+  color: var(--voucher-accent);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(23px, 2vw, 33px);
+  font-weight: 400;
+  line-height: 0.94;
+  margin-bottom: 8px;
+  text-transform: none;
+  text-wrap: balance;
 }
 
-.gift-voucher-noir .gift-preview-content h3 {
+.gift-voucher-preview-card.is-split-image .gift-preview-content h3 {
+  max-width: 300px;
+  margin: 4px 0 14px;
   color: var(--voucher-accent);
-  font-size: clamp(22px, 1.9vw, 30px);
-  letter-spacing: 0.02em;
+  font-size: clamp(27px, 2.5vw, 42px);
+  font-weight: 880;
+  line-height: 0.95;
 }
 
 .gift-preview-recipient {
@@ -1299,11 +1329,26 @@ textarea {
   min-height: 28px;
   align-items: baseline;
   gap: 4px;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   color: rgba(23, 20, 18, 0.72);
   font-size: clamp(12px, 0.9vw, 15px);
   font-weight: 700;
   line-height: 1.18;
+}
+
+.gift-voucher-preview-card.is-premium-gold .gift-preview-recipient {
+  color: rgba(255, 249, 236, 0.82);
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: clamp(10px, 0.72vw, 12px);
+}
+
+.gift-voucher-preview-card.is-split-image .gift-preview-recipient {
+  display: block;
+  min-height: 0;
+  margin-bottom: 12px;
+  color: rgba(23, 20, 18, 0.68);
+  font-size: clamp(11px, 0.76vw, 13px);
 }
 
 .gift-preview-recipient strong {
@@ -1320,9 +1365,17 @@ textarea {
   -webkit-line-clamp: 2;
 }
 
-.gift-voucher-noir .gift-preview-recipient strong,
-.gift-voucher-noir .gift-preview-amount {
+.gift-voucher-preview-card.is-premium-gold .gift-preview-recipient strong {
+  color: rgba(255, 244, 215, 0.94);
+  font-size: 1.28em;
+}
+
+.gift-voucher-preview-card.is-split-image .gift-preview-recipient strong {
+  display: block;
+  max-width: 270px;
+  margin-top: 2px;
   color: var(--voucher-accent);
+  font-size: 1.36em;
 }
 
 .gift-preview-recipient.is-long strong {
@@ -1331,11 +1384,26 @@ textarea {
 }
 
 .gift-preview-amount {
-  margin: 0 0 7px;
+  margin: 0 0 10px;
   color: var(--voucher-accent);
-  font-size: clamp(26px, 2.55vw, 40px);
+  font-size: clamp(25px, 2.28vw, 36px);
   font-weight: 760;
   line-height: 1;
+}
+
+.gift-voucher-preview-card.is-premium-gold .gift-preview-amount {
+  color: rgba(247, 222, 171, 0.96);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(27px, 2.34vw, 38px);
+  font-weight: 400;
+  margin-bottom: 8px;
+}
+
+.gift-voucher-preview-card.is-split-image .gift-preview-amount {
+  margin-bottom: 12px;
+  color: var(--voucher-accent);
+  font-size: clamp(30px, 2.85vw, 48px);
+  font-weight: 840;
 }
 
 .gift-preview-message {
@@ -1354,8 +1422,20 @@ textarea {
   -webkit-line-clamp: 3;
 }
 
-.gift-voucher-noir .gift-preview-message {
-  color: rgba(23, 20, 18, 0.76);
+.gift-voucher-preview-card.is-premium-gold .gift-preview-message {
+  max-width: 260px;
+  color: rgba(255, 249, 236, 0.8);
+  font-size: clamp(10px, 0.72vw, 12px);
+  font-weight: 560;
+  line-height: 1.3;
+}
+
+.gift-voucher-preview-card.is-split-image .gift-preview-message {
+  max-width: 290px;
+  color: rgba(23, 20, 18, 0.68);
+  font-size: clamp(10px, 0.76vw, 12px);
+  font-weight: 650;
+  line-height: 1.32;
 }
 
 .gift-preview-message.is-long {
@@ -1363,29 +1443,10 @@ textarea {
   line-height: 1.38;
 }
 
-.gift-preview-note {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-top: 12px;
-  padding: 11px 14px;
-  border: 1px solid rgba(216, 220, 222, 0.62);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.76);
-  color: rgba(23, 20, 18, 0.7);
-  font-size: 12px;
-  font-weight: 760;
-}
-
-.gift-preview-note svg {
-  color: var(--red);
-  flex: 0 0 auto;
-}
-
 .gift-payment-fields {
   display: grid;
-  gap: 12px;
-  margin-top: clamp(16px, 2.4vw, 28px);
+  gap: 11px;
+  margin-top: 18px;
 }
 
 .gift-date-field {
@@ -1393,22 +1454,33 @@ textarea {
   display: block;
 }
 
-.gift-date-field svg {
-  position: absolute;
-  right: 14px;
-  top: 11px;
-  color: rgba(23, 20, 18, 0.44);
+.gift-payment-fields input {
+  padding-right: 13px;
+}
+
+.gift-date-field input[type="date"] {
+  color-scheme: light;
+  color: rgba(23, 20, 18, 0.72);
+}
+
+.gift-field-hint {
+  display: block;
+  margin-top: 7px;
+  color: rgba(23, 20, 18, 0.52);
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.45;
 }
 
 .gift-builder-footer {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(230px, 320px);
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 300px);
   gap: 18px;
   align-items: center;
-  margin-top: 12px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(216, 220, 222, 0.74);
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(216, 220, 222, 0.58);
 }
 
 .gift-builder-footer p {
@@ -1429,18 +1501,18 @@ textarea {
 
 .gift-builder-footer button {
   display: inline-flex;
-  min-height: 44px;
+  min-height: 46px;
   align-items: center;
   justify-content: center;
   gap: 12px;
   border: 0;
   border-radius: 7px;
-  background: linear-gradient(135deg, var(--red), #cf2d2f);
+  background: linear-gradient(135deg, #ef3438, #cf2d2f);
   color: #fff;
   font: inherit;
   font-size: 14px;
   font-weight: 820;
-  box-shadow: 0 18px 34px rgba(238, 51, 56, 0.24);
+  box-shadow: 0 16px 34px rgba(238, 51, 56, 0.22);
 }
 
 .gift-builder-footer button:hover {
@@ -1478,15 +1550,7 @@ textarea {
 }
 
 .gift-how-step:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 37px;
-  left: 92px;
-  width: calc(100% + clamp(22px, 3vw, 46px) - 110px);
-  border-top: 1px dashed rgba(238, 51, 56, 0.22);
-  transform: scaleX(0);
-  transform-origin: left center;
-  animation: giftHowLineIn 760ms var(--ease-luxury) both;
+  display: none;
 }
 
 .gift-how-step:nth-child(1) {
@@ -1560,30 +1624,38 @@ textarea {
 }
 
 .gift-info-section {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
-  gap: clamp(22px, 3vw, 34px);
-  margin-top: clamp(34px, 5vw, 58px);
-  padding: clamp(20px, 2.5vw, 30px);
+  grid-template-columns: minmax(280px, 0.78fr) minmax(340px, 1.22fr);
+  gap: clamp(26px, 4vw, 54px);
+  margin-top: clamp(30px, 4.4vw, 52px);
+  padding: clamp(24px, 3.1vw, 40px);
   border: 1px solid rgba(216, 220, 222, 0.42);
   border-radius: var(--radius-small);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82)),
-    radial-gradient(ellipse at 8% 20%, rgba(238, 51, 56, 0.045), transparent 36%);
-  box-shadow: 0 16px 42px rgba(37, 31, 24, 0.055);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.88)),
+    radial-gradient(ellipse at 8% 18%, rgba(238, 51, 56, 0.055), transparent 34%),
+    radial-gradient(ellipse at 86% 100%, rgba(213, 177, 113, 0.08), transparent 38%);
+  box-shadow: 0 18px 48px rgba(37, 31, 24, 0.055);
+  overflow: hidden;
+}
+
+.gift-info-card {
+  position: relative;
+  z-index: 1;
 }
 
 .gift-info-card h2 {
-  margin: 0 0 18px;
+  margin: 0 0 20px;
   color: var(--ink);
-  font-size: clamp(22px, 2vw, 30px);
+  font-size: clamp(21px, 1.75vw, 28px);
   font-weight: 760;
   line-height: 1.12;
 }
 
 .gift-info-card ul {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1591,8 +1663,8 @@ textarea {
 
 .gift-info-card li {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
   color: rgba(23, 20, 18, 0.66);
   font-size: 13px;
@@ -1601,31 +1673,47 @@ textarea {
 }
 
 .gift-info-card li svg {
-  margin-top: 2px;
+  margin-top: 1px;
   color: rgba(238, 51, 56, 0.72);
+  filter: drop-shadow(0 6px 12px rgba(238, 51, 56, 0.12));
 }
 
 .gift-faq-list {
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  align-content: start;
 }
 
 .gift-faq-list details {
-  border: 1px solid rgba(216, 220, 222, 0.74);
+  border: 1px solid rgba(216, 220, 222, 0.62);
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 6px 16px rgba(37, 31, 24, 0.02);
   overflow: hidden;
+  transition: border-color 180ms var(--ease-luxury), background 180ms var(--ease-luxury), box-shadow 180ms var(--ease-luxury);
+}
+
+.gift-faq-list details[open] {
+  border-color: rgba(238, 51, 56, 0.24);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 24px rgba(37, 31, 24, 0.045);
 }
 
 .gift-faq-list summary {
   position: relative;
   display: block;
-  padding: 14px 42px 14px 16px;
+  padding: 12px 40px 12px 14px;
   color: rgba(23, 20, 18, 0.84);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 790;
   line-height: 1.3;
+}
+
+.gift-faq-list summary:hover {
+  color: var(--red);
 }
 
 .gift-faq-list summary::-webkit-details-marker {
@@ -1647,6 +1735,7 @@ textarea {
 
 .gift-faq-list details[open] summary::after {
   transform: translateY(-30%) rotate(225deg);
+  border-color: var(--red);
 }
 
 .gift-faq-list p {
@@ -1714,6 +1803,12 @@ textarea {
   }
 }
 
+@media (min-width: 1121px) {
+  .gift-payment-fields {
+    margin-top: clamp(72px, 7.2vw, 96px);
+  }
+}
+
 @media (max-width: 760px) {
   .gift-vouchers-hero {
     min-height: 640px;
@@ -1768,11 +1863,12 @@ textarea {
     padding: 28px 24px;
   }
 
-  .gift-preview-ribbon {
-    top: 24px;
-    right: 24px;
-    width: 112px;
-    height: 22px;
+  .gift-voucher-preview-card.is-split-image {
+    background-image:
+      linear-gradient(180deg, rgba(251, 247, 242, 0) 0 40%, rgba(251, 247, 242, 0.98) 40% 100%),
+      var(--voucher-image);
+    background-position: center, top center;
+    background-size: 100% 100%, 100% 44%;
   }
 
   .gift-preview-logo {
@@ -1781,16 +1877,25 @@ textarea {
     width: 92px;
   }
 
+  .gift-voucher-preview-card.is-split-image .gift-preview-logo {
+    right: 24px;
+    left: auto;
+    top: calc(44% + 18px);
+    width: 86px;
+  }
+
   .gift-preview-content {
     width: min(70%, 300px);
     margin-top: 78px;
   }
 
-  .gift-voucher-editorial .gift-preview-content,
-  .gift-voucher-noir .gift-preview-content {
-    width: min(70%, 300px);
-    margin-top: 78px;
-    margin-left: 0;
+  .gift-voucher-preview-card.is-split-image .gift-preview-content {
+    right: auto;
+    left: 24px;
+    top: calc(44% + 82px);
+    bottom: 24px;
+    width: calc(100% - 48px);
+    max-width: 320px;
   }
 
   .gift-preview-recipient strong {
@@ -1847,6 +1952,7 @@ textarea {
     margin-top: 36px;
     padding: 18px;
   }
+
 }
 
 .exotic-intro {
