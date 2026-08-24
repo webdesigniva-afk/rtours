@@ -665,7 +665,6 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
         <section className="offers-hero">
           <LazyVideo
             className="offers-hero-video"
-            poster="/images/destinations/turkey.avif"
             sources={[{ src: "/videos/offers-hero.mp4", type: "video/mp4" }]}
           />
           <div className="offers-hero-shade" aria-hidden="true" />

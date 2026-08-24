@@ -110,12 +110,10 @@ export default async function AuthorProgramsPage() {
           <div className="author-hero-video" aria-hidden="true">
             <LazyVideo
               className="author-hero-video-item is-first"
-              poster={heroCollageImages[0]}
               sources={[{ src: "https://www.pexels.com/download/video/10745869/", type: "video/mp4" }]}
             />
             <LazyVideo
               className="author-hero-video-item is-second"
-              poster={heroCollageImages[1]}
               sources={[{ src: "https://www.pexels.com/download/video/4782636/", type: "video/mp4" }]}
             />
           </div>

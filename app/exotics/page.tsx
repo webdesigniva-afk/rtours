@@ -29,12 +29,10 @@ export default async function ExoticsPage() {
           <div className="author-hero-video" aria-hidden="true">
             <LazyVideo
               className="author-hero-video-item is-first"
-              poster="/images/destinations/mauritius.avif"
               sources={[{ src: "/videos/exotics/exotics-hero-01.mp4", type: "video/mp4" }]}
             />
             <LazyVideo
               className="author-hero-video-item is-second"
-              poster="/images/destinations/sri-lanka.avif"
               sources={[{ src: "/videos/exotics/exotics-hero-02.mp4", type: "video/mp4" }]}
             />
           </div>

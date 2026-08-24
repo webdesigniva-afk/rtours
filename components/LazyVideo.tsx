@@ -9,12 +9,11 @@ type LazyVideoSource = {
 
 type LazyVideoProps = {
   sources: LazyVideoSource[];
-  poster: string;
   className?: string;
   loadOnMobile?: boolean;
 };
 
-export function LazyVideo({ sources, poster, className, loadOnMobile = false }: LazyVideoProps) {
+export function LazyVideo({ sources, className, loadOnMobile = false }: LazyVideoProps) {
   const [canLoadVideo, setCanLoadVideo] = useState(false);
 
   useEffect(() => {
@@ -46,11 +45,11 @@ export function LazyVideo({ sources, poster, className, loadOnMobile = false }: 
   }, [loadOnMobile]);
 
   if (!canLoadVideo) {
-    return <img className={className} src={poster} alt="" decoding="async" />;
+    return null;
   }
 
   return (
-    <video className={className} autoPlay muted loop playsInline preload="none" poster={poster} aria-hidden="true">
+    <video className={className} autoPlay muted loop playsInline preload="none" aria-hidden="true">
       {sources.map((source) => (
         <source key={source.src} src={source.src} type={source.type} />
       ))}
