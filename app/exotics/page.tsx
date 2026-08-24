@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ExoticOffersBrowser } from "./ExoticOffersBrowser";
+import { LazyVideo } from "@/components/LazyVideo";
 import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -26,12 +27,16 @@ export default async function ExoticsPage() {
       <main className="author-page exotic-page">
         <section className="author-hero">
           <div className="author-hero-video" aria-hidden="true">
-            <video className="author-hero-video-item is-first" autoPlay muted loop playsInline preload="metadata">
-              <source src="/videos/exotics/exotics-hero-01.mp4" type="video/mp4" />
-            </video>
-            <video className="author-hero-video-item is-second" autoPlay muted loop playsInline preload="metadata">
-              <source src="/videos/exotics/exotics-hero-02.mp4" type="video/mp4" />
-            </video>
+            <LazyVideo
+              className="author-hero-video-item is-first"
+              poster="/images/destinations/mauritius.avif"
+              sources={[{ src: "/videos/exotics/exotics-hero-01.mp4", type: "video/mp4" }]}
+            />
+            <LazyVideo
+              className="author-hero-video-item is-second"
+              poster="/images/destinations/sri-lanka.avif"
+              sources={[{ src: "/videos/exotics/exotics-hero-02.mp4", type: "video/mp4" }]}
+            />
           </div>
           <div className="container author-hero-grid">
             <div className="author-hero-copy">

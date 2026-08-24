@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DestinationGlobe } from "@/components/DestinationGlobe";
+import { LazyVideo } from "@/components/LazyVideo";
 import { OfferCard } from "@/components/OfferCard";
 import { OfferSortSelect } from "@/components/OfferSortSelect";
 import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
@@ -662,9 +663,11 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
       <SiteHeader />
       <main className="offers-index-page">
         <section className="offers-hero">
-          <video className="offers-hero-video" autoPlay muted loop playsInline poster="/images/destinations/turkey.avif" aria-hidden="true">
-            <source src="/videos/offers-hero.mp4" type="video/mp4" />
-          </video>
+          <LazyVideo
+            className="offers-hero-video"
+            poster="/images/destinations/turkey.avif"
+            sources={[{ src: "/videos/offers-hero.mp4", type: "video/mp4" }]}
+          />
           <div className="offers-hero-shade" aria-hidden="true" />
           <div className="container offers-hero-content">
             <PublicBreadcrumbs items={[{ label: "Пътувания" }]} />

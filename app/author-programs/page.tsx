@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, Compass, HeartHandshake, Route, Sparkles, UsersRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AuthorTypingCaption } from "@/components/AuthorTypingCaption";
+import { LazyVideo } from "@/components/LazyVideo";
 import { PublicBreadcrumbs } from "@/components/PublicBreadcrumbs";
 import { ScrollRevealEffects } from "@/components/ScrollRevealEffects";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -107,12 +108,16 @@ export default async function AuthorProgramsPage() {
         <ScrollRevealEffects />
         <section className="author-hero">
           <div className="author-hero-video" aria-hidden="true">
-            <video className="author-hero-video-item is-first" autoPlay muted loop playsInline preload="metadata">
-              <source src="https://www.pexels.com/download/video/10745869/" type="video/mp4" />
-            </video>
-            <video className="author-hero-video-item is-second" autoPlay muted loop playsInline preload="metadata">
-              <source src="https://www.pexels.com/download/video/4782636/" type="video/mp4" />
-            </video>
+            <LazyVideo
+              className="author-hero-video-item is-first"
+              poster={heroCollageImages[0]}
+              sources={[{ src: "https://www.pexels.com/download/video/10745869/", type: "video/mp4" }]}
+            />
+            <LazyVideo
+              className="author-hero-video-item is-second"
+              poster={heroCollageImages[1]}
+              sources={[{ src: "https://www.pexels.com/download/video/4782636/", type: "video/mp4" }]}
+            />
           </div>
           <div className="container author-hero-grid">
             <div className="author-hero-copy">
